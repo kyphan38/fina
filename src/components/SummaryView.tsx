@@ -44,6 +44,7 @@ export default function SummaryView() {
           outVnd: s.flow.outVnd,
           investedVnd: s.flow.investedVnd,
           incomeVnd: s.flow.inVnd,
+          byBucket: s.spent,
         }}
         pendingCount={s.pendingCovers.length}
       />

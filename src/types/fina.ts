@@ -125,7 +125,13 @@ export interface Cycle {
    * Chụp lại lúc đóng sổ, để bảng dòng tiền theo năm không phải đọc lại toàn
    * bộ giao dịch của 12 chu kỳ.
    */
-  closedTotals: { outVnd: number; investedVnd: number } | null;
+  closedTotals: {
+    outVnd: number;
+    investedVnd: number;
+    /** Chi tiêu ròng theo từng bucket. Có nó thì Insights vẽ được xu hướng
+     *  6 chu kỳ mà chỉ đọc 6 document, không phải vài nghìn giao dịch. */
+    byBucket: Record<string, number>;
+  } | null;
   closedIncomeVnd: number | null;
 }
 

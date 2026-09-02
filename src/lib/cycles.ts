@@ -247,7 +247,12 @@ export async function closeCycle(
   surplusVnd: number,
   surplusTo: SurplusTarget,
   /** Chụp lại để bảng dòng tiền theo năm khỏi đọc lại toàn bộ giao dịch. */
-  snapshot: { outVnd: number; investedVnd: number; incomeVnd: number },
+  snapshot: {
+    outVnd: number;
+    investedVnd: number;
+    incomeVnd: number;
+    byBucket: Record<string, number>;
+  },
 ): Promise<void> {
   const batch = writeBatch(db);
 
@@ -256,7 +261,11 @@ export async function closeCycle(
     closedAt: Date.now(),
     surplusVnd,
     surplusTo,
-    closedTotals: { outVnd: snapshot.outVnd, investedVnd: snapshot.investedVnd },
+    closedTotals: {
+      outVnd: snapshot.outVnd,
+      investedVnd: snapshot.investedVnd,
+      byBucket: snapshot.byBucket,
+    },
     closedIncomeVnd: snapshot.incomeVnd,
   });
 
