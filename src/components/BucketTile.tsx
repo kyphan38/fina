@@ -1,6 +1,7 @@
 'use client';
 
 import { formatVnd } from '@/lib/money';
+import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
 
 /**
@@ -52,8 +53,17 @@ export default function BucketTile({
       </span>
       <span className={`absolute inset-x-0 bottom-0 h-0.5 ${selected ? 'bg-white/20' : 'bg-sunk'}`}>
         <span
-          className={`block h-full ${selected ? 'bg-bg' : over ? 'bg-over' : 'bg-muted'}`}
-          style={{ width: `${over ? 100 : pct}%` }}
+          className="block h-full"
+          style={{
+            width: `${over ? 100 : pct}%`,
+            // Vượt hạn mức thì màu cảnh báo thắng màu nhận dạng: lúc đó cái
+            // cần biết là "đã lố", không phải "đây là bucket nào".
+            background: selected
+              ? 'var(--bg)'
+              : over
+                ? 'var(--over)'
+                : bucketAccent(bucket.id),
+          }}
         />
       </span>
     </button>

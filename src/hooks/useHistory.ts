@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { clockStore } from '@/lib/clock';
+import { historyCycleStore } from '@/lib/prefs';
 import { cycleOf } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { watchCycleTransactions } from '@/lib/transactions';
@@ -18,7 +19,12 @@ export function useHistory() {
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
   const currentCycle = useMemo(() => cycleOf(new Date(now)), [now]);
 
-  const [cycle, setCycle] = useState<string | null>(null);
+  const cycle = useSyncExternalStore(
+    historyCycleStore.subscribe,
+    historyCycleStore.get,
+    historyCycleStore.getServer,
+  );
+  const setCycle = (next: string | null) => historyCycleStore.set(next);
   const [cycleIds, setCycleIds] = useState<string[]>([]);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);

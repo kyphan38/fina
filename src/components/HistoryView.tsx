@@ -6,6 +6,7 @@ import TxEditSheet from '@/components/TxEditSheet';
 import { useHistory } from '@/hooks/useHistory';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd } from '@/lib/money';
+import { bucketAccent, hasAccent } from '@/lib/bucket-color';
 import type { Transaction } from '@/types/fina';
 
 const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
@@ -81,7 +82,12 @@ export default function HistoryView() {
                     <button
                       type="button"
                       onClick={() => setEditing(t)}
-                      className="flex w-full items-baseline gap-2.5 px-3 py-2.5 text-left"
+                      className="flex w-full items-baseline gap-2.5 border-l-[3px] px-3 py-2.5 text-left"
+                      style={{
+                        borderLeftColor: hasAccent(t.bucketId)
+                          ? bucketAccent(t.bucketId)
+                          : 'transparent',
+                      }}
                     >
                       <span className="w-10 shrink-0 text-[11px] text-faint">
                         {new Date(t.occurredAt).toLocaleTimeString('en-GB', {
