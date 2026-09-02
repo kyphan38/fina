@@ -96,8 +96,9 @@ self.addEventListener('push', (event) => {
   const payload = data.data ?? data;
 
   event.waitUntil(
+    // title mang cả nội dung: iOS đã hiện tên app ở trên rồi.
     self.registration.showNotification(payload.title || 'fina', {
-      body: payload.body || '',
+      body: payload.body || undefined,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: payload.tag || 'fina-reminder',

@@ -62,8 +62,10 @@ export const pushReminders = onSchedule(
         await getMessaging().send({
           token,
           data: {
-            title: 'fina',
-            body: `${quiet} days since your last entry.`,
+            // iOS đã hiện tên app ở dòng đầu. Đặt title là 'fina' nữa thì ra
+            // "fina / from fina / 2 days...", thừa hai dòng.
+            title: `${quiet} days since your last entry.`,
+            body: '',
             tag: 'fina-quiet',
             url: '/log',
           },

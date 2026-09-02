@@ -16,7 +16,7 @@ import { db } from '@/lib/firebase-client';
 import { cycleOf } from '@/lib/cycle';
 import { bucketsCol } from '@/lib/buckets';
 import { balanceDeltas, type TxShape } from '@/lib/tx-edit';
-import type { Bucket, Transaction, TxDirection } from '@/types/fina';
+import type { Bucket, Transaction, TxDirection, TxSource } from '@/types/fina';
 
 export const txCol = (uid: string) => collection(db, 'users', uid, 'transactions');
 
@@ -34,7 +34,13 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
         ? 'in'
         : 'out',
     note: (data.note as string | null) ?? null,
-    source: data.source === 'import' ? 'import' : 'web',
+    // Quên 'allocation' ở đây làm mọi khoản chia lương vào quỹ bị tính là chi
+    // tiêu (thực ra là bị TRỪ, vì chúng có direction 'in'), và bảng Cash flow
+    // hiện Out −6.685 trong khi thật ra là +3.815.
+    source:
+      data.source === 'import' || data.source === 'allocation'
+        ? (data.source as TxSource)
+        : 'web',
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };

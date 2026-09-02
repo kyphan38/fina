@@ -107,21 +107,32 @@ export default function GeneratorSheet({
 
         {confirming ? (
           <div className="mt-3 rounded-[10px] border border-line px-3 py-3">
-            <p className="text-sm">
-              Replace this cycle&rsquo;s limits with these amounts?
-            </p>
-            <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">
-              <li>Records {formatVnd(salary)} of salary for {month}.</li>
-              <li>Sets the monthly limits — what you have already spent stays.</li>
-              <li>Pays {formatVnd(r.fundsTotalVnd)} into the BIDV funds.</li>
-              <li>
-                Leaves {formatVnd(r.etfVnd)} for VPS — transfer it yourself, then log the
-                deposit.
+            <p className="text-sm font-semibold">Apply to {month}?</p>
+            <ul className="mt-2 flex flex-col gap-1 text-xs">
+              <li className="flex justify-between">
+                <span className="text-muted">Salary in</span>
+                <b className="font-semibold">{formatVnd(salary)}</b>
+              </li>
+              <li className="flex justify-between">
+                <span className="text-muted">Monthly limits</span>
+                <b className="font-semibold">{formatVnd(r.monthlyTotalVnd)}</b>
+              </li>
+              <li className="flex justify-between">
+                <span className="text-muted">Into BIDV funds</span>
+                <b className="font-semibold">{formatVnd(r.fundsTotalVnd)}</b>
+              </li>
+              <li className="flex justify-between border-t border-line pt-1">
+                <span className="text-muted">Left for VPS, by hand</span>
+                <b className={`font-semibold ${r.etfVnd < 0 ? 'text-over' : ''}`}>
+                  {formatVnd(r.etfVnd)}
+                </b>
               </li>
             </ul>
-            <p className="mt-2 text-[11px] text-faint">
-              Applying again replaces this cycle&rsquo;s allocation rather than adding to it.
-            </p>
+            {edited && (
+              <p className="mt-2 text-[11px] text-faint">
+                Replaces this cycle&rsquo;s allocation — it does not add to it.
+              </p>
+            )}
             <button
               type="button"
               disabled={busy}
@@ -202,7 +213,11 @@ function Row({
       <span className="flex-1 truncate">{a.bucket.name}</span>
 
       {off && (
-        <span className={a.farFromStandard ? 'font-semibold text-over' : 'text-muted'}>
+        <span
+          className={`${a.deltaVnd > 0 ? 'text-up' : 'text-down'} ${
+            a.farFromStandard ? 'font-semibold' : ''
+          }`}
+        >
           {a.deltaVnd > 0 ? '+' : '−'}
           {formatVnd(Math.abs(a.deltaVnd))}
         </span>
@@ -216,7 +231,7 @@ function Row({
         aria-label={`${a.bucket.name} amount`}
         onChange={(e) => setEdits((prev) => ({ ...prev, [a.bucket.id]: e.target.value }))}
         className={`w-20 rounded-md border bg-surface-2 px-2 py-1 text-right text-xs ${
-          a.farFromStandard ? 'border-over' : 'border-line'
+          a.farFromStandard ? (a.deltaVnd > 0 ? 'border-up' : 'border-down') : 'border-line'
         }`}
       />
     </li>

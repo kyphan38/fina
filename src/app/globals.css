@@ -12,10 +12,13 @@
   --surface-2: #fafaf9;
   --sunk: #e9e9e7;
   --ink: #1a1a19;
-  --muted: #71716d;
-  --faint: #a3a39e;
-  --line: #e2e2df;
+  --muted: #55554f;
+  --faint: #7c7c74;
+  --line: #d3d3cd;
   --over: #9b2c22;
+  /* Generator: tang va giam phai nhin ra ngay la hai chuyen khac nhau. */
+  --up: #9b5a12;
+  --down: #1f6b4a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,10 +28,12 @@
     --surface-2: #222221;
     --sunk: #0d0d0c;
     --ink: #ededea;
-    --muted: #9a9a95;
-    --faint: #6b6b67;
-    --line: #2e2e2c;
+    --muted: #b2b2ab;
+    --faint: #8b8b83;
+    --line: #3b3b38;
     --over: #d97a6e;
+    --up: #e0a45f;
+    --down: #63c197;
   }
 }
 
@@ -42,6 +47,8 @@
   --color-faint: var(--faint);
   --color-line: var(--line);
   --color-over: var(--over);
+  --color-up: var(--up);
+  --color-down: var(--down);
 }
 
 html {
