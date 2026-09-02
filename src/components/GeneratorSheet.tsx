@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Numpad from '@/components/Numpad';
 import { allocate, type Allocation } from '@/lib/generator';
-import { applyCyclePlan } from '@/lib/cycles';
-import { cycleLabel } from '@/lib/cycle';
+import { applyCyclePlan, cycleUnallocated } from '@/lib/cycles';
+import { cycleLabel, previousCycle } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
 
@@ -31,6 +31,9 @@ export default function GeneratorSheet({
   onClose: () => void;
 }) {
   const [buf, setBuf] = useState(incomeVnd ? fromVnd(incomeVnd) : '');
+  // Ngày 25 người dùng vốn cộng nhẩm "lương mới + phần dư kỳ trước" rồi mới
+  // gõ. App làm hộ phép cộng đó, nhưng chỉ GỢI Ý - bấm mới áp dụng.
+  const [carryVnd, setCarryVnd] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +50,20 @@ export default function GeneratorSheet({
   const r = allocate(salary, buckets, overrides);
   const { month } = cycleLabel(cycleId);
   const edited = Object.keys(overrides).length > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    void cycleUnallocated(uid, previousCycle(cycleId))
+      .then((v) => {
+        if (!cancelled && v > 0) setCarryVnd(v);
+      })
+      .catch(() => {
+        // Không đọc được kỳ trước thì thôi, đây chỉ là gợi ý.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, cycleId]);
 
   const apply = async () => {
     setBusy(true);
@@ -71,12 +88,22 @@ export default function GeneratorSheet({
     <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
       <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
       <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
-        <div className="flex items-baseline justify-between pb-3">
+        <div className="flex items-baseline justify-between pb-1">
           <span className="text-xs font-semibold">Salary</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
             {buf || '0'}
           </span>
         </div>
+
+        {carryVnd !== null && (
+          <button
+            type="button"
+            onClick={() => setBuf(fromVnd(salary + carryVnd))}
+            className="mb-2 w-full rounded-lg border border-line px-3 py-1.5 text-left text-[11px] text-muted"
+          >
+            {formatVnd(carryVnd)} was still unassigned last cycle — tap to add it in
+          </button>
+        )}
 
         <Group title="VCB — Monthly" total={r.monthlyTotalVnd} salary={salary}>
           {r.monthly.map((a) => (

@@ -18,7 +18,8 @@ import { bucketsCol } from '@/lib/buckets';
 import { cycleRange } from '@/lib/cycle';
 import { txCol } from '@/lib/transactions';
 import { incomeCol } from '@/lib/income';
-import type { Bucket, Cycle, SurplusTarget } from '@/types/fina';
+import { cashFlow } from '@/lib/cashflow';
+import type { Bucket, Cycle, Income, SurplusTarget, Transaction } from '@/types/fina';
 
 export const cyclesCol = (uid: string) => collection(db, 'users', uid, 'cycles');
 const cycleRef = (uid: string, id: string) => doc(cyclesCol(uid), id);
@@ -162,6 +163,11 @@ export async function applyCyclePlan(
   const now = plan.occurredAt ?? Date.now();
 
   // Gỡ allocation cũ của chính chu kỳ này, hoàn số dư về, rồi mới ghi lại.
+  //
+  // CHỈ gỡ những dòng do chính hàm này sinh ra (id `alloc-<chu kỳ>-<bucket>`).
+  // Khoản nạp tay giữa chừng cũng mang source 'allocation' - nó cũng là
+  // chuyển tiền VCB sang BIDV - nhưng xoá nó ở đây là ăn mất tiền của người dùng.
+  const prefix = `alloc-${cycleId}-`;
   const old = await getDocs(
     query(txCol(uid), where('cycle', '==', cycleId), where('source', '==', 'allocation')),
   );
@@ -169,6 +175,7 @@ export async function applyCyclePlan(
   const batch = writeBatch(db);
 
   for (const d of old.docs) {
+    if (!d.id.startsWith(prefix)) continue;
     const t = d.data();
     batch.delete(d.ref);
     batch.update(doc(bucketsCol(uid), String(t.bucketId)), {
@@ -210,6 +217,23 @@ export async function applyCyclePlan(
   }
 
   await batch.commit();
+}
+
+/**
+ * Tiền vào VCB mà chưa được giao việc gì, của một chu kỳ.
+ *
+ * Dùng để điền sẵn ô lương ở Generator: ngày 25 người dùng vốn cộng nhẩm
+ * "lương mới + phần dư kỳ trước" rồi mới gõ vào. App làm hộ phép cộng đó.
+ */
+export async function cycleUnallocated(uid: string, cycleId: string): Promise<number> {
+  const [txSnap, incSnap] = await Promise.all([
+    getDocs(query(txCol(uid), where('cycle', '==', cycleId))),
+    getDocs(query(incomeCol(uid), where('cycle', '==', cycleId))),
+  ]);
+  return cashFlow(
+    incSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Income),
+    txSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Transaction),
+  ).unallocatedVnd;
 }
 
 /**

@@ -9,13 +9,14 @@ import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { setCycleLimits } from '@/lib/cycles';
-import { addEtfDeposit } from '@/lib/transactions';
+import { addEtfDeposit, addFundTopUp } from '@/lib/transactions';
 import { addIncome } from '@/lib/income';
 import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
   const s = useSummary();
   const [sheet, setSheet] = useState<'none' | 'generator' | 'etf' | 'income'>('none');
+  const [topUp, setTopUp] = useState<Bucket | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [etfOpen, setEtfOpen] = useState(false);
@@ -147,7 +148,7 @@ export default function SummaryView() {
       <Block title="BIDV — Funds">
         <ul className="flex flex-col gap-2">
           {s.funds.map((b) => (
-            <FundRow key={b.id} bucket={b} />
+            <FundRow key={b.id} bucket={b} onTopUp={() => setTopUp(b)} />
           ))}
         </ul>
         <Totals left="Total" right={formatVnd(s.fundsTotal)} />
@@ -229,8 +230,19 @@ export default function SummaryView() {
             {formatVnd(s.flow.leftVnd)}
           </span>
         </div>
+        <ul className="mt-1 flex flex-col gap-0.5 pl-3 text-xs text-muted">
+          <li className="flex justify-between">
+            <span>in funds</span>
+            <span>{formatVnd(s.flow.inFundsVnd)}</span>
+          </li>
+          <li className="flex justify-between">
+            <span>unassigned</span>
+            <span>{formatVnd(s.flow.unallocatedVnd)}</span>
+          </li>
+        </ul>
         <p className="mt-1.5 text-[11px] text-faint">
-          Still in the account: not spent, not invested yet.
+          Unassigned is money that arrived and has no job yet — a bonus lands here. The
+          Generator picks it up on the 25th.
         </p>
       </Block>
 
@@ -250,6 +262,19 @@ export default function SummaryView() {
           buckets={s.buckets}
           incomeVnd={s.cycle?.incomeVnd ?? null}
           onClose={() => setSheet('none')}
+        />
+      )}
+
+      {topUp && (
+        <AmountSheet
+          title={`Add to ${topUp.name}`}
+          confirmLabel="Add"
+          withDate
+          onCancel={() => setTopUp(null)}
+          onConfirm={async (amountVnd, note, occurredAt) => {
+            if (s.uid) await addFundTopUp(s.uid, topUp, amountVnd, note, occurredAt);
+            setTopUp(null);
+          }}
         />
       )}
 
@@ -321,16 +346,26 @@ function BudgetRow({
   );
 }
 
-function FundRow({ bucket }: { bucket: Bucket }) {
+function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
   const goal = bucket.goal;
   const pct = goal && goal.targetVnd > 0 ? Math.min(100, (bucket.balanceVnd / goal.targetVnd) * 100) : null;
 
   return (
     <li>
-      <div className="flex items-baseline justify-between text-sm">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{bucket.name}</span>
-        <span className={bucket.balanceVnd < 0 ? 'text-over' : 'text-muted'}>
-          {formatVnd(bucket.balanceVnd)}
+        <span className="flex items-baseline gap-3">
+          <span className={bucket.balanceVnd < 0 ? 'text-over' : 'text-muted'}>
+            {formatVnd(bucket.balanceVnd)}
+          </span>
+          <button
+            type="button"
+            onClick={onTopUp}
+            aria-label={`Add to ${bucket.name}`}
+            className="rounded-md border border-line px-1.5 text-xs leading-5 text-faint"
+          >
+            +
+          </button>
         </span>
       </div>
       {goal && (

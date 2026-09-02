@@ -75,6 +75,7 @@ export async function addTransaction(
   note: string | null,
   direction: TxDirection = 'out',
   occurredAt: number = Date.now(),
+  source: TxSource = 'web',
 ): Promise<{ id: string; occurredAt: number }> {
   const ref = doc(txCol(uid));
   const now = Date.now();
@@ -90,7 +91,7 @@ export async function addTransaction(
     amountVnd,
     direction,
     note: note && note.length > 0 ? note : null,
-    source: 'web',
+    source,
     createdAt: now,
     updatedAt: now,
   });
@@ -104,6 +105,23 @@ export async function addTransaction(
 
   await batch.commit();
   return { id: ref.id, occurredAt };
+}
+
+/**
+ * Nạp tay vào một quỹ giữa chu kỳ - ví dụ khoản thưởng để dành mua xe.
+ *
+ * Mang `source: 'allocation'` như khoản chia lương ngày 25, vì nó cũng là
+ * chuyển tiền VCB sang BIDV chứ không phải chi tiêu. Id sinh ngẫu nhiên nên
+ * `applyCyclePlan` không đụng tới nó khi chạy lại.
+ */
+export async function addFundTopUp(
+  uid: string,
+  fund: Bucket,
+  amountVnd: number,
+  note: string | null,
+  occurredAt: number = Date.now(),
+): Promise<{ id: string; occurredAt: number }> {
+  return addTransaction(uid, fund, amountVnd, note, 'in', occurredAt, 'allocation');
 }
 
 /**
