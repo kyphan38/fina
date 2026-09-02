@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { cycleOf } from '@/lib/cycle';
+import { clockStore } from '@/lib/clock';
 import type { Bucket, Transaction } from '@/types/fina';
 
 /**
@@ -19,9 +20,11 @@ export function useLogData() {
   const [buckets, setBuckets] = useState<Bucket[] | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
 
-  // Chu kỳ tính một lần khi mount. Đổi chu kỳ lúc nửa đêm ngày 25 là ca
-  // hiếm tới mức không đáng thêm một timer chạy suốt ngày.
-  const cycle = useMemo(() => cycleOf(new Date()), []);
+  // Đồng hồ dùng chung nhịp mỗi phút, nên app đang mở sẵn lúc nửa đêm ngày
+  // 25 vẫn tự sang chu kỳ mới. Chuỗi cycle không đổi thì listener không
+  // đăng ký lại.
+  const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
+  const cycle = useMemo(() => cycleOf(new Date(now)), [now]);
 
   useEffect(() => {
     if (!uid) return;

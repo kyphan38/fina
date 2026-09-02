@@ -13,10 +13,12 @@ export default function Numpad({
   onKey,
   onSave,
   canSave,
+  saveLabel = 'Save',
 }: {
   onKey: (key: string) => void;
   onSave: () => void;
   canSave: boolean;
+  saveLabel?: string;
 }) {
   return (
     <div className="grid grid-cols-3 gap-1.5">
@@ -37,7 +39,7 @@ export default function Numpad({
         disabled={!canSave}
         className="col-span-3 mt-0.5 mb-2 rounded-[10px] bg-ink py-3.5 text-sm font-semibold text-bg disabled:opacity-30 [@media(max-height:720px)]:py-2.5"
       >
-        Save
+        {saveLabel}
       </button>
     </div>
   );
