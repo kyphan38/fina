@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { SEED_BUCKETS } from '@/types/fina';
 
@@ -41,8 +41,9 @@ for (const seed of SEED_BUCKETS) {
   }
   const patch = {};
   if (cur.name !== seed.name) patch.name = seed.name;
-  if (cur.baselineVnd !== seed.baselineVnd) patch.baselineVnd = seed.baselineVnd;
   if (cur.standardVnd !== seed.standardVnd) patch.standardVnd = seed.standardVnd;
+  // baselineVnd da bo: Standard lam ca hai viec no tung lam.
+  if ('baselineVnd' in cur) patch.baselineVnd = FieldValue.delete();
   if (cur.hint !== seed.hint) patch.hint = seed.hint;
   if (JSON.stringify(cur.goal ?? null) !== JSON.stringify(seed.goal)) patch.goal = seed.goal;
 
@@ -66,7 +67,9 @@ for (const c of changes) {
   for (const [k, v] of Object.entries(c.patch)) {
     const before = c.before[k];
     const show = (x) =>
-      k.endsWith('Vnd') ? f(Number(x ?? 0)) : x === null ? 'null' : JSON.stringify(x);
+      x && typeof x === 'object' && 'constructor' in x && v === x && k === 'baselineVnd'
+        ? '(xoa field)'
+        : k.endsWith('Vnd') ? f(Number(x ?? 0)) : x === null ? 'null' : JSON.stringify(x);
     console.log(`    ${k.padEnd(12)} ${show(before)}  ->  ${show(v)}`);
   }
 }

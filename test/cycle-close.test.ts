@@ -45,7 +45,7 @@ test('allocate - ETF là phần dư, phần trăm là kết quả tính ra', () 
 test('allocate - tăng một baseline thì ETF tụt đúng bằng chừng đó', () => {
   const before = allocate(39_065_000, buckets).etfVnd;
   const bumped = buckets.map((b) =>
-    b.id === 'food' ? { ...b, baselineVnd: b.baselineVnd + 1_000_000 } : b,
+    b.id === 'food' ? { ...b, standardVnd: b.standardVnd + 1_000_000 } : b,
   );
   assert.equal(allocate(39_065_000, bumped).etfVnd, before - 1_000_000);
 });

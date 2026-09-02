@@ -69,14 +69,14 @@ export default function SettingsView({ email }: { email: string | null }) {
     }
   };
 
-  const saveBaseline = async (bucket: Bucket, raw: string) => {
+  const saveStandard = async (bucket: Bucket, raw: string) => {
     if (!uid) return;
     const trimmed = raw.trim();
-    // 0 là giá trị hợp lệ cho baseline (Reserve, ETF), nhưng toVnd() từ chối
-    // số 0 vì nó dùng cho số tiền giao dịch. Xử lý riêng ở đây.
+    // 0 là giá trị hợp lệ cho standard (ETF), nhưng toVnd() từ chối số 0 vì
+    // nó dùng cho số tiền giao dịch. Xử lý riêng ở đây.
     const vnd = trimmed === '0' || trimmed === '' ? 0 : toVnd(trimmed);
-    if (vnd === null || vnd === bucket.baselineVnd) return;
-    await updateBucket(uid, bucket.id, { baselineVnd: vnd });
+    if (vnd === null || vnd === bucket.standardVnd) return;
+    await updateBucket(uid, bucket.id, { standardVnd: vnd });
   };
 
   return (
@@ -94,8 +94,9 @@ export default function SettingsView({ email }: { email: string | null }) {
 
       <Card title="Standard amounts">
         <p className="mb-3 text-sm text-muted">
-          Used when a new cycle opens. Changing these does not touch the cycle you are
-          in — for that, use <span className="font-medium text-ink">Edit limits</span> on
+          Your normal amounts. They open each new cycle and fill in the Generator, and
+          they should hardly ever change. To adjust one month only, edit it in the
+          Generator or use <span className="font-medium text-ink">Edit limits</span> on
           Summary.
         </p>
 
@@ -124,10 +125,10 @@ export default function SettingsView({ email }: { email: string | null }) {
                     {b.bank}
                   </span>
                   <input
-                    defaultValue={fromVnd(b.baselineVnd)}
+                    defaultValue={fromVnd(b.standardVnd)}
                     inputMode="decimal"
-                    aria-label={`${b.name} baseline`}
-                    onBlur={(e) => saveBaseline(b, e.target.value)}
+                    aria-label={`${b.name} standard`}
+                    onBlur={(e) => saveStandard(b, e.target.value)}
                     className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
                   />
                   {b.kind === 'fund' && (
@@ -135,13 +136,7 @@ export default function SettingsView({ email }: { email: string | null }) {
                   )}
                 </div>
                 {b.hint && <p className="mt-0.5 text-[11px] text-faint">{b.hint}</p>}
-                {b.standardVnd !== b.baselineVnd && (
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    Standard {formatVnd(b.standardVnd)} — this is{' '}
-                    {b.baselineVnd > b.standardVnd ? '+' : '−'}
-                    {formatVnd(Math.abs(b.baselineVnd - b.standardVnd))}
-                  </p>
-                )}
+
               </li>
             ))}
           </ul>

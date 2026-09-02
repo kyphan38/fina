@@ -25,7 +25,7 @@ export default function BucketTile({
   onSelect: () => void;
 }) {
   const isFund = bucket.kind === 'fund';
-  const limit = limitVnd ?? bucket.baselineVnd;
+  const limit = limitVnd ?? bucket.standardVnd;
   const used = spentVnd + coveredVnd;
   const value = isFund ? bucket.balanceVnd : limit - used;
   const over = value < 0;

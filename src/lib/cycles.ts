@@ -37,7 +37,7 @@ function toCycle(id: string, data: Record<string, unknown>): Cycle {
 /**
  * Đọc chu kỳ, tạo mới nếu chưa có.
  *
- * `limits` được chép từ baseline lúc tạo rồi ĐÓNG BĂNG. Sửa baseline trong
+ * `limits` được chép từ `standardVnd` lúc tạo rồi ĐÓNG BĂNG. Sửa baseline trong
  * Settings không được phép làm đổi con số của một chu kỳ đã mở - nếu không,
  * mở lại biểu đồ tháng trước sẽ thấy số khác lần trước và không ai biết số
  * nào đúng.
@@ -58,7 +58,7 @@ export async function ensureCycle(
   const { startAt, endAt } = cycleRange(cycleId);
   const limits: Record<string, number> = {};
   for (const b of buckets) {
-    if (b.kind === 'budget' && b.active) limits[b.id] = b.baselineVnd;
+    if (b.kind === 'budget' && b.active) limits[b.id] = b.standardVnd;
   }
 
   const fresh = {

@@ -21,7 +21,6 @@ function toBucket(id: string, data: Record<string, unknown>): Bucket {
     name: String(data.name ?? id),
     kind: data.kind === 'fund' ? 'fund' : 'budget',
     bank: (data.bank as Bucket['bank']) ?? 'VCB',
-    baselineVnd: Number(data.baselineVnd ?? 0),
     standardVnd: Number(data.standardVnd ?? data.baselineVnd ?? 0),
     hint: (data.hint as string | null) ?? null,
     balanceVnd: Number(data.balanceVnd ?? 0),
@@ -56,7 +55,6 @@ export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
       name: seed.name,
       kind: seed.kind,
       bank: seed.bank,
-      baselineVnd: seed.baselineVnd,
       standardVnd: seed.standardVnd,
       hint: seed.hint,
       balanceVnd: 0,
@@ -74,7 +72,7 @@ export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
 export async function updateBucket(
   uid: string,
   bucketId: string,
-  patch: Partial<Pick<Bucket, 'name' | 'baselineVnd' | 'standardVnd' | 'order' | 'active'>>,
+  patch: Partial<Pick<Bucket, 'name' | 'standardVnd' | 'order' | 'active'>>,
 ): Promise<void> {
   await updateDoc(doc(bucketsCol(uid), bucketId), { ...patch, updatedAt: Date.now() });
 }
