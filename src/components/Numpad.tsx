@@ -26,7 +26,7 @@ export default function Numpad({
           type="button"
           onClick={() => onKey(k)}
           aria-label={k === 'del' ? 'Delete' : k}
-          className="rounded-[10px] border border-line bg-surface-2 py-3.5 text-[19px] active:bg-sunk"
+          className="rounded-[10px] border border-line bg-surface-2 py-3 text-[19px] active:bg-sunk"
         >
           {k === 'del' ? '⌫' : k}
         </button>
@@ -35,7 +35,7 @@ export default function Numpad({
         type="button"
         onClick={onSave}
         disabled={!canSave}
-        className="col-span-3 mt-0.5 rounded-[10px] bg-ink py-3.5 text-sm font-semibold text-bg disabled:opacity-30"
+        className="col-span-3 mt-0.5 mb-2 rounded-[10px] bg-ink py-3.5 text-sm font-semibold text-bg disabled:opacity-30"
       >
         Save
       </button>
