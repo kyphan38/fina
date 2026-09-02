@@ -8,6 +8,8 @@ import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
+import PushCard from '@/components/PushCard';
+import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import type { Bucket } from '@/types/fina';
 
 export default function SettingsView({ email }: { email: string | null }) {
@@ -171,6 +173,8 @@ export default function SettingsView({ email }: { email: string | null }) {
           </>
         )}
       </Card>
+
+      <PushCard uid={uid} quietDays={REMINDER_QUIET_DAYS} />
 
       <Card title="Backup">
         <p className="mb-3 text-sm text-muted">

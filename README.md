@@ -45,7 +45,37 @@ firebase deploy --only firestore:rules,firestore:indexes
 | 1 - Foundation & Auth | done, live at fina.kyphan38.com | 2026-09-02 |
 | 2 - Buckets & Quick Log | done | 2026-09-02 |
 | 3 - Summary & Cycle | done, awaiting a real cold-start reading | 2026-09-02 |
-| 4 - History, Edit & Import | next | |
+| 4 - History, Edit & Import | done | 2026-09-02 |
+| 5 - Overspend & Cover | done | 2026-09-02 |
+| 6 - PWA & Reminder | code done, needs Blaze to deploy | 2026-09-02 |
+| 7 - Insights | next | |
+
+### Reminders
+
+A push at 22:00 after two quiet days - two, not one, because only 43 of 159
+days carry an entry and a daily nudge would fire around 266 times a year,
+mostly on days with genuinely nothing to log.
+
+Setting it up, once:
+
+1. Firebase Console -> upgrade to **Blaze**. Cloud Functions needs it. Both
+   scheduled jobs sit inside Cloud Scheduler's free tier.
+2. Console -> Project settings -> Cloud Messaging -> **Web Push
+   certificates** -> generate. Put the key in `.env.local` and Vercel as
+   `NEXT_PUBLIC_FIREBASE_VAPID_KEY`.
+3. `cd functions && npm install && cd .. && firebase deploy --only functions`
+4. On the iPhone: open the site **in Safari**, Share -> Add to Home Screen.
+   Open it from that icon, then Settings -> Turn on. iOS only delivers web
+   push to an installed app, so `/settings` says "not installed" in a normal
+   browser tab - that is correct, not a bug.
+
+**To stop paying.** Delete the two functions and drop back to Spark:
+
+```bash
+firebase functions:delete pushReminders trimPushLog
+```
+
+The app keeps working; you lose lock-screen reminders.
 
 ### Stage 2 notes
 

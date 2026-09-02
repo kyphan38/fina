@@ -5,7 +5,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 export const metadata: Metadata = {
   title: "fina",
   description: "Personal money log",
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: { capable: true, title: "fina", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
