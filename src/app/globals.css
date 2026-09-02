@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* ============================================================
+   fina - design tokens
+   Tối giản: font hệ thống, không web font (nguyên tắc #13).
+   Bảng màu theo mockup đã duyệt 2026-09-02.
+   ============================================================ */
+
+:root {
+  --bg: #f3f3f2;
+  --surface: #ffffff;
+  --surface-2: #fafaf9;
+  --sunk: #e9e9e7;
+  --ink: #1a1a19;
+  --muted: #71716d;
+  --faint: #a3a39e;
+  --line: #e2e2df;
+  --over: #9b2c22;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131313;
+    --surface: #1c1c1b;
+    --surface-2: #222221;
+    --sunk: #0d0d0c;
+    --ink: #ededea;
+    --muted: #9a9a95;
+    --faint: #6b6b67;
+    --line: #2e2e2c;
+    --over: #d97a6e;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-over: var(--over);
+}
+
+html {
+  color-scheme: light dark;
+  /* iOS: chặn nhảy layout khi bàn phím chữ bật lên */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Mọi con số trong app đều xếp cột được */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Numpad và các nút bấm nhanh: không cho iOS bôi xanh khi chạm liên tục */
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
