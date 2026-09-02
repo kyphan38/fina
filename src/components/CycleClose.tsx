@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { cycleLabel } from '@/lib/cycle';
 import { closeCycle } from '@/lib/cycles';
 import { formatVnd } from '@/lib/money';
+import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket, Cycle, SurplusTarget } from '@/types/fina';
 
 const TARGETS: { id: SurplusTarget; label: string }[] = [
@@ -65,7 +66,14 @@ export default function CycleClose({
           const diff = limit - used;
           return (
             <li key={b.id} className="flex items-baseline justify-between text-sm">
-              <span>{b.name}</span>
+              <span className="flex items-center gap-2">
+                <i
+                  aria-hidden
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: bucketAccent(b.id) }}
+                />
+                {b.name}
+              </span>
               <span className="flex gap-3">
                 <span className="text-muted">
                   {formatVnd(used)} / {formatVnd(limit)}

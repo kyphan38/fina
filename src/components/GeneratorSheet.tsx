@@ -7,6 +7,7 @@ import { allocate, type Allocation } from '@/lib/generator';
 import { applyCyclePlan, cycleUnallocated } from '@/lib/cycles';
 import { cycleLabel, previousCycle } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
+import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
 
 /**
@@ -237,7 +238,14 @@ function Row({
   const off = a.deltaVnd !== 0;
   return (
     <li className="flex items-center gap-2 py-0.5 text-xs">
-      <span className="flex-1 truncate">{a.bucket.name}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        <i
+          aria-hidden
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ background: bucketAccent(a.bucket.id) }}
+        />
+        <span className="truncate">{a.bucket.name}</span>
+      </span>
 
       {off && (
         <span

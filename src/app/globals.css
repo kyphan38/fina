@@ -19,6 +19,20 @@
   /* Generator: tang va giam phai nhin ra ngay la hai chuyen khac nhau. */
   --up: #9b5a12;
   --down: #1f6b4a;
+
+  /* Mau nhan dang bucket. Sau hue, thu tu co dinh, da chay qua validator
+     mu mau o ca hai theme: CVD dE 9.1 sang / 8.4 toi (san 8), normal-vision
+     19.6 / 19.3 (san 15).
+
+     Ba hue o che do sang duoi 3:1 tuong phan voi nen - dieu do CHI hop le
+     vi moi cho dung mau deu co ten bucket viet bang muc day tuong phan ngay
+     ben canh. Mau la trang tri, khong bao gio la nhan. */
+  --b1: #2a78d6;
+  --b2: #eb6834;
+  --b3: #1baf7a;
+  --b4: #eda100;
+  --b5: #e87ba4;
+  --b6: #008300;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,6 +48,13 @@
     --over: #d97a6e;
     --up: #e0a45f;
     --down: #63c197;
+    /* Cung sau hue, step lai cho nen toi - khong phai dao mau tu dong. */
+    --b1: #3987e5;
+    --b2: #d95926;
+    --b3: #199e70;
+    --b4: #c98500;
+    --b5: #d55181;
+    --b6: #008300;
   }
 }
 
@@ -49,6 +70,12 @@
   --color-over: var(--over);
   --color-up: var(--up);
   --color-down: var(--down);
+  --color-b1: var(--b1);
+  --color-b2: var(--b2);
+  --color-b3: var(--b3);
+  --color-b4: var(--b4);
+  --color-b5: var(--b5);
+  --color-b6: var(--b6);
 }
 
 html {

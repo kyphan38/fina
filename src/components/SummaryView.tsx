@@ -8,6 +8,7 @@ import AmountSheet from '@/components/AmountSheet';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
+import { bucketAccent } from '@/lib/bucket-color';
 import { setCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit, addFundTopUp } from '@/lib/transactions';
 import { addIncome } from '@/lib/income';
@@ -338,8 +339,11 @@ function BudgetRow({
       </div>
       <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
         <span
-          className={`block h-full rounded-full ${over ? 'bg-over' : 'bg-muted'}`}
-          style={{ width: `${over ? 100 : pct}%` }}
+          className="block h-full rounded-full"
+          style={{
+            width: `${over ? 100 : pct}%`,
+            background: over ? 'var(--over)' : bucketAccent(bucket.id),
+          }}
         />
       </span>
     </li>
