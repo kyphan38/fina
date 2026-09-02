@@ -43,7 +43,18 @@ firebase deploy --only firestore:rules,firestore:indexes
 | Stage | Status | Date |
 |---|---|---|
 | 1 - Foundation & Auth | done, live at fina.kyphan38.com | 2026-09-02 |
-| 2 - Buckets & Quick Log | next | |
+| 2 - Buckets & Quick Log | done | 2026-09-02 |
+| 3 - Summary & Cycle | done, awaiting a real cold-start reading | 2026-09-02 |
+| 4 - History, Edit & Import | next | |
+
+### Stage 2 notes
+
+- The first cold-start metric fired on the user's first keypad tap, so it
+  measured how long someone took to decide to type - one reading came out at
+  28 seconds. It now fires two animation frames after the keypad paints.
+- Seed baselines are integer literals. `4.1 * 1_000_000` is
+  `4099999.9999999995`, `firestore.rules` requires an int, and a rejected
+  document takes the whole batch with it.
 
 ### Stage 1 notes
 
