@@ -56,10 +56,19 @@ export function useHistory() {
     return [...filtered].sort((a, b) => b.occurredAt - a.occurredAt);
   }, [txs, bucketFilter]);
 
-  // Tổng ròng: khoản được hoàn trừ đi. ETF là giao dịch 'in' nên tự động
-  // không cộng vào chi tiêu.
+  /**
+   * Tổng ròng của những khoản THẬT SỰ là chi tiêu.
+   *
+   * Khoản được hoàn thì trừ đi - ứng 850 tiền picnic rồi nhận lại 430 nghĩa
+   * là tiêu 420. Nhưng nạp ETF thì bỏ hẳn ra: đó là chuyển tiền sang đầu tư,
+   * không phải chi tiêu, và tính nó là số âm sẽ làm tổng nhìn như bạn tiêu
+   * ít hơn thực tế.
+   */
   const total = useMemo(
-    () => rows.reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0),
+    () =>
+      rows
+        .filter((t) => t.bucketId !== 'etf')
+        .reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0),
     [rows],
   );
 
