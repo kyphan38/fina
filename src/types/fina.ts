@@ -124,19 +124,20 @@ export type SeedBucket = Pick<
   'id' | 'name' | 'kind' | 'bank' | 'baselineVnd' | 'order' | 'goal'
 >;
 
-const M = 1_000_000;
-
+// Viết thẳng số nguyên, KHÔNG nhân với số thực: 4.1 * 1_000_000 trong JS ra
+// 4099999.9999999995, và Firestore rules chặn baselineVnd không phải int.
+// Chính money.ts đã cảnh báo chuyện này - nó cũng đúng với dữ liệu seed.
 export const SEED_BUCKETS: SeedBucket[] = [
   // --- VCB, reset mỗi chu kỳ. Thứ tự theo SỐ LẦN LOG, không theo số tiền. ---
-  { id: 'food', name: 'Food', kind: 'budget', bank: 'VCB', baselineVnd: 3 * M, order: 10, goal: null },
-  { id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB', baselineVnd: 1.8 * M, order: 20, goal: null },
-  { id: 'social', name: 'Social', kind: 'budget', bank: 'VCB', baselineVnd: 0.7 * M, order: 30, goal: null },
-  { id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB', baselineVnd: 0.8 * M, order: 40, goal: null },
+  { id: 'food', name: 'Food', kind: 'budget', bank: 'VCB', baselineVnd: 3_000_000, order: 10, goal: null },
+  { id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB', baselineVnd: 1_800_000, order: 20, goal: null },
+  { id: 'social', name: 'Social', kind: 'budget', bank: 'VCB', baselineVnd: 700_000, order: 30, goal: null },
+  { id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB', baselineVnd: 800_000, order: 40, goal: null },
   // Wifi (3tr/năm) nằm ở quỹ Reserve, nên đây chỉ còn card điện thoại.
   // Cần xem lại sau 2 chu kỳ dùng thật.
-  { id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB', baselineVnd: 0.2 * M, order: 50, goal: null },
+  { id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB', baselineVnd: 200_000, order: 50, goal: null },
   // Vừa là hũ linh tinh, vừa là đệm khi tiêu lố. Reset mỗi chu kỳ.
-  { id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB', baselineVnd: 1 * M, order: 60, goal: null },
+  { id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB', baselineVnd: 1_000_000, order: 60, goal: null },
 
   // --- BIDV, cộng dồn ---
   {
@@ -144,15 +145,15 @@ export const SEED_BUCKETS: SeedBucket[] = [
     name: 'Health Fund',
     kind: 'fund',
     bank: 'BIDV',
-    baselineVnd: 3.5 * M,
+    baselineVnd: 3_500_000,
     order: 70,
-    goal: { targetVnd: 42 * M, targetDate: '2027-09' },
+    goal: { targetVnd: 42_000_000, targetDate: '2027-09' },
   },
-  { id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV', baselineVnd: 4.1 * M, order: 80, goal: null },
-  { id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV', baselineVnd: 1.2 * M, order: 90, goal: null },
+  { id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV', baselineVnd: 4_100_000, order: 80, goal: null },
+  { id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV', baselineVnd: 1_200_000, order: 90, goal: null },
   // Wifi (năm), iPhone, xe máy. Con số chưa chốt - đặt trong Settings.
   { id: 'reserve', name: 'Reserve', kind: 'fund', bank: 'BIDV', baselineVnd: 0, order: 100, goal: null },
-  { id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV', baselineVnd: 0.25 * M, order: 110, goal: null },
+  { id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV', baselineVnd: 250_000, order: 110, goal: null },
 
   // --- VPS ---
   // Phần dư sau khi phân bổ, nên baseline = 0.

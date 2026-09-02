@@ -32,8 +32,11 @@ export default function SettingsView({ email }: { email: string | null }) {
     try {
       const result = await seedBuckets(uid);
       setMsg(result === 'seeded' ? 'Buckets created.' : 'Buckets already exist — nothing changed.');
-    } catch {
-      setMsg('Could not write buckets. Check your connection.');
+    } catch (err) {
+      // Hiện nguyên mã lỗi Firestore. 'permission-denied' nghĩa là rules từ
+      // chối dữ liệu, không phải mất mạng - hai chuyện cần sửa khác hẳn nhau.
+      const code = (err as { code?: string })?.code ?? 'unknown';
+      setMsg(`Could not write buckets (${code}).`);
     } finally {
       setBusy(false);
     }
