@@ -36,8 +36,14 @@ export interface CashFlow {
   unallocatedVnd: number;
 }
 
+/** Số dư có sẵn từ trước: trạng thái ban đầu, không phải dòng tiền. */
+export function isOpening(tx: Transaction): boolean {
+  return tx.source === 'opening';
+}
+
 /** Giao dịch này có tính là chi tiêu không. */
 export function isSpending(tx: Transaction): boolean {
+  if (isOpening(tx)) return false;
   // Chia lương sang BIDV là chuyển tiền giữa hai hũ của chính mình.
   if (tx.source === 'allocation') return false;
   // Đầu tư có dòng riêng, không phải tiêu.
@@ -55,14 +61,14 @@ export function netSpending(txs: Transaction[]): number {
 /** Tổng đã chuyển sang đầu tư. Rút ra trở lại thì trừ đi. */
 export function invested(txs: Transaction[]): number {
   return txs
-    .filter((t) => t.bucketId === ETF_BUCKET)
+    .filter((t) => t.bucketId === ETF_BUCKET && !isOpening(t))
     .reduce((sum, t) => sum + (t.direction === 'in' ? t.amountVnd : -t.amountVnd), 0);
 }
 
 /** Tiền chuyển từ VCB sang quỹ BIDV trong chu kỳ. */
 export function allocated(txs: Transaction[]): number {
   return txs
-    .filter((t) => t.source === 'allocation')
+    .filter((t) => t.source === 'allocation' && !isOpening(t))
     .reduce((sum, t) => sum + (t.direction === 'in' ? t.amountVnd : -t.amountVnd), 0);
 }
 

@@ -113,6 +113,9 @@ export function useSummary() {
     etfDeposits,
     income,
     flow,
+    /** Lương đã ghi cho chu kỳ này, lấy từ bản ghi income - không phải từ
+     *  một field trùng lặp trên document chu kỳ. */
+    salaryVnd: flow.salaryVnd > 0 ? flow.salaryVnd : null,
     spent,
     covered,
     covers,

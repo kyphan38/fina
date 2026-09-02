@@ -15,12 +15,6 @@ export const REMINDER_QUIET_DAYS = 2;
 export type BucketKind = 'budget' | 'fund';
 export type Bank = 'VCB' | 'BIDV' | 'VPS';
 
-export interface Goal {
-  targetVnd: number;
-  /** 'YYYY-MM' - mốc dự kiến xong. */
-  targetDate: string;
-}
-
 /** Firestore: users/{uid}/buckets/{bucketId} */
 export interface Bucket {
   id: string;
@@ -45,7 +39,6 @@ export interface Bucket {
   /** Thứ tự trên lưới. Cố định - không tự sắp theo tần suất. */
   order: number;
   active: boolean;
-  goal: Goal | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -54,7 +47,16 @@ export interface Bucket {
  * `allocation` là khoản chia lương vào quỹ ngày 25. Nó KHÔNG phải chi tiêu -
  * mọi phép cộng chi tiêu phải loại nó ra (xem `cashflow.ts`).
  */
-export type TxSource = 'web' | 'import' | 'allocation';
+/**
+ * `allocation` là khoản chia lương vào quỹ ngày 25 - chuyển tiền giữa hai hũ
+ * của chính mình, không phải chi tiêu.
+ *
+ * `opening` là số dư quỹ có sẵn trước khi app bắt đầu. Nó là TRẠNG THÁI BAN
+ * ĐẦU, không phải dòng tiền của chu kỳ nào - phải nằm ngoài mọi phép tính
+ * In/Out/Invested, nếu không chu kỳ chứa nó sẽ hiện `Invested 177.714` với
+ * `In 0` và `Left` âm.
+ */
+export type TxSource = 'web' | 'import' | 'allocation' | 'opening';
 
 /**
  * Chiều của tiền.
@@ -114,7 +116,6 @@ export interface Cycle {
   id: string;
   startAt: number;
   endAt: number;
-  incomeVnd: number | null;
   /** Đóng băng lúc mở chu kỳ. Sửa baseline không đụng chu kỳ đang chạy. */
   limits: Record<string, number>;
   status: CycleStatus;
@@ -177,7 +178,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type SeedBucket = Pick<
   Bucket,
-  'id' | 'name' | 'kind' | 'bank' | 'standardVnd' | 'hint' | 'order' | 'goal'
+  'id' | 'name' | 'kind' | 'bank' | 'standardVnd' | 'hint' | 'order'
 >;
 
 // Viết thẳng số nguyên, KHÔNG nhân với số thực: 4.1 * 1_000_000 trong JS ra
@@ -187,32 +188,32 @@ export const SEED_BUCKETS: SeedBucket[] = [
   // --- VCB, reset mỗi chu kỳ. Thứ tự theo SỐ LẦN LOG, không theo số tiền. ---
   {
     id: 'food', name: 'Food', kind: 'budget', bank: 'VCB',
-    standardVnd: 3_000_000, order: 10, goal: null,
+    standardVnd: 3_000_000, order: 10,
     hint: 'Meals, coffee, groceries, BHX',
   },
   {
     id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 20, goal: null,
+    standardVnd: 1_000_000, order: 20,
     hint: 'Skincare, serum, acne meds, supplements, haircut',
   },
   {
     id: 'social', name: 'Social', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 30, goal: null,
+    standardVnd: 1_000_000, order: 30,
     hint: 'Rounds with friends, happy hour, team dinners, gifts',
   },
   {
     id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB',
-    standardVnd: 500_000, order: 40, goal: null,
+    standardVnd: 500_000, order: 40,
     hint: 'Subscriptions (Gemini, Claude, GCP), small accessories',
   },
   {
     id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB',
-    standardVnd: 500_000, order: 50, goal: null,
+    standardVnd: 500_000, order: 50,
     hint: 'Phone top-ups, mobile data',
   },
   {
     id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 60, goal: null,
+    standardVnd: 1_000_000, order: 60,
     hint: 'Odds and ends, and the cushion when a bucket runs over',
   },
 
@@ -220,27 +221,27 @@ export const SEED_BUCKETS: SeedBucket[] = [
   {
     // id giữ nguyên 'healthFund' để lịch sử không đứt, chỉ đổi tên hiển thị.
     id: 'healthFund', name: 'Health', kind: 'fund', bank: 'BIDV',
-    standardVnd: 3_000_000, order: 70, goal: null,
+    standardVnd: 3_000_000, order: 70,
     hint: 'Scar treatment, laser, acne clinic, consultations',
   },
   {
     id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV',
-    standardVnd: 3_000_000, order: 80, goal: null,
+    standardVnd: 3_000_000, order: 80,
     hint: 'Appliances, clothes, dog food, running shoes, devices',
   },
   {
     id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV',
-    standardVnd: 2_000_000, order: 90, goal: null,
+    standardVnd: 2_000_000, order: 90,
     hint: 'Everything spent on a trip, meals included',
   },
   {
     id: 'reserve', name: 'Reserve', kind: 'fund', bank: 'BIDV',
-    standardVnd: 2_000_000, order: 100, goal: null,
+    standardVnd: 2_000_000, order: 100,
     hint: 'Yearly wifi, phone, motorbike',
   },
   {
     id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV',
-    standardVnd: 500_000, order: 110, goal: null,
+    standardVnd: 500_000, order: 110,
     hint: 'Real emergencies - leave it alone',
   },
 
@@ -248,7 +249,7 @@ export const SEED_BUCKETS: SeedBucket[] = [
   // Phần dư sau khi phân bổ, nên baseline = 0.
   {
     id: 'etf', name: 'ETF', kind: 'fund', bank: 'VPS',
-    standardVnd: 0, order: 120, goal: null,
+    standardVnd: 0, order: 120,
     hint: 'What is left after allocation, moved to VPS',
   },
 ];

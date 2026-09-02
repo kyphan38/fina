@@ -5,7 +5,7 @@
 //     scripts/apply-standards.mjs --uid <UID> [--commit]
 //
 // Mac dinh CHI IN RA (dry run). Doc thang SEED_BUCKETS cua app, khong chep lai.
-// Chi dung name / baselineVnd / standardVnd / hint / goal.
+// Chi dung name / standardVnd / hint.
 // KHONG dung balanceVnd, active, order - do la du lieu nguoi dung.
 // ---------------------------------------------------------------------------
 
@@ -42,10 +42,10 @@ for (const seed of SEED_BUCKETS) {
   const patch = {};
   if (cur.name !== seed.name) patch.name = seed.name;
   if (cur.standardVnd !== seed.standardVnd) patch.standardVnd = seed.standardVnd;
-  // baselineVnd da bo: Standard lam ca hai viec no tung lam.
+  // Hai field da bo khoi model - xoa han khoi Firestore de khong ai doc nham.
   if ('baselineVnd' in cur) patch.baselineVnd = FieldValue.delete();
+  if ('goal' in cur) patch.goal = FieldValue.delete();
   if (cur.hint !== seed.hint) patch.hint = seed.hint;
-  if (JSON.stringify(cur.goal ?? null) !== JSON.stringify(seed.goal)) patch.goal = seed.goal;
 
   if (Object.keys(patch).length > 0) {
     changes.push({ id: seed.id, why: null, patch, before: cur });

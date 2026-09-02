@@ -156,7 +156,10 @@ for (const id of cycles) {
   const ref = db.doc(`users/${UID}/cycles/${id}`);
   if ((await ref.get()).exists) continue;
   const { startAt, endAt } = cycleRange(id);
-  await ref.set({ startAt, endAt, incomeVnd: null, limits: {}, status: 'closed', closedAt: now, surplusVnd: null, surplusTo: null });
+  await ref.set({
+    startAt, endAt, limits: {}, status: 'closed', closedAt: now,
+    surplusVnd: null, surplusTo: null, closedTotals: null, closedIncomeVnd: null,
+  });
 }
 
 console.log(`\nDa ghi ${written} giao dich, ${cycles.length} chu ky.`);

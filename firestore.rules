@@ -45,7 +45,7 @@ service cloud.firestore {
         // amountVnd luon duong; chieu nam o `direction`, khong nam o dau.
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
-        && d.source in ['web', 'import', 'allocation'];
+        && d.source in ['web', 'import', 'allocation', 'opening'];
     }
 
     function validCover(d) {

@@ -38,7 +38,7 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
     // tiêu (thực ra là bị TRỪ, vì chúng có direction 'in'), và bảng Cash flow
     // hiện Out −6.685 trong khi thật ra là +3.815.
     source:
-      data.source === 'import' || data.source === 'allocation'
+      data.source === 'import' || data.source === 'allocation' || data.source === 'opening'
         ? (data.source as TxSource)
         : 'web',
     createdAt: Number(data.createdAt ?? 0),

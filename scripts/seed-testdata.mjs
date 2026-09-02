@@ -8,14 +8,28 @@
 // mot chu ky da dong (2026-08) va chu ky dang chay (2026-09).
 // KHONG dung buckets va meta.
 //
-// Mac dinh chi in ra. Them --commit moi ghi that.
+// Mac dinh chi in ra. Ghi that can CA HAI co:
+//   --commit --i-know-this-wipes-everything
+//
+// Hai co chu khong phai mot: script nay xoa sach transactions, covers, cycles
+// va income. Sau khi dung du lieu that, mot lan go nham `--commit` la mat
+// het. Co thu hai bat phai go ra dieu do.
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { cycleOf, cycleRange } from '@/lib/cycle';
 
-const COMMIT = process.argv.includes('--commit');
+const COMMIT =
+  process.argv.includes('--commit') && process.argv.includes('--i-know-this-wipes-everything');
+
+if (process.argv.includes('--commit') && !COMMIT) {
+  console.error(
+    '\nScript nay XOA transactions, covers, cycles va income.\n' +
+      'Them --i-know-this-wipes-everything neu that su muon.\n',
+  );
+  process.exit(1);
+}
 const i = process.argv.indexOf('--uid');
 const UID = i === -1 ? null : process.argv[i + 1];
 if (!UID) throw new Error('Thieu --uid <UID>');
@@ -121,7 +135,9 @@ for (const [bucketId, amountVnd] of Object.entries(OPENING)) {
     amountVnd,
     direction: 'in',
     note: 'Opening balance',
-    source: 'allocation',
+    // 'opening' chu khong phai 'allocation': day la trang thai ban dau, phai
+    // nam ngoai moi phep tinh dong tien.
+    source: 'opening',
   });
 }
 
@@ -183,7 +199,9 @@ console.log('\nSo du quy sau khi cong het:');
 for (const [b, v] of Object.entries(FUND_BALANCE)) console.log(`   ${b.padEnd(12)} ${f(v).padStart(10)}`);
 
 if (!COMMIT) {
-  console.log('\nDry run. Them --commit de ghi that (SE XOA du lieu cu).');
+  console.log(
+    '\nDry run. Ghi that: --commit --i-know-this-wipes-everything (SE XOA du lieu cu).',
+  );
   process.exit(0);
 }
 
@@ -233,11 +251,22 @@ for (const d of buckets.docs) {
 }
 
 batch = db.batch();
+
+// Chu ky chua so du mo dau cung phai co document, neu khong nhung giao dich
+// do vo hinh trong History - bo chon chu ky chi liet ke chu ky co document.
+const openingCycle = allocRows.find((r) => r.id.startsWith('opening-'))?.cycle;
+if (openingCycle) {
+  const { startAt, endAt } = cycleRange(openingCycle);
+  batch.set(db.doc(`users/${UID}/cycles/${openingCycle}`), {
+    startAt, endAt, limits: {}, status: 'closed', closedAt: now,
+    surplusVnd: null, surplusTo: null, closedTotals: null, closedIncomeVnd: null,
+  });
+}
+
 for (const [id, closed] of [['2026-08', true], ['2026-09', false]]) {
   const { startAt, endAt } = cycleRange(id);
   batch.set(db.doc(`users/${UID}/cycles/${id}`), {
     startAt, endAt,
-    incomeVnd: SALARY,
     limits,
     status: closed ? 'closed' : 'open',
     closedAt: closed ? at('2026-08-25T07:00') : null,

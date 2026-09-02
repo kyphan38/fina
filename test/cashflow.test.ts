@@ -169,6 +169,20 @@ test('regression - source phải giữ nguyên "allocation" khi đọc từ Fire
   assert.equal(netSpending(rows), 3_815_000);
 });
 
+test('số dư có sẵn từ trước nằm ngoài mọi dòng tiền', () => {
+  // Chu kỳ chỉ chứa số dư mở đầu phải ra 0 tất, không phải Invested 177.714
+  // và Left âm.
+  const rows = [
+    tx({ bucketId: 'etf', amountVnd: 177_714_000, direction: 'in', source: 'opening' }),
+    tx({ bucketId: 'travel', bank: 'BIDV', amountVnd: 3_600_000, direction: 'in', source: 'opening' }),
+  ];
+  const f = cashFlow([], rows);
+  assert.equal(f.outVnd, 0);
+  assert.equal(f.investedVnd, 0);
+  assert.equal(f.allocatedVnd, 0);
+  assert.equal(f.leftVnd, 0);
+});
+
 test('sumCashFlow - cộng nhiều chu kỳ cho bảng theo năm', () => {
   const a = cashFlow([inc({ amountVnd: 10_000_000 })], [tx({ amountVnd: 3_000_000 })]);
   const b = cashFlow([inc({ amountVnd: 12_000_000 })], [tx({ amountVnd: 4_000_000 })]);
