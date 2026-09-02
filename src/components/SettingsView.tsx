@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
-import { clearStartupTimes, startupStore } from '@/lib/startup';
+import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import PushCard from '@/components/PushCard';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
@@ -48,6 +48,7 @@ export default function SettingsView({ email }: { email: string | null }) {
 
   const [exporting, setExporting] = useState(false);
   const stale = daysSinceExport();
+  const skipped = readSkippedCount();
 
   const exportAs = async (kind: 'json' | 'csv') => {
     if (!uid) return;
@@ -91,7 +92,13 @@ export default function SettingsView({ email }: { email: string | null }) {
         </button>
       </Card>
 
-      <Card title="Buckets">
+      <Card title="Standard amounts">
+        <p className="mb-3 text-sm text-muted">
+          Used when a new cycle opens. Changing these does not touch the cycle you are
+          in — for that, use <span className="font-medium text-ink">Edit limits</span> on
+          Summary.
+        </p>
+
         {buckets.length === 0 ? (
           <>
             <p className="mb-3 text-sm text-muted">
@@ -110,20 +117,30 @@ export default function SettingsView({ email }: { email: string | null }) {
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {buckets.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 py-2">
-                <span className="w-28 shrink-0 text-sm">{b.name}</span>
-                <span className="w-12 shrink-0 text-[10px] uppercase tracking-wider text-faint">
-                  {b.bank}
-                </span>
-                <input
-                  defaultValue={fromVnd(b.baselineVnd)}
-                  inputMode="decimal"
-                  aria-label={`${b.name} baseline`}
-                  onBlur={(e) => saveBaseline(b, e.target.value)}
-                  className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
-                />
-                {b.kind === 'fund' && (
-                  <span className="ml-auto text-xs text-muted">{formatVnd(b.balanceVnd)}</span>
+              <li key={b.id} className="py-2">
+                <div className="flex items-center gap-3">
+                  <span className="w-28 shrink-0 text-sm">{b.name}</span>
+                  <span className="w-12 shrink-0 text-[10px] uppercase tracking-wider text-faint">
+                    {b.bank}
+                  </span>
+                  <input
+                    defaultValue={fromVnd(b.baselineVnd)}
+                    inputMode="decimal"
+                    aria-label={`${b.name} baseline`}
+                    onBlur={(e) => saveBaseline(b, e.target.value)}
+                    className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
+                  />
+                  {b.kind === 'fund' && (
+                    <span className="ml-auto text-xs text-muted">{formatVnd(b.balanceVnd)}</span>
+                  )}
+                </div>
+                {b.hint && <p className="mt-0.5 text-[11px] text-faint">{b.hint}</p>}
+                {b.standardVnd !== b.baselineVnd && (
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    Standard {formatVnd(b.standardVnd)} — this is{' '}
+                    {b.baselineVnd > b.standardVnd ? '+' : '−'}
+                    {formatVnd(Math.abs(b.baselineVnd - b.standardVnd))}
+                  </p>
                 )}
               </li>
             ))}
@@ -160,8 +177,10 @@ export default function SettingsView({ email }: { email: string | null }) {
               ))}
             </ul>
             <p className="mt-2 text-xs text-faint">
-              Measured to the frame the keypad is on screen, not to your first tap.
-              Target: 1.50s warm, 2.50s after iOS kills the app.
+              Measured to the frame the keypad is painted, and only while the app stayed
+              visible the whole time. Waking a suspended app is not a page load, so those
+              runs are dropped{skipped > 0 ? ` — ${skipped} so far` : ''}. Target: 1.50s
+              warm, 2.50s after iOS kills the app.
             </p>
             <button
               type="button"

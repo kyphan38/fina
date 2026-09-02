@@ -56,6 +56,11 @@ export function useSummary() {
     return watchCycleCovers(uid, cycleId, setCovers);
   }, [uid, cycleId]);
 
+  const etfDeposits = useMemo(
+    () => txs.filter((t) => t.bucketId === 'etf').sort((a, b) => b.occurredAt - a.occurredAt),
+    [txs],
+  );
+
   const spent = useMemo(() => spentByBucket(txs), [txs]);
   const covered = useMemo(() => coveredByBucket(covers), [covers]);
   const pendingCovers = useMemo(() => covers.filter((c) => c.status === 'pending'), [covers]);
@@ -95,6 +100,7 @@ export function useSummary() {
     monthly,
     funds,
     etf,
+    etfDeposits,
     spent,
     covered,
     covers,

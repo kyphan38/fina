@@ -5,13 +5,22 @@
 //   <= 1,5s khi app còn trong RAM
 //   <= 2,5s khi iOS đã kill app
 //
-// ĐO TỚI LÚC NUMPAD VẼ XONG VÀ NHẬN ĐƯỢC CHẠM, không phải tới lúc người
-// dùng thật sự chạm. Bản đầu tiên đo ở lần chạm phím đầu tiên và ra 28
-// giây - gần như toàn bộ là thời gian người dùng nhìn quanh. Một chỉ số
-// phụ thuộc vào việc người dùng nhanh tay hay không thì không đo được gì.
+// Hai lần trước đo sai, ghi lại để khỏi lặp:
+//
+//  1. Bản đầu đo ở lần chạm phím đầu tiên -> ra 28 giây, gần như toàn bộ là
+//     thời gian người dùng nhìn quanh.
+//  2. Bản thứ hai đo tới lúc numpad vẽ xong, nhưng vẫn ra 82s và 17s xen với
+//     1.02s. Vì iOS ĐÁNH THỨC PWA đang treo mà không tạo navigation mới:
+//     navigationStart vẫn là lần mở gốc, còn performance.now() đếm cả thời
+//     gian máy nằm trong túi.
+//
+// Nên bây giờ chỉ ghi mẫu nào mà trang LIÊN TỤC HIỂN THỊ từ lúc điều hướng
+// tới lúc numpad vẽ xong. Trang từng bị ẩn giữa chừng thì bỏ mẫu, và nói rõ
+// là đã bỏ bao nhiêu - im lặng vứt đi thì con số trông đẹp mà không thật.
 // ============================================================
 
 const KEY = 'fina.startup';
+const SKIPPED_KEY = 'fina.startupSkipped';
 const KEEP = 8;
 
 export interface StartupSample {
@@ -23,16 +32,29 @@ export interface StartupSample {
 }
 
 let recorded = false;
-// Giữ nguyên tham chiếu mảng giữa các lần đọc: useSyncExternalStore so sánh
-// bằng Object.is, trả mảng mới mỗi lần sẽ render vô hạn.
 let cache: StartupSample[] | null = null;
 const EMPTY: StartupSample[] = [];
 const listeners = new Set<() => void>();
 
-/**
- * Gọi ngay sau khi khung nhập đã vẽ xong lần đầu. An toàn khi gọi nhiều lần -
- * chỉ lần đầu của mỗi lượt tải trang được ghi.
- */
+// Trang có bị ẩn lúc nào trong lượt tải này không.
+let everHidden = typeof document !== 'undefined' && document.visibilityState !== 'visible';
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') everHidden = true;
+  });
+}
+
+function bumpSkipped() {
+  try {
+    const n = Number(localStorage.getItem(SKIPPED_KEY) ?? '0') + 1;
+    localStorage.setItem(SKIPPED_KEY, String(n));
+  } catch {
+    // ignore
+  }
+}
+
+/** Gọi ngay sau khi khung nhập đã vẽ xong lần đầu. An toàn khi gọi nhiều lần. */
 export function markReady(): void {
   if (recorded) return;
   recorded = true;
@@ -42,6 +64,11 @@ export function markReady(): void {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try {
+        if (everHidden || document.visibilityState !== 'visible') {
+          bumpSkipped();
+          return;
+        }
+
         const nav = performance.getEntriesByType('navigation')[0] as
           | PerformanceNavigationTiming
           | undefined;
@@ -67,20 +94,29 @@ export function readStartupTimes(): StartupSample[] {
   if (cache) return cache;
   try {
     const raw: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    // Bản đo cũ lưu mảng số. Bỏ đi thay vì cố cứu - nó đo sai thứ.
-    cache = Array.isArray(raw) && raw.every((s) => typeof s === 'object' && s !== null)
-      ? (raw as StartupSample[])
-      : EMPTY;
+    cache =
+      Array.isArray(raw) && raw.every((s) => typeof s === 'object' && s !== null)
+        ? (raw as StartupSample[])
+        : EMPTY;
   } catch {
     cache = EMPTY;
   }
   return cache ?? EMPTY;
 }
 
+export function readSkippedCount(): number {
+  try {
+    return Number(localStorage.getItem(SKIPPED_KEY) ?? '0');
+  } catch {
+    return 0;
+  }
+}
+
 export function clearStartupTimes(): void {
   cache = EMPTY;
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(SKIPPED_KEY);
   } catch {
     // ignore
   }

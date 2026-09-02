@@ -20,6 +20,19 @@ test('mọi số tiền trong seed phải là số nguyên', () => {
   }
 });
 
+test('standard và baseline khởi đầu bằng nhau, và đều là số nguyên', () => {
+  for (const b of SEED_BUCKETS) {
+    assert.ok(Number.isInteger(b.standardVnd), `${b.id}.standardVnd không nguyên`);
+    assert.equal(b.standardVnd, b.baselineVnd, `${b.id}: standard khác baseline lúc seed`);
+  }
+});
+
+test('mọi bucket đều có gợi ý nội dung', () => {
+  for (const b of SEED_BUCKETS) {
+    assert.ok(b.hint && b.hint.length > 10, `${b.id} thiếu hint`);
+  }
+});
+
 test('seed không âm và không trùng id / order', () => {
   const ids = new Set<string>();
   const orders = new Set<number>();
@@ -50,7 +63,7 @@ test('tổng phân bổ khớp con số đã chốt trong ROADMAP', () => {
       (a, b) => a + b.baselineVnd,
       0,
     );
-  assert.equal(sum('budget', 'VCB'), 7_500_000);
-  // Reserve chưa chốt (đang 0), nên tổng BIDV hiện là 9.050k
-  assert.equal(sum('fund', 'BIDV'), 9_050_000);
+  // Bộ số người dùng chốt 2026-09-02 - xem AMENDMENT-limits-and-standards.md
+  assert.equal(sum('budget', 'VCB'), 7_000_000);
+  assert.equal(sum('fund', 'BIDV'), 10_500_000);
 });
