@@ -383,6 +383,8 @@ Không log 2 ngày → 22:00 có noti trên màn khoá khi app đã đóng.
 
 ## Stage 7 - Insights
 
+→ `STAGE-7-DETAILED.md`
+
 **Mục tiêu:** hiểu xu hướng, không phải nghe lời khuyên.
 
 Pipeline giống `logi` Stage 7: `signals.ts` (code tính ~15 chỉ số) → `digest.ts`
@@ -407,6 +409,8 @@ câu có số không nằm trong digest).
 - Xoá được toàn bộ nhận xét AI từ Settings, dữ liệu gốc không đụng tới.
 
 ## Stage 8 - Mac layout & Polish
+
+→ `STAGE-8-DETAILED.md`
 
 - Layout desktop: hai section mở sẵn, nhập bằng bàn phím thật, phím tắt chọn bucket.
 - Chart xu hướng nhiều chu kỳ.
