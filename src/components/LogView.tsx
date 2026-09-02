@@ -99,8 +99,8 @@ export default function LogView() {
   }
 
   return (
-    <div className="relative pt-3">
-      <header className="flex items-end justify-between border-b border-line pb-3">
+    <div className="flex h-full flex-col">
+      <header className="flex shrink-0 items-end justify-between border-b border-line pb-2.5 pt-3">
         <p className="text-xs leading-snug text-muted">
           Cycle <b className="font-semibold text-ink">{month}</b>
           <br />
@@ -112,6 +112,8 @@ export default function LogView() {
         </p>
       </header>
 
+      {/* Chỉ vùng này cuộn. Thêm bucket bao nhiêu cũng không đẩy Save đi đâu. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
       <Section title="Monthly">
         <div className="grid grid-cols-3 gap-1.5">
           {monthly.map((b) => (
@@ -120,10 +122,7 @@ export default function LogView() {
               bucket={b}
               spentVnd={spent[b.id] ?? 0}
               selected={b.id === selectedId}
-              onSelect={() => {
-                setSelectedId(b.id);
-                setBuf('');
-              }}
+              onSelect={() => setSelectedId(b.id)}
             />
           ))}
         </div>
@@ -160,9 +159,10 @@ export default function LogView() {
           </div>
         )}
       </Section>
+      </div>
 
-      <div className="mt-3 border-t border-line pt-3">
-        <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2.5">
+      <div className="relative shrink-0 border-t border-line pt-2.5">
+        <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
           <span className={`text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
             {selected ? selected.name : 'Pick a bucket'}
           </span>
@@ -176,20 +176,20 @@ export default function LogView() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
           enterKeyHint="done"
-          className="mb-2 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2.5 text-[13px] placeholder:text-faint"
+          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
         />
 
         <Numpad onKey={onKey} onSave={save} canSave={canSave} />
-      </div>
 
-      {toast && (
-        <p
-          role="status"
-          className="pointer-events-none sticky bottom-2 mt-2 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"
-        >
-          {toast}
-        </p>
-      )}
+        {toast && (
+          <p
+            role="status"
+            className="pointer-events-none absolute inset-x-0 bottom-full mb-1.5 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"
+          >
+            {toast}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -204,7 +204,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="pt-4">
+    <section className="pt-3">
       <h2 className="flex items-center px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}
         {action}
