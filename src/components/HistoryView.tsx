@@ -65,7 +65,7 @@ export default function HistoryView() {
             <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
               {txs.map((t) => {
                 const b = h.byId.get(t.bucketId);
-                const isEtf = t.bucketId === 'etf';
+                const isIn = t.direction === 'in';
                 return (
                   <li key={t.id}>
                     <button
@@ -82,8 +82,10 @@ export default function HistoryView() {
                       <span className="w-20 shrink-0 truncate text-[13px]">
                         {b?.name ?? t.bucketId}
                       </span>
-                      <span className="shrink-0 text-[13px] font-medium">
-                        {isEtf ? '+' : ''}
+                      <span
+                        className={`shrink-0 text-[13px] font-medium ${isIn ? 'text-muted' : ''}`}
+                      >
+                        {isIn ? '+' : ''}
                         {formatVnd(t.amountVnd)}
                       </span>
                       <span className="ml-auto truncate text-right text-[12px] text-muted">

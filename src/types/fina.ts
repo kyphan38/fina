@@ -52,6 +52,16 @@ export interface Bucket {
 
 export type TxSource = 'web' | 'import';
 
+/**
+ * Chiều của tiền.
+ *
+ * `out` là mặc định - hầu hết giao dịch là tiền đi ra.
+ * `in` dùng cho hai chuyện: được hoàn lại (ứng tiền đi picnic rồi bạn bè trả
+ * lại), và nạp ETF. Trước đây ETF bị hard-code theo id ở tx-edit.ts; có
+ * field này thì cái ngoại lệ đó biến mất.
+ */
+export type TxDirection = 'out' | 'in';
+
 /** Firestore: users/{uid}/transactions/{txId} */
 export interface Transaction {
   id: string;
@@ -61,8 +71,9 @@ export interface Transaction {
   bucketId: string;
   /** CHÉP từ bucket lúc lưu. Bucket đổi ngân hàng thì lịch sử vẫn đúng. */
   bank: Bank;
-  /** Số nguyên VND, luôn dương. */
+  /** Số nguyên VND, LUÔN DƯƠNG. Chiều nằm ở `direction`, không nằm ở dấu. */
   amountVnd: number;
+  direction: TxDirection;
   note: string | null;
   source: TxSource;
   createdAt: number;

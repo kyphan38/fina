@@ -165,7 +165,28 @@ export async function confirmCover(uid: string, cover: Cover): Promise<void> {
   await batch.commit();
 }
 
-/** Chọn nhầm nguồn thì bỏ. Giao dịch gốc không đụng tới. */
-export async function cancelCover(uid: string, coverId: string): Promise<void> {
-  await deleteDoc(doc(coversCol(uid), coverId));
+/**
+ * Bỏ một lần bù. Giao dịch gốc không đụng tới.
+ *
+ * Cover đã xong và lấy từ quỹ thì phải TRẢ LẠI số dư - nếu không, huỷ một
+ * cover sẽ âm thầm ăn mất tiền của quỹ. Hay dùng khi khoản chi được hoàn lại
+ * sau đó và việc bù không còn cần nữa.
+ */
+export async function cancelCover(uid: string, cover: Cover): Promise<void> {
+  const ref = doc(coversCol(uid), cover.id);
+
+  // Bù từ Buffer không đụng số dư nào (Buffer là bucket dạng budget), và
+  // cover còn pending thì quỹ cũng chưa bị trừ.
+  if (cover.status !== 'done' || cover.fromBucketId === 'buffer') {
+    await deleteDoc(ref);
+    return;
+  }
+
+  const batch = writeBatch(db);
+  batch.delete(ref);
+  batch.update(doc(bucketsCol(uid), cover.fromBucketId), {
+    balanceVnd: increment(cover.amountVnd),
+    updatedAt: Date.now(),
+  });
+  await batch.commit();
 }

@@ -220,7 +220,7 @@ export default function SummaryView() {
           onCancel={() => setSheet('none')}
           withDate
           onConfirm={async (amountVnd, note, occurredAt) => {
-            if (s.uid) await addEtfDeposit(s.uid, amountVnd, note, occurredAt);
+            if (s.uid && s.etf) await addEtfDeposit(s.uid, s.etf, amountVnd, note, occurredAt);
             setSheet('none');
           }}
         />

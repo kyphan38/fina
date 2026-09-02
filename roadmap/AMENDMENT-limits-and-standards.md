@@ -128,6 +128,34 @@ này sẽ quay lại: ô đỏ ở Log, dòng `−X` ở Summary, và bảng `+/
 Cả ba đều **chỉ trong chu kỳ đang chạy**. Không có gì nhìn qua nhiều chu kỳ -
 ý `"Beauty vượt 4/6 chu kỳ"` nằm ở Stage 7 và chưa làm.
 
+### 10. Khoản được hoàn lại
+
+Đứng ra trả tiền cả nhóm đi picnic, hôm sau bạn bè trả lại. 1.500 rời tài
+khoản rồi 1.000 quay về - **hai sự kiện thật, ở hai thời điểm**.
+
+Giao dịch có thêm `direction: 'out' | 'in'`. `out` là mặc định. Picnic ghi
+`Social −1.500`, hôm sau `Social +1.000`, phần thật sự tiêu còn 500. Nút
+`−/+` nhỏ cạnh ô số, **luôn tự trả về `−` sau mỗi lần Save** để không lỡ bật.
+
+Cách thay thế - sửa giao dịch cũ xuống 500 - đơn giản hơn nhưng **xoá mất
+việc đã ứng 1.500**, và nếu tiền về sang chu kỳ sau thì cả hai tháng đều sai.
+
+Field này dọn luôn một chỗ bẩn: ETF từng bị hard-code theo id trong
+`tx-edit.ts` (`bucketId === 'etf' ? +1 : -1`) vì nó là bucket duy nhất tiền
+đi vào. Giờ nạp ETF chỉ là một giao dịch `in` như mọi khoản hoàn khác.
+
+**Chu kỳ của khoản hoàn = chu kỳ của chính ngày nó.** Không có ngoại lệ gắn
+nó về giao dịch gốc. Lý do: mọi thứ trong app đều đi qua `cycleOf(occurredAt)`,
+thêm một ngoại lệ ở đây là thêm một chỗ để mục ruỗng. Phần lớn tiền về trong
+vài ngày nên cùng chu kỳ. Muốn ép về chu kỳ cũ thì sửa ngày của dòng hoàn -
+thủ công, và nhìn thấy được.
+
+**Cover không tự huỷ khi tiền về.** Cover từ quỹ BIDV có thể đã kèm một lần
+chuyển khoản thật; tự huỷ là app tự làm lệch với ngân hàng. Người dùng bấm
+`Undo`. Nhưng `cancelCover` giờ **trả lại số dư quỹ** khi huỷ một cover đã
+xong - trước đây nó chỉ xoá document, tức là huỷ một cover sẽ âm thầm ăn mất
+tiền của quỹ.
+
 ## Đã cân nhắc và KHÔNG làm
 
 - **Nén thêm màn hình Log.** Standalone 812px đã không cuộn gì cả. Ép thêm
