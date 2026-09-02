@@ -8,18 +8,22 @@ import { useLogData } from '@/hooks/useLogData';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, pressKey, toVnd } from '@/lib/money';
 import { addTransaction } from '@/lib/transactions';
+import { overflowOf } from '@/lib/overflow';
+import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket } from '@/types/fina';
 
 export default function LogView() {
-  const { uid, cycle, monthly, funds, spent, monthlyLeft, loading } = useLogData();
+  const { uid, cycle, buckets, monthly, funds, spent, covered, limitOf, monthlyLeft, loading } =
+    useLogData();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [buf, setBuf] = useState('');
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [coverReq, setCoverReq] = useState<CoverRequest | null>(null);
   // Mặc định gập. Mở ra rồi thì GIỮ NGUYÊN cho tới khi tự đóng - đi du lịch
   // cả tuần không phải mở lại mỗi lần.
   const fundsOpen = useSyncExternalStore(
@@ -69,8 +73,20 @@ export default function LogView() {
     if (!uid || !selected || amountVnd === null) return;
     setSaving(true);
     const trimmed = note.trim();
+
+    // Tính phần vượt bằng trạng thái TRƯỚC khi ghi. Tính sau thì listener có
+    // thể đã cộng chính giao dịch này vào và phần vượt bị đếm hai lần.
+    const overflowVnd = overflowOf({
+      bucketId: selected.id,
+      kind: selected.kind,
+      limitVnd: selected.kind === 'budget' ? limitOf(selected) : undefined,
+      spentVnd: (spent[selected.id] ?? 0) + (covered[selected.id] ?? 0),
+      balanceVnd: selected.balanceVnd,
+      amountVnd,
+    });
+
     try {
-      await addTransaction(uid, selected, amountVnd, trimmed || null);
+      const txId = await addTransaction(uid, selected, amountVnd, trimmed || null);
 
       const isFund = selected.kind === 'fund';
       const after = isFund
@@ -89,6 +105,11 @@ export default function LogView() {
       // Giữ nguyên bucket đang chọn - hay log liên tiếp cùng một nhóm.
       setBuf('');
       setNote('');
+
+      // Hộp thoại bù đến SAU khi giao dịch đã nằm trong Firestore.
+      if (overflowVnd > 0) {
+        setCoverReq({ txId, cycle, toBucket: selected, amountVnd: overflowVnd });
+      }
     } catch {
       setToast('Could not save. Check your connection.');
       if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -139,6 +160,8 @@ export default function LogView() {
               key={b.id}
               bucket={b}
               spentVnd={spent[b.id] ?? 0}
+              coveredVnd={covered[b.id] ?? 0}
+              limitVnd={limitOf(b)}
               selected={b.id === selectedId}
               onSelect={() => setSelectedId(b.id)}
             />
@@ -200,7 +223,19 @@ export default function LogView() {
 
         <Numpad onKey={onKey} onSave={save} canSave={canSave} />
 
-        {toast && (
+        {coverReq && uid && (
+        <CoverSheet
+          uid={uid}
+          request={coverReq}
+          buckets={buckets}
+          bufferLimitVnd={limitOf(buckets.find((b) => b.id === 'buffer') ?? coverReq.toBucket)}
+          bufferUsedVnd={(spent.buffer ?? 0) + (covered.buffer ?? 0)}
+          onDone={() => setCoverReq(null)}
+          onDismiss={() => setCoverReq(null)}
+        />
+      )}
+
+      {toast && (
           <p
             role="status"
             className="pointer-events-none absolute inset-x-0 bottom-full mb-1.5 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"

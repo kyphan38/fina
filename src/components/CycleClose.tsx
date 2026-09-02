@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { cycleLabel } from '@/lib/cycle';
-import { closeCycle, computeSurplus } from '@/lib/cycles';
+import { closeCycle } from '@/lib/cycles';
 import { formatVnd } from '@/lib/money';
 import type { Bucket, Cycle, SurplusTarget } from '@/types/fina';
 
@@ -24,18 +24,26 @@ export default function CycleClose({
   cycle,
   monthly,
   spent,
+  covered,
+  surplusVnd,
+  pendingCount,
 }: {
   uid: string;
   cycle: Cycle;
   monthly: Bucket[];
   spent: Record<string, number>;
+  covered: Record<string, number>;
+  /** Đã cộng lại phần bù lấy từ BIDV - tính ở useSummary. */
+  surplusVnd: number;
+  pendingCount: number;
 }) {
   const [target, setTarget] = useState<SurplusTarget>('etf');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const surplus = computeSurplus(cycle.limits, spent);
+  const surplus = surplusVnd;
   const { month } = cycleLabel(cycle.id);
+  const blocked = pendingCount > 0;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
@@ -50,13 +58,14 @@ export default function CycleClose({
         {monthly.map((b) => {
           const limit = cycle.limits[b.id];
           if (limit === undefined) return null;
-          const diff = limit - (spent[b.id] ?? 0);
+          const used = (spent[b.id] ?? 0) + (covered[b.id] ?? 0);
+          const diff = limit - used;
           return (
             <li key={b.id} className="flex items-baseline justify-between text-sm">
               <span>{b.name}</span>
               <span className="flex gap-3">
                 <span className="text-muted">
-                  {formatVnd(spent[b.id] ?? 0)} / {formatVnd(limit)}
+                  {formatVnd(used)} / {formatVnd(limit)}
                 </span>
                 <span className={`w-16 text-right ${diff < 0 ? 'text-over' : ''}`}>
                   {diff >= 0 ? '+' : '−'}
@@ -96,17 +105,25 @@ export default function CycleClose({
       ) : (
         surplus < 0 && (
           <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-            You spent {formatVnd(-surplus)} more than the limits allowed. Nothing moves
-            automatically — the money already left VCB.
+            Still {formatVnd(-surplus)} short after the covers. The money already left
+            VCB — nothing moves on its own.
           </p>
         )
+      )}
+
+      {blocked && (
+        <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm">
+          {pendingCount} cover{pendingCount > 1 ? 's' : ''} still waiting on a bank
+          transfer. This is the last place overspending can slip past, so finish those
+          first.
+        </p>
       )}
 
       {error && <p className="mt-3 text-sm text-over">{error}</p>}
 
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || blocked}
         onClick={async () => {
           setBusy(true);
           setError(null);

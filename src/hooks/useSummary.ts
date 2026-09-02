@@ -5,10 +5,11 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { computeSurplus, ensureCycle, watchCycle } from '@/lib/cycles';
+import { coveredByBucket, coveredFromOutside, watchCycleCovers } from '@/lib/covers';
 import { cycleOf } from '@/lib/cycle';
 import { clockStore } from '@/lib/clock';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
-import type { Bucket, Cycle, Transaction } from '@/types/fina';
+import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 
 export function useSummary() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export function useSummary() {
   const [buckets, setBuckets] = useState<Bucket[] | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
+  const [covers, setCovers] = useState<Cover[]>([]);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
   // Trên server now = 0 -> cycleId là '1970-01', vô hại: lúc đó chưa có
@@ -49,7 +51,14 @@ export function useSummary() {
     });
   }, [uid, buckets, cycle, cycleId]);
 
+  useEffect(() => {
+    if (!uid) return;
+    return watchCycleCovers(uid, cycleId, setCovers);
+  }, [uid, cycleId]);
+
   const spent = useMemo(() => spentByBucket(txs), [txs]);
+  const covered = useMemo(() => coveredByBucket(covers), [covers]);
+  const pendingCovers = useMemo(() => covers.filter((c) => c.status === 'pending'), [covers]);
 
   const active = useMemo(() => (buckets ?? []).filter((b) => b.active), [buckets]);
   const monthly = useMemo(() => active.filter((b) => b.kind === 'budget'), [active]);
@@ -69,7 +78,12 @@ export function useSummary() {
     [limits],
   );
   const fundsTotal = useMemo(() => funds.reduce((s, b) => s + b.balanceVnd, 0), [funds]);
-  const surplus = useMemo(() => computeSurplus(limits, spent), [limits, spent]);
+  // Bù từ Buffer nằm trong VCB nên chỉ là di chuyển nội bộ - tổng không đổi.
+  // Bù từ BIDV thì có: tiền từ ngoài chảy vào, phải cộng lại.
+  const surplus = useMemo(
+    () => computeSurplus(limits, spent) + coveredFromOutside(covers, buckets ?? []),
+    [limits, spent, covers, buckets],
+  );
 
   const needsClose = Boolean(cycle && cycle.status === 'open' && now > 0 && now >= cycle.endAt);
 
@@ -82,6 +96,9 @@ export function useSummary() {
     funds,
     etf,
     spent,
+    covered,
+    covers,
+    pendingCovers,
     limits,
     monthlySpent,
     monthlyLimit,

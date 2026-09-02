@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import BottomNav from '@/components/BottomNav';
+import PendingCovers from '@/components/PendingCovers';
 
 /**
  * Khung app chiếm đúng một màn hình, không bao giờ cao hơn.
@@ -17,6 +18,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col px-4">
         {children}
       </main>
+      <PendingCovers />
       <BottomNav />
     </div>
   );
