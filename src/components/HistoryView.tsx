@@ -89,13 +89,13 @@ export default function HistoryView() {
                           : 'transparent',
                       }}
                     >
-                      <span className="w-10 shrink-0 text-[11px] text-faint">
+                      <span className="w-10 shrink-0 text-[11px] text-faint min-[900px]:w-16">
                         {new Date(t.occurredAt).toLocaleTimeString('en-GB', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </span>
-                      <span className="w-20 shrink-0 truncate text-[13px]">
+                      <span className="w-20 shrink-0 truncate text-[13px] min-[900px]:w-32">
                         {b?.name ?? t.bucketId}
                       </span>
                       <span

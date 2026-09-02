@@ -64,6 +64,8 @@ export default function SummaryView() {
         </p>
       </header>
 
+      {/* Trên Mac ba khối đứng cạnh nhau; trên điện thoại vẫn xếp dọc. */}
+      <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
         title="VCB — Monthly"
         action={
@@ -202,6 +204,8 @@ export default function SummaryView() {
           </ul>
         )}
       </Block>
+
+      </div>
 
       <Block
         title="Cash flow"
