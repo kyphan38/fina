@@ -253,6 +253,8 @@ in ra một dòng trong Settings. Ghi số đo thật vào file này.
 
 ## Stage 3 - Summary & Cycle
 
+→ `STAGE-3-DETAILED.md`
+
 **Mục tiêu:** thấy được toàn cảnh chu kỳ và đóng sổ được.
 
 ### Phạm vi
@@ -280,6 +282,8 @@ Tính tay tổng chi tiêu chu kỳ tháng 9 từ Firestore, khớp với số t
 Đóng sổ một chu kỳ giả → `surplusVnd` đúng, chu kỳ mới mở với `limits` đúng.
 
 ## Stage 4 - History, Edit & Import
+
+→ `STAGE-4-DETAILED.md`
 
 **Mục tiêu:** bỏ được `Budget.numbers`.
 
