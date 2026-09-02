@@ -26,6 +26,7 @@ function toBucket(id: string, data: Record<string, unknown>): Bucket {
     balanceVnd: Number(data.balanceVnd ?? 0),
     order: Number(data.order ?? 0),
     active: data.active !== false,
+    evenlySpent: data.evenlySpent === true,
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };
@@ -59,6 +60,7 @@ export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
       balanceVnd: 0,
       order: seed.order,
       active: true,
+      evenlySpent: seed.evenlySpent,
       createdAt: now,
       updatedAt: now,
     });

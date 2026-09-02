@@ -144,6 +144,30 @@ Then drop back to Spark. The app keeps working; you lose lock-screen reminders.
 
 ---
 
+## What the model is allowed to say
+
+`signals.ts` computes everything; the model only picks what is worth saying and
+writes it. It is never asked to add two numbers together.
+
+What leaves the device is a digest of about fifteen figures. Raw transactions
+never do - no notes, no dates, no names of purchases.
+
+What comes back is filtered **on the server**, so the unfiltered text never
+reaches the browser. A sentence is thrown away if it
+
+- quotes a number that is not in the digest,
+- claims a cause (`because`, `led to`),
+- judges (`should`, `too much`, `wasteful`),
+- mentions investing, or
+- uses medical language.
+
+If every sentence goes, the panel says `Nothing notable in this period.` That is
+a valid answer, not a failure. The count of discarded sentences is shown rather
+than hidden.
+
+Below three closed cycles the button does not appear at all. Two points make a
+line but not a trend, and a remark built on one is worse than silence.
+
 ## Edge cases you should know
 
 **A refund belongs to the cycle of its own date.** Front 1.500 for a group trip
@@ -186,7 +210,7 @@ whole to the cycle of its `occurredAt`.
 | 2 | No secret in a `NEXT_PUBLIC_*` var | **Pass** — Firebase web config and the VAPID public key, both public by design |
 | 3 | Rules deny unauthenticated reads | **Pass** — `buckets`, `transactions`, `income` all return `403 PERMISSION_DENIED` over the REST API |
 | 4 | Auth route rejects bad input | **Pass** — no token 400, garbage token 401. `GET` returns `{authenticated:false}` by design; it is a status probe and leaks nothing |
-| 5 | Rate limit on `/api/insight` | **N/A** — the route does not exist yet. Required before Stage 7's AI half ships |
+| 5 | Rate limit on `/api/insight` | **Pass** — 10 calls / 5 min per user, counted in Firestore. An in-memory counter would barely bind on serverless, where each request may land on a different instance |
 | 6 | Allowlist blocks other emails | **Pass** — checked in `api/auth/session` when trading the token, and again in `server-auth` on every server-side read |
 | 7 | Cookie `httpOnly` + `secure` + `sameSite: lax` | **Pass** — `secure` in production only, so localhost still works |
 | 8 | No personal data in production logs | **Pass** — one `console.warn` about the Firestore cache, and the function logs `error.name` plus a uid. No amounts, no notes |
@@ -240,15 +264,16 @@ All of them are dry-run by default; `--commit` writes.
 | 1 — Foundation & Auth | done | 2026-09-02 |
 | 2 — Buckets & Quick Log | done | 2026-09-02 |
 | 3 — Summary & Cycle | done | 2026-09-02 |
-| 4 — History, Edit & Import | done, import not yet run on real data | 2026-09-02 |
+| 4 — History, Edit & Import | done, real ledger imported | 2026-09-03 |
 | 5 — Overspend & Cover | done | 2026-09-02 |
 | 6 — PWA & Reminder | done, deployed | 2026-09-02 |
-| 7 — Insights | charts done; written notes wait for three closed cycles | 2026-09-02 |
+| 7 — Insights | done — charts and written notes. Needs `GEMINI_API_KEY` set to run | 2026-09-03 |
 | 8 — Mac layout & handover | debts paid, Mac layout done, this review done | 2026-09-02 |
 
-Remaining before real use: measure cold start in the installed PWA, import the
-138 real rows, and run beside `Budget.numbers` for a full cycle. See
-`roadmap/STAGE-8-DETAILED.md`.
+The real ledger is in: 181 transactions across six cycles, six salary records,
+and fund balances that reconcile to the dong. Remaining before `Budget.numbers`
+can be retired: measure cold start in the installed PWA, and run the two side
+by side for a full cycle. See `roadmap/STAGE-8-DETAILED.md`.
 
 ### Traps that cost a round trip
 
