@@ -29,7 +29,6 @@ function toCycle(id: string, data: Record<string, unknown>): Cycle {
     id,
     startAt: Number(data.startAt ?? 0),
     endAt: Number(data.endAt ?? 0),
-    incomeVnd: data.incomeVnd == null ? null : Number(data.incomeVnd),
     limits: (data.limits as Record<string, number>) ?? {},
     status: data.status === 'closed' ? 'closed' : 'open',
     closedAt: data.closedAt == null ? null : Number(data.closedAt),
@@ -70,7 +69,6 @@ export async function ensureCycle(
   const fresh = {
     startAt,
     endAt,
-    incomeVnd: null,
     limits,
     status: 'open' as const,
     closedAt: null,
@@ -114,21 +112,19 @@ export function computeSurplus(
 }
 
 /**
- * Ghi đè `limits` của chu kỳ ĐANG CHẠY.
+ * Sửa TAY hạn mức của chu kỳ đang chạy - đường dùng bởi nút `Edit limits` ở
+ * Summary, và chỉ nó.
  *
- * Đây là đường duy nhất để Baseline chảy sang Limit, và nó luôn do người
- * dùng bấm - Generator hoặc sửa tay ở Summary. Sửa baseline trong Settings
- * không bao giờ tự chảy sang đây (nguyên tắc #14).
+ * Đường còn lại là `applyCyclePlan`, chạy ngày 25 và làm nhiều việc hơn hẳn
+ * (ghi lương, chia tiền vào quỹ). Hai hàm cùng ghi `limits` nên tên phải nói
+ * rõ cái nào là cái nào.
  */
-export async function setCycleLimits(
+export async function overrideCycleLimits(
   uid: string,
   cycleId: string,
   limits: Record<string, number>,
-  incomeVnd?: number | null,
 ): Promise<void> {
-  const patch: Record<string, unknown> = { limits };
-  if (incomeVnd !== undefined) patch.incomeVnd = incomeVnd;
-  await updateDoc(cycleRef(uid, cycleId), patch);
+  await updateDoc(cycleRef(uid, cycleId), { limits });
 }
 
 /**
@@ -194,7 +190,9 @@ export async function applyCyclePlan(
     updatedAt: now,
   });
 
-  batch.update(cycleRef(uid, cycleId), { limits: plan.limits, incomeVnd: plan.salaryVnd });
+  // KHÔNG ghi lương vào document chu kỳ nữa: nó đã là một bản ghi trong
+  // `income/`. Hai chỗ giữ cùng một con số thì sớm muộn chúng lệch nhau.
+  batch.update(cycleRef(uid, cycleId), { limits: plan.limits });
 
   for (const [bucketId, amountVnd] of Object.entries(plan.fundAllocations)) {
     if (amountVnd <= 0) continue;

@@ -9,7 +9,7 @@ import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
-import { setCycleLimits } from '@/lib/cycles';
+import { overrideCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit, addFundTopUp } from '@/lib/transactions';
 import { addIncome } from '@/lib/income';
 import type { Bucket } from '@/types/fina';
@@ -115,7 +115,7 @@ export default function SummaryView() {
                   const raw = (draft[b.id] ?? '').trim();
                   next[b.id] = raw === '' || raw === '0' ? 0 : (toVnd(raw) ?? s.limits[b.id] ?? 0);
                 }
-                await setCycleLimits(s.uid, s.cycleId, next);
+                await overrideCycleLimits(s.uid, s.cycleId, next);
                 setEditing(false);
               }}
               className="mt-3 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg"
@@ -262,7 +262,7 @@ export default function SummaryView() {
           cycleId={s.cycleId}
           cycleClosed={s.cycle?.status === 'closed'}
           buckets={s.buckets}
-          incomeVnd={s.cycle?.incomeVnd ?? null}
+          salaryVnd={s.salaryVnd}
           onClose={() => setSheet('none')}
         />
       )}
@@ -352,9 +352,6 @@ function BudgetRow({
 }
 
 function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
-  const goal = bucket.goal;
-  const pct = goal && goal.targetVnd > 0 ? Math.min(100, (bucket.balanceVnd / goal.targetVnd) * 100) : null;
-
   return (
     <li>
       <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -373,16 +370,6 @@ function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
           </button>
         </span>
       </div>
-      {goal && (
-        <>
-          <p className="mt-0.5 text-[11px] text-faint">
-            Goal {formatVnd(goal.targetVnd)} · {goal.targetDate}
-          </p>
-          <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
-            <span className="block h-full rounded-full bg-muted" style={{ width: `${pct}%` }} />
-          </span>
-        </>
-      )}
     </li>
   );
 }

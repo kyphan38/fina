@@ -21,17 +21,19 @@ export default function GeneratorSheet({
   cycleId,
   cycleClosed,
   buckets,
-  incomeVnd,
+  salaryVnd,
   onClose,
 }: {
   uid: string;
   cycleId: string;
   cycleClosed: boolean;
   buckets: Bucket[];
-  incomeVnd: number | null;
+  /** Lương đã ghi cho chu kỳ này, đọc từ `income/` chứ không phải từ một
+   *  field trùng lặp trên document chu kỳ. */
+  salaryVnd: number | null;
   onClose: () => void;
 }) {
-  const [buf, setBuf] = useState(incomeVnd ? fromVnd(incomeVnd) : '');
+  const [buf, setBuf] = useState(salaryVnd ? fromVnd(salaryVnd) : '');
   // Ngày 25 người dùng vốn cộng nhẩm "lương mới + phần dư kỳ trước" rồi mới
   // gõ. App làm hộ phép cộng đó, nhưng chỉ GỢI Ý - bấm mới áp dụng.
   const [carryVnd, setCarryVnd] = useState<number | null>(null);

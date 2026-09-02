@@ -11,12 +11,6 @@ test('mọi số tiền trong seed phải là số nguyên', () => {
       Number.isInteger(b.standardVnd),
       `${b.id}.standardVnd = ${b.standardVnd} không phải số nguyên`,
     );
-    if (b.goal) {
-      assert.ok(
-        Number.isInteger(b.goal.targetVnd),
-        `${b.id}.goal.targetVnd = ${b.goal.targetVnd} không phải số nguyên`,
-      );
-    }
   }
 });
 
