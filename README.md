@@ -42,7 +42,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 | Stage | Status | Date |
 |---|---|---|
-| 1 - Foundation & Auth | done | 2026-09-02 |
+| 1 - Foundation & Auth | done, live at fina.kyphan38.com | 2026-09-02 |
 | 2 - Buckets & Quick Log | next | |
 
 ### Stage 1 notes
@@ -56,3 +56,9 @@ firebase deploy --only firestore:rules,firestore:indexes
   in the UI.
 - The allowlist is checked twice: once when exchanging the ID token, and again on
   every server-side read of the session cookie.
+- `package.json` pins `jose` to 5.10.0. jose 6 is ESM-only and `jwks-rsa` (via
+  firebase-admin) still `require()`s it, so every server route 500s on Vercel
+  without the override. Dev and `next build` both pass regardless - the failure
+  only shows when the serverless bundle loads the external module at runtime.
+- The Vercel project was created before any code was pushed, so its framework
+  preset defaulted to "Other" and it served `public/`. `vercel.json` pins it.
