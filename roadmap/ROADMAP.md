@@ -328,6 +328,8 @@ Sửa một giao dịch cũ trên iPhone, số ở Summary đổi theo ngay.
 
 ## Stage 5 - Overspend & Cover
 
+→ `STAGE-5-DETAILED.md`
+
 **Mục tiêu:** tiêu lố không còn biến mất khỏi sổ.
 
 ### Phạm vi
@@ -356,6 +358,8 @@ Gõ một khoản vượt hạn mức Tech → chọn Reserve → tắt app hoà
 app vẫn hỏi "đã chuyển chưa" → bấm Rồi → Reserve giảm đúng, Tech hết đỏ.
 
 ## Stage 6 - PWA & Reminder
+
+→ `STAGE-6-DETAILED.md`
 
 **Mục tiêu:** nhắc khi quên log.
 
