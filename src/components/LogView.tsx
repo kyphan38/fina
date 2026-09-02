@@ -34,7 +34,20 @@ export default function LogView() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
-  const toggleFunds = () => fundsOpenStore.set(!fundsOpen);
+  const fundsRef = useRef<HTMLDivElement | null>(null);
+
+  const toggleFunds = () => {
+    const opening = !fundsOpen;
+    fundsOpenStore.set(opening);
+    if (opening) {
+      // Vùng cuộn có thể chỉ cao hơn 100px trên Safari (thanh địa chỉ ăn mất
+      // chỗ). Không cuộn tới thì các ô quỹ nằm ngay dưới mép và trông như
+      // section rỗng.
+      requestAnimationFrame(() => {
+        fundsRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      });
+    }
+  };
 
   const all: Bucket[] = [...monthly, ...funds];
   const selected = all.find((b) => b.id === selectedId) ?? null;
@@ -143,17 +156,14 @@ export default function LogView() {
         }
       >
         {fundsOpen && (
-          <div className="grid grid-cols-3 gap-1.5">
+          <div ref={fundsRef} className="grid grid-cols-3 gap-1.5">
             {funds.map((b) => (
               <BucketTile
                 key={b.id}
                 bucket={b}
                 spentVnd={spent[b.id] ?? 0}
                 selected={b.id === selectedId}
-                onSelect={() => {
-                  setSelectedId(b.id);
-                  setBuf('');
-                }}
+                onSelect={() => setSelectedId(b.id)}
               />
             ))}
           </div>
@@ -166,7 +176,11 @@ export default function LogView() {
           <span className={`text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
             {selected ? selected.name : 'Pick a bucket'}
           </span>
-          <span className={`text-[34px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
+          <span
+            className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
+              buf ? '' : 'text-faint'
+            }`}
+          >
             {buf || '0'}
           </span>
         </div>
@@ -176,7 +190,7 @@ export default function LogView() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
           enterKeyHint="done"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"
         />
 
         <Numpad onKey={onKey} onSave={save} canSave={canSave} />
