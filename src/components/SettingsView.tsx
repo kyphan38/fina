@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
-import { formatVnd, fromVnd, toVnd } from '@/lib/money';
+import { fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import PushCard from '@/components/PushCard';
@@ -47,6 +47,7 @@ export default function SettingsView({ email }: { email: string | null }) {
   };
 
   const [exporting, setExporting] = useState(false);
+  const [openHint, setOpenHint] = useState<string | null>(null);
   const stale = daysSinceExport();
   const skipped = readSkippedCount();
 
@@ -116,30 +117,44 @@ export default function SettingsView({ email }: { email: string | null }) {
             </button>
           </>
         ) : (
+          <>
+          <p className="mb-2 text-[11px] text-faint">Tap a name to see what belongs in it.</p>
           <ul className="flex flex-col divide-y divide-line">
             {buckets.map((b) => (
-              <li key={b.id} className="py-2">
+              <li key={b.id} className="relative py-2">
                 <div className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 text-sm">{b.name}</span>
-                  <span className="w-12 shrink-0 text-[10px] uppercase tracking-wider text-faint">
-                    {b.bank}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOpenHint(openHint === b.id ? null : b.id)}
+                    aria-expanded={openHint === b.id}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <span className="truncate text-sm">{b.name}</span>
+                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-faint">
+                      {b.bank}
+                    </span>
+                  </button>
                   <input
                     defaultValue={fromVnd(b.standardVnd)}
                     inputMode="decimal"
                     aria-label={`${b.name} standard`}
                     onBlur={(e) => saveStandard(b, e.target.value)}
-                    className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
+                    className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
                   />
-                  {b.kind === 'fund' && (
-                    <span className="ml-auto text-xs text-muted">{formatVnd(b.balanceVnd)}</span>
-                  )}
                 </div>
-                {b.hint && <p className="mt-0.5 text-[11px] text-faint">{b.hint}</p>}
 
+                {/* Bong bóng chỉa lên đúng cái tên vừa bấm. Chỉ hiện khi hỏi,
+                    nên không chiếm chỗ của 11 dòng còn lại. */}
+                {openHint === b.id && b.hint && (
+                  <div className="relative mt-2 rounded-lg bg-ink px-3 py-2 text-[12px] text-bg">
+                    <span aria-hidden className="absolute -top-1 left-4 h-2 w-2 rotate-45 bg-ink" />
+                    {b.hint}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
+          </>
         )}
         {msg && <p className="mt-3 text-xs text-muted">{msg}</p>}
       </Card>

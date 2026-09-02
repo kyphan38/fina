@@ -213,15 +213,15 @@ export default function SummaryView() {
         }
       >
         <ul className="flex flex-col gap-1.5 text-sm">
-          <Flow label="In" value={s.flow.inVnd} strong />
+          <Flow label="In" value={s.flow.inVnd} sign="+" strong />
           {s.flow.otherVnd > 0 && (
             <>
               <Flow label="Salary" value={s.flow.salaryVnd} sub />
               <Flow label="Other" value={s.flow.otherVnd} sub />
             </>
           )}
-          <Flow label="Out" value={-s.flow.outVnd} />
-          <Flow label="Invested" value={-s.flow.investedVnd} />
+          <Flow label="Out" value={s.flow.outVnd} sign="−" />
+          <Flow label="Invested" value={s.flow.investedVnd} sign="−" />
         </ul>
         <div className="mt-3 flex justify-between border-t border-line pt-2 text-sm font-semibold">
           <span>Left</span>
@@ -347,14 +347,21 @@ function FundRow({ bucket }: { bucket: Bucket }) {
   );
 }
 
+/**
+ * Out và Invested là dòng tiền ĐI RA, nên hiện dấu `−` ở nhãn thay vì đảo
+ * dấu con số. Đảo dấu làm `Invested −3.425` trông như rút tiền về, và người
+ * đọc phải tự đoán quy ước.
+ */
 function Flow({
   label,
   value,
+  sign,
   strong,
   sub,
 }: {
   label: string;
   value: number;
+  sign?: '+' | '−';
   strong?: boolean;
   sub?: boolean;
 }) {
@@ -365,7 +372,10 @@ function Flow({
       }`}
     >
       <span>{label}</span>
-      <span>{formatVnd(value)}</span>
+      <span>
+        {sign && value !== 0 && <span className="text-faint">{sign}</span>}
+        {formatVnd(Math.abs(value))}
+      </span>
     </li>
   );
 }

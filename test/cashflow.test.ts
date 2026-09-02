@@ -93,6 +93,20 @@ test('cashFlow - không có gì thì mọi số là 0, không phải NaN', () =>
   });
 });
 
+test('regression - source phải giữ nguyên "allocation" khi đọc từ Firestore', () => {
+  // toTx() từng ép mọi source lạ về 'web', nên isSpending() không nhận ra
+  // khoản chia lương và trừ 10.500 khỏi Out.
+  const rows = [
+    tx({ bucketId: 'food', amountVnd: 3_815_000 }),
+    tx({ bucketId: 'healthFund', amountVnd: 3_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'purchases', amountVnd: 3_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'travel', amountVnd: 2_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'reserve', amountVnd: 2_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'emergency', amountVnd: 500_000, direction: 'in', source: 'allocation' }),
+  ];
+  assert.equal(netSpending(rows), 3_815_000);
+});
+
 test('sumCashFlow - cộng nhiều chu kỳ cho bảng theo năm', () => {
   const a = cashFlow([inc({ amountVnd: 10_000_000 })], [tx({ amountVnd: 3_000_000 })]);
   const b = cashFlow([inc({ amountVnd: 12_000_000 })], [tx({ amountVnd: 4_000_000 })]);

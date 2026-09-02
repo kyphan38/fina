@@ -7,12 +7,12 @@ import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, pressKey, toVnd } from '@/lib/money';
-import { addTransaction } from '@/lib/transactions';
+import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
-import type { Bucket } from '@/types/fina';
+import type { Bucket, Transaction } from '@/types/fina';
 
 export default function LogView() {
   const { uid, cycle, buckets, monthly, funds, spent, covered, limitOf, monthlyLeft, loading } =
@@ -22,6 +22,9 @@ export default function LogView() {
   const [buf, setBuf] = useState('');
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  // Vài giây để rút lại nếu vừa bấm nhầm. Chỉ có khi giao dịch không kéo
+  // theo một lần bù - gỡ giao dịch mà để cover mồ côi là tệ hơn.
+  const [undo, setUndo] = useState<{ tx: Transaction; kind: Bucket['kind'] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [coverReq, setCoverReq] = useState<CoverRequest | null>(null);
   // Tiền được hoàn lại: ứng tiền đi picnic rồi bạn bè trả lại. Luôn trả về
@@ -107,11 +110,29 @@ export default function LogView() {
               : `${formatVnd(left)} of ${formatVnd(limitOf(selected))} left`;
           })();
 
+      const saved: Transaction = {
+        id: txId,
+        occurredAt,
+        cycle,
+        bucketId: selected.id,
+        bank: selected.bank,
+        amountVnd,
+        direction,
+        note: trimmed || null,
+        source: 'web',
+        createdAt: occurredAt,
+        updatedAt: occurredAt,
+      };
+
       setToast(
         `${selected.name} · ${direction === 'in' ? '+' : ''}${formatVnd(amountVnd)} · ${after}`,
       );
+      setUndo(overflowVnd > 0 ? null : { tx: saved, kind: selected.kind });
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 2600);
+      toastTimer.current = setTimeout(() => {
+        setToast(null);
+        setUndo(null);
+      }, 6000);
 
       // Giữ nguyên bucket đang chọn - hay log liên tiếp cùng một nhóm.
       setBuf('');
@@ -231,18 +252,10 @@ export default function LogView() {
 
       <div className="relative shrink-0 border-t border-line pt-2.5">
         <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
-          <span className="min-w-0 flex-1">
-            <span className={`block text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
-              {selected ? selected.name : 'Pick a bucket'}
-            </span>
-            {/* Gợi ý chỉ hiện lúc chưa gõ gì - biến mất ngay khi bắt đầu nhập,
-                nên không tốn chỗ vào đúng lúc màn hình chật nhất. */}
-            {selected && !buf && selected.hint && (
-              <span className="mt-0.5 block truncate text-[11px] text-faint">
-                {selected.hint}
-                {selected.standardVnd > 0 && ` · standard ${formatVnd(selected.standardVnd)}`}
-              </span>
-            )}
+          {/* Không hiện gợi ý ở đây: màn hình nhập là chỗ chật nhất, và gợi ý
+              chỉ cần lúc đang cấu hình. Nó nằm ở Settings. */}
+          <span className={`min-w-0 flex-1 truncate text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
+            {selected ? selected.name : 'Pick a bucket'}
           </span>
           <span className="flex shrink-0 items-baseline gap-2">
             <button
@@ -289,9 +302,24 @@ export default function LogView() {
       {toast && (
           <p
             role="status"
-            className="pointer-events-none absolute inset-x-0 bottom-full mb-1.5 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"
+            className="absolute inset-x-0 bottom-full mb-1.5 flex items-center gap-3 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"
           >
-            {toast}
+            <span className="min-w-0 flex-1 truncate">{toast}</span>
+            {undo && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const target = undo;
+                  setUndo(null);
+                  setToast(null);
+                  if (toastTimer.current) clearTimeout(toastTimer.current);
+                  await deleteTransaction(uid!, target.tx, target.kind);
+                }}
+                className="shrink-0 font-semibold underline"
+              >
+                Undo
+              </button>
+            )}
           </p>
         )}
       </div>
