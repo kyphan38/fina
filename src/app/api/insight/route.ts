@@ -5,7 +5,7 @@ import { getSessionUser } from '@/lib/server-auth';
 import { sanitizeInsight } from '@/lib/insight-sanitize';
 import type { Digest } from '@/lib/digest';
 
-const MODEL = 'gemini-3.5-flash-lite';
+const MODEL = 'gemini-3.8-flash';
 const WINDOW_MS = 5 * 60_000;
 const MAX_CALLS = 10;
 
