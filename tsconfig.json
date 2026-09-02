@@ -31,5 +31,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // functions/ co package.json va node_modules rieng; Vercel khong cai chung.
+  // Bo ra khoi include, nhung tsc VAN theo import tu test vao
+  // functions/src/time.ts - file do khong phu thuoc firebase-functions.
+  "exclude": ["node_modules", "functions"]
 }
