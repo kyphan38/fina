@@ -1,0 +1,101 @@
+rules_version = '2';
+
+// ============================================================
+// fina - Firestore Security Rules
+// App cá nhân một người dùng: ownership theo path users/{uid}/...
+// Ràng buộc kiểu dữ liệu kiểm ngay ở tầng DB - không tin client.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tiền luôn là số nguyên VND. Số thực bị chặn ngay ở đây, vì cộng
+    // nhiều float sẽ trôi và không bao giờ sửa lại được (nguyên tắc #2).
+    function isVnd(v) {
+      return v is int && v >= 0;
+    }
+
+    function validBucket(d) {
+      return d.keys().hasAll(['name', 'kind', 'bank', 'baselineVnd', 'order', 'active'])
+        && d.name is string
+        && d.kind in ['budget', 'fund']
+        && d.bank in ['VCB', 'BIDV', 'VPS']
+        && isVnd(d.baselineVnd)
+        && d.order is int
+        && d.active is bool
+        // balanceVnd chỉ có ở fund, và có thể âm khi tiêu lố
+        && (!('balanceVnd' in d.keys()) || d.balanceVnd is int);
+    }
+
+    function validTransaction(d) {
+      return d.keys().hasAll(['occurredAt', 'cycle', 'bucketId', 'bank', 'amountVnd', 'source'])
+        && d.occurredAt is int
+        && d.cycle is string
+        && d.cycle.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+        && d.bucketId is string
+        && d.bank in ['VCB', 'BIDV', 'VPS']
+        && isVnd(d.amountVnd) && d.amountVnd > 0
+        && (d.note == null || d.note is string)
+        && d.source in ['web', 'import'];
+    }
+
+    function validCover(d) {
+      return d.keys().hasAll(['txId', 'cycle', 'toBucketId', 'fromBucketId', 'amountVnd', 'needsTransfer', 'status'])
+        && d.txId is string
+        && d.toBucketId is string
+        && d.fromBucketId is string
+        && isVnd(d.amountVnd) && d.amountVnd > 0
+        && d.needsTransfer is bool
+        && d.status in ['pending', 'done'];
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /buckets/{bucketId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validBucket(request.resource.data);
+        // Bỏ một bucket = active:false, không xoá. Lịch sử phải giữ (nguyên tắc #8).
+        allow delete: if false;
+      }
+
+      match /transactions/{txId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validTransaction(request.resource.data);
+      }
+
+      // cycles/{cycleId} - VD "2026-09"
+      match /cycles/{cycleId} {
+        allow read, create: if isOwner(uid);
+        // Chu kỳ đã đóng sổ thì không sửa được nữa - nếu không, số liệu quá khứ
+        // sẽ đổi mỗi lần chỉnh Settings.
+        allow update: if isOwner(uid) && resource.data.status != 'closed';
+        allow delete: if false;
+      }
+
+      match /covers/{coverId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validCover(request.resource.data);
+      }
+
+      // meta/settings, meta/fcm
+      match /meta/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // insights/{cycleId} - nhận xét AI đã sinh (Stage 7)
+      match /insights/{insightId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Mọi thứ còn lại: cấm
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
