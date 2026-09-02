@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
-import { startupStore } from '@/lib/startup';
+import { clearStartupTimes, startupStore } from '@/lib/startup';
 import type { Bucket } from '@/types/fina';
 
 export default function SettingsView({ email }: { email: string | null }) {
@@ -109,20 +109,41 @@ export default function SettingsView({ email }: { email: string | null }) {
       <Card title="Cold start">
         {times.length === 0 ? (
           <p className="text-sm text-muted">
-            No measurement yet. Open the Log tab and tap a number.
+            No measurement yet. Open the Log tab once.
           </p>
         ) : (
           <>
             <p className="text-sm">
-              <b className="text-lg font-semibold">{(times[0] / 1000).toFixed(2)}s</b>{' '}
-              <span className="text-muted">last</span>
+              <b className="text-lg font-semibold">{(times[0].ms / 1000).toFixed(2)}s</b>{' '}
+              <span className="text-muted">
+                last · {times[0].network ? 'from network' : 'from cache'}
+              </span>
             </p>
-            <p className="mt-1 text-xs text-muted">
-              Recent: {times.map((t) => `${(t / 1000).toFixed(2)}`).join(' / ')}
-            </p>
+            <ul className="mt-2 flex flex-col gap-0.5 text-xs text-muted">
+              {times.map((t) => (
+                <li key={t.at} className="flex justify-between">
+                  <span>{(t.ms / 1000).toFixed(2)}s</span>
+                  <span className="text-faint">
+                    {t.network ? 'network' : 'cache'} ·{' '}
+                    {new Date(t.at).toLocaleTimeString('en-GB', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
             <p className="mt-2 text-xs text-faint">
+              Measured to the frame the keypad is on screen, not to your first tap.
               Target: 1.50s warm, 2.50s after iOS kills the app.
             </p>
+            <button
+              type="button"
+              onClick={clearStartupTimes}
+              className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs"
+            >
+              Reset
+            </button>
           </>
         )}
       </Card>

@@ -8,7 +8,7 @@ import { useLogData } from '@/hooks/useLogData';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, pressKey, toVnd } from '@/lib/money';
 import { addTransaction } from '@/lib/transactions';
-import { markInteractive } from '@/lib/startup';
+import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket } from '@/types/fina';
 
@@ -34,6 +34,7 @@ export default function LogView() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
+
   const fundsRef = useRef<HTMLDivElement | null>(null);
 
   const toggleFunds = () => {
@@ -50,13 +51,17 @@ export default function LogView() {
   };
 
   const all: Bucket[] = [...monthly, ...funds];
+
+  // Numpad đã có mặt và nhận được chạm kể từ đây.
+  const ready = !loading && all.length > 0;
+  useEffect(() => {
+    if (ready) markReady();
+  }, [ready]);
   const selected = all.find((b) => b.id === selectedId) ?? null;
   const amountVnd = toVnd(buf);
   const canSave = Boolean(uid && selected && amountVnd !== null && !saving);
 
   const onKey = useCallback((key: string) => {
-    // Lần chạm đầu tiên vào numpad = lúc app thật sự dùng được.
-    markInteractive();
     setBuf((cur) => pressKey(cur, key));
   }, []);
 
