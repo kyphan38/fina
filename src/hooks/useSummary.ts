@@ -9,7 +9,9 @@ import { coveredByBucket, coveredFromOutside, watchCycleCovers } from '@/lib/cov
 import { cycleOf } from '@/lib/cycle';
 import { clockStore } from '@/lib/clock';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
-import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
+import { watchCycleIncome } from '@/lib/income';
+import { cashFlow } from '@/lib/cashflow';
+import type { Bucket, Cover, Cycle, Income, Transaction } from '@/types/fina';
 
 export function useSummary() {
   const { user } = useAuth();
@@ -19,6 +21,7 @@ export function useSummary() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [covers, setCovers] = useState<Cover[]>([]);
+  const [income, setIncome] = useState<Income[]>([]);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
   // Trên server now = 0 -> cycleId là '1970-01', vô hại: lúc đó chưa có
@@ -61,6 +64,13 @@ export function useSummary() {
     [txs],
   );
 
+  useEffect(() => {
+    if (!uid) return;
+    return watchCycleIncome(uid, cycleId, setIncome);
+  }, [uid, cycleId]);
+
+  const flow = useMemo(() => cashFlow(income, txs), [income, txs]);
+
   const spent = useMemo(() => spentByBucket(txs), [txs]);
   const covered = useMemo(() => coveredByBucket(covers), [covers]);
   const pendingCovers = useMemo(() => covers.filter((c) => c.status === 'pending'), [covers]);
@@ -101,6 +111,8 @@ export function useSummary() {
     funds,
     etf,
     etfDeposits,
+    income,
+    flow,
     spent,
     covered,
     covers,

@@ -10,11 +10,12 @@ import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { setCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit } from '@/lib/transactions';
+import { addIncome } from '@/lib/income';
 import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
   const s = useSummary();
-  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf'>('none');
+  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf' | 'income'>('none');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [etfOpen, setEtfOpen] = useState(false);
@@ -37,6 +38,11 @@ export default function SummaryView() {
         spent={s.spent}
         covered={s.covered}
         surplusVnd={s.surplus}
+        snapshot={{
+          outVnd: s.flow.outVnd,
+          investedVnd: s.flow.investedVnd,
+          incomeVnd: s.flow.inVnd,
+        }}
         pendingCount={s.pendingCovers.length}
       />
     );
@@ -194,6 +200,40 @@ export default function SummaryView() {
         )}
       </Block>
 
+      <Block
+        title="Cash flow"
+        action={
+          <button
+            type="button"
+            onClick={() => setSheet('income')}
+            className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
+          >
+            Add income
+          </button>
+        }
+      >
+        <ul className="flex flex-col gap-1.5 text-sm">
+          <Flow label="In" value={s.flow.inVnd} strong />
+          {s.flow.otherVnd > 0 && (
+            <>
+              <Flow label="Salary" value={s.flow.salaryVnd} sub />
+              <Flow label="Other" value={s.flow.otherVnd} sub />
+            </>
+          )}
+          <Flow label="Out" value={-s.flow.outVnd} />
+          <Flow label="Invested" value={-s.flow.investedVnd} />
+        </ul>
+        <div className="mt-3 flex justify-between border-t border-line pt-2 text-sm font-semibold">
+          <span>Left</span>
+          <span className={s.flow.leftVnd < 0 ? 'text-over' : ''}>
+            {formatVnd(s.flow.leftVnd)}
+          </span>
+        </div>
+        <p className="mt-1.5 text-[11px] text-faint">
+          Still in the account: not spent, not invested yet.
+        </p>
+      </Block>
+
       <button
         type="button"
         onClick={() => setSheet('generator')}
@@ -210,6 +250,21 @@ export default function SummaryView() {
           buckets={s.buckets}
           incomeVnd={s.cycle?.incomeVnd ?? null}
           onClose={() => setSheet('none')}
+        />
+      )}
+
+      {sheet === 'income' && (
+        <AmountSheet
+          title="Add income"
+          confirmLabel="Add"
+          withDate
+          onCancel={() => setSheet('none')}
+          onConfirm={async (amountVnd, note, occurredAt) => {
+            if (s.uid) {
+              await addIncome(s.uid, { amountVnd, kind: 'other', note, occurredAt });
+            }
+            setSheet('none');
+          }}
         />
       )}
 
@@ -288,6 +343,29 @@ function FundRow({ bucket }: { bucket: Bucket }) {
           </span>
         </>
       )}
+    </li>
+  );
+}
+
+function Flow({
+  label,
+  value,
+  strong,
+  sub,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+  sub?: boolean;
+}) {
+  return (
+    <li
+      className={`flex justify-between ${sub ? 'pl-3 text-xs text-muted' : ''} ${
+        strong ? 'font-semibold' : ''
+      }`}
+    >
+      <span>{label}</span>
+      <span>{formatVnd(value)}</span>
     </li>
   );
 }

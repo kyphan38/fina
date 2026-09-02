@@ -69,11 +69,24 @@ const BANK = {
   etf: 'VPS',
 };
 
-// So du quy dat thang. Xem ghi chu o cuoi file ve viec app CHUA co duong
-// nao cong tien vao quy theo chu ky.
-const FUND_BALANCE = {
-  healthFund: 4500 * K, purchases: 5200 * K, travel: 6400 * K,
-  reserve: 3800 * K, emergency: 1500 * K, etf: 181139 * K,
+// Luong moi chu ky.
+const SALARY = 39065 * K;
+
+// Quy duoc nap bang giao dich `allocation` nhu app that lam, khong dat tay.
+// So du cuoi cung = allocation cong lai, tru phan da tieu.
+const ALLOC = {
+  healthFund: 3000 * K, purchases: 3000 * K, travel: 2000 * K,
+  reserve: 2000 * K, emergency: 500 * K,
+};
+
+// So du quy CO SAN truoc khi bo du lieu test bat dau.
+//
+// Ghi thanh GIAO DICH chu khong dat thang vao balanceVnd: neu mot dong nao
+// trong quy khong co ban ghi, recompute-balances se xoa mat no. Moi dong
+// trong quy phai truy nguoc duoc.
+const OPENING = {
+  healthFund: 1500 * K, purchases: 1400 * K, travel: 3600 * K,
+  reserve: 0, emergency: 500 * K, etf: 177714 * K,
 };
 
 const rows = TX.map(([iso, bucketId, k, note, dir], n) => ({
@@ -91,6 +104,42 @@ const rows = TX.map(([iso, bucketId, k, note, dir], n) => ({
 const augSocial = rows.filter((r) => r.cycle === '2026-08' && r.bucketId === 'social');
 const augSocialTotal = augSocial.reduce((a, b) => a + b.amountVnd, 0);
 const socialOver = Math.max(0, augSocialTotal - 1000 * K);
+// Chia luong dau moi chu ky: mot ban ghi thu nhap + mot giao dich vao moi quy.
+const CYCLES = ['2026-08', '2026-09'];
+const allocRows = [];
+const incomeRows = [];
+// So du mo dau: mot giao dich `in` truoc chu ky dau tien.
+const OPENING_AT = at('2026-07-24T23:00');
+for (const [bucketId, amountVnd] of Object.entries(OPENING)) {
+  if (amountVnd <= 0) continue;
+  allocRows.push({
+    id: `opening-${bucketId}`,
+    occurredAt: OPENING_AT,
+    cycle: cycleOf(new Date(OPENING_AT)),
+    bucketId,
+    bank: bucketId === 'etf' ? 'VPS' : 'BIDV',
+    amountVnd,
+    direction: 'in',
+    note: 'Opening balance',
+    source: 'allocation',
+  });
+}
+
+for (const cyc of CYCLES) {
+  const { startAt } = cycleRange(cyc);
+  incomeRows.push({
+    id: `income-${cyc}-salary`, occurredAt: startAt, cycle: cyc,
+    amountVnd: SALARY, kind: 'salary', note: `Salary ${cyc}`,
+  });
+  for (const [bucketId, amountVnd] of Object.entries(ALLOC)) {
+    allocRows.push({
+      id: `alloc-${cyc}-${bucketId}`, occurredAt: startAt, cycle: cyc,
+      bucketId, bank: 'BIDV', amountVnd, direction: 'in',
+      note: `Allocation ${cyc}`, source: 'allocation',
+    });
+  }
+}
+
 const cover = socialOver > 0 ? {
   id: 'test-cover-001',
   txId: augSocial[augSocial.length - 1].id,
@@ -117,7 +166,20 @@ for (const [cyc, buckets] of Object.entries(byCycle)) {
   for (const [b, v] of Object.entries(buckets)) console.log(`   ${b.padEnd(12)} ${f(v).padStart(8)}`);
 }
 if (cover) console.log(`\nCover: social vuot ${f(cover.amountVnd)} -> bu tu buffer`);
-console.log('\nSo du quy dat thang:');
+console.log(`\nThu nhap: ${CYCLES.length} ky x ${f(SALARY)}`);
+console.log('Phan bo vao quy moi ky:');
+for (const [b, v] of Object.entries(ALLOC)) console.log(`   ${b.padEnd(12)} ${f(v).padStart(8)}`);
+
+// So du cuoi = mo dau + tong allocation - tong da tieu (theo chieu)
+// Cong tu chinh cac ban ghi - dung cach recompute-balances lam.
+const FUND_BALANCE = {};
+for (const b of Object.keys(OPENING)) {
+  const signed = (r) => (r.direction === 'in' ? r.amountVnd : -r.amountVnd);
+  FUND_BALANCE[b] =
+    allocRows.filter((r) => r.bucketId === b).reduce((a, r) => a + signed(r), 0) +
+    rows.filter((r) => r.bucketId === b).reduce((a, r) => a + signed(r), 0);
+}
+console.log('\nSo du quy sau khi cong het:');
 for (const [b, v] of Object.entries(FUND_BALANCE)) console.log(`   ${b.padEnd(12)} ${f(v).padStart(10)}`);
 
 if (!COMMIT) {
@@ -126,7 +188,7 @@ if (!COMMIT) {
 }
 
 // ---- Xoa cu ----
-for (const c of ['transactions', 'covers', 'cycles']) {
+for (const c of ['transactions', 'covers', 'cycles', 'income']) {
   const snap = await db.collection(`users/${UID}/${c}`).get();
   for (let n = 0; n < snap.docs.length; n += 400) {
     const batch = db.batch();
@@ -146,6 +208,19 @@ for (const r of rows) {
     source: 'web', createdAt: now, updatedAt: now,
   });
 }
+for (const r of allocRows) {
+  batch.set(db.doc(`users/${UID}/transactions/${r.id}`), {
+    occurredAt: r.occurredAt, cycle: r.cycle, bucketId: r.bucketId, bank: r.bank,
+    amountVnd: r.amountVnd, direction: r.direction, note: r.note,
+    source: r.source, createdAt: now, updatedAt: now,
+  });
+}
+for (const r of incomeRows) {
+  batch.set(db.doc(`users/${UID}/income/${r.id}`), {
+    occurredAt: r.occurredAt, cycle: r.cycle, amountVnd: r.amountVnd,
+    kind: r.kind, note: r.note, createdAt: now, updatedAt: now,
+  });
+}
 if (cover) batch.set(db.doc(`users/${UID}/covers/${cover.id}`), cover);
 await batch.commit();
 
@@ -162,7 +237,7 @@ for (const [id, closed] of [['2026-08', true], ['2026-09', false]]) {
   const { startAt, endAt } = cycleRange(id);
   batch.set(db.doc(`users/${UID}/cycles/${id}`), {
     startAt, endAt,
-    incomeVnd: 39065 * K,
+    incomeVnd: SALARY,
     limits,
     status: closed ? 'closed' : 'open',
     closedAt: closed ? at('2026-08-25T07:00') : null,
@@ -175,4 +250,5 @@ for (const [id, v] of Object.entries(FUND_BALANCE)) {
 }
 await batch.commit();
 
-console.log(`\nDa ghi ${rows.length} giao dich, 2 chu ky, ${cover ? 1 : 0} cover.`);
+console.log(`\nDa ghi ${rows.length} giao dich + ${allocRows.length} allocation, ` +
+  `${incomeRows.length} ban ghi thu nhap, 2 chu ky, ${cover ? 1 : 0} cover.`);

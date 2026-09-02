@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
 import { allocate, type Allocation } from '@/lib/generator';
-import { setCycleLimits } from '@/lib/cycles';
+import { applyCyclePlan } from '@/lib/cycles';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
@@ -54,7 +54,12 @@ export default function GeneratorSheet({
     try {
       const limits: Record<string, number> = {};
       for (const a of r.monthly) limits[a.bucket.id] = a.amountVnd;
-      await setCycleLimits(uid, cycleId, limits, salary);
+
+      // ETF không nằm trong đây: người dùng tự ghi lúc thật sự chuyển sang VPS.
+      const fundAllocations: Record<string, number> = {};
+      for (const a of r.funds) fundAllocations[a.bucket.id] = a.amountVnd;
+
+      await applyCyclePlan(uid, cycleId, { salaryVnd: salary, limits, fundAllocations });
       onClose();
     } catch (err) {
       setError(`Could not apply (${(err as { code?: string })?.code ?? 'unknown'}).`);
@@ -105,9 +110,17 @@ export default function GeneratorSheet({
             <p className="text-sm">
               Replace this cycle&rsquo;s limits with these amounts?
             </p>
-            <p className="mt-1 text-xs text-muted">
-              {month} is already running. Whatever you have spent stays; only the limits
-              move.
+            <ul className="mt-2 flex flex-col gap-1 text-xs text-muted">
+              <li>Records {formatVnd(salary)} of salary for {month}.</li>
+              <li>Sets the monthly limits — what you have already spent stays.</li>
+              <li>Pays {formatVnd(r.fundsTotalVnd)} into the BIDV funds.</li>
+              <li>
+                Leaves {formatVnd(r.etfVnd)} for VPS — transfer it yourself, then log the
+                deposit.
+              </li>
+            </ul>
+            <p className="mt-2 text-[11px] text-faint">
+              Applying again replaces this cycle&rsquo;s allocation rather than adding to it.
             </p>
             <button
               type="button"

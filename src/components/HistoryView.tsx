@@ -49,6 +49,16 @@ export default function HistoryView() {
           ))}
         </select>
 
+        {h.allocationCount > 0 && (
+          <button
+            type="button"
+            onClick={() => h.setShowAllocations(!h.showAllocations)}
+            className="rounded-lg border border-line px-2 py-1.5 text-[11px] text-faint"
+          >
+            {h.showAllocations ? 'Hide' : `+${h.allocationCount}`}
+          </button>
+        )}
+
         <span className="ml-auto text-xs text-muted">
           {h.rows.length} · {formatVnd(h.total)}
         </span>

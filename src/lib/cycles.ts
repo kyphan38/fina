@@ -9,12 +9,15 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase-client';
 import { bucketsCol } from '@/lib/buckets';
 import { cycleRange } from '@/lib/cycle';
+import { txCol } from '@/lib/transactions';
+import { incomeCol } from '@/lib/income';
 import type { Bucket, Cycle, SurplusTarget } from '@/types/fina';
 
 export const cyclesCol = (uid: string) => collection(db, 'users', uid, 'cycles');
@@ -31,6 +34,8 @@ function toCycle(id: string, data: Record<string, unknown>): Cycle {
     closedAt: data.closedAt == null ? null : Number(data.closedAt),
     surplusVnd: data.surplusVnd == null ? null : Number(data.surplusVnd),
     surplusTo: (data.surplusTo as SurplusTarget | null) ?? null,
+    closedTotals: (data.closedTotals as Cycle['closedTotals']) ?? null,
+    closedIncomeVnd: data.closedIncomeVnd == null ? null : Number(data.closedIncomeVnd),
   };
 }
 
@@ -70,6 +75,8 @@ export async function ensureCycle(
     closedAt: null,
     surplusVnd: null,
     surplusTo: null,
+    closedTotals: null,
+    closedIncomeVnd: null,
   };
   await setDoc(ref, fresh);
   return { id: cycleId, ...fresh };
@@ -124,6 +131,88 @@ export async function setCycleLimits(
 }
 
 /**
+ * Ngày 25: một hành động, ba việc.
+ *
+ *  1. Ghi bản ghi thu nhập của chu kỳ
+ *  2. Đóng băng hạn mức cho các bucket VCB
+ *  3. Nạp tiền vào từng quỹ BIDV bằng một giao dịch `in`, `source: 'allocation'`
+ *
+ * Việc thứ ba là phần vá lỗ hổng: trước đây quỹ chỉ bao giờ giảm, không bao
+ * giờ được cấp tiền. Ghi nó thành GIAO DỊCH chứ không phải cộng thẳng vào số
+ * dư, để `recompute-balances` dựng lại được và để người dùng nhìn thấy tiền
+ * vào quỹ trong History.
+ *
+ * ETF cố ý KHÔNG được phân bổ tự động: người dùng nhập tay lúc thật sự
+ * chuyển sang VPS, làm cả hai là mỗi đồng bị đếm hai lần.
+ *
+ * Chạy lại được: id sinh cố định, và mọi allocation cũ của chu kỳ bị gỡ (hoàn
+ * lại số dư quỹ) trước khi ghi bộ mới.
+ */
+export async function applyCyclePlan(
+  uid: string,
+  cycleId: string,
+  plan: {
+    salaryVnd: number;
+    limits: Record<string, number>;
+    /** bucketId -> số tiền, chỉ quỹ. Không gồm etf. */
+    fundAllocations: Record<string, number>;
+    occurredAt?: number;
+  },
+): Promise<void> {
+  const now = plan.occurredAt ?? Date.now();
+
+  // Gỡ allocation cũ của chính chu kỳ này, hoàn số dư về, rồi mới ghi lại.
+  const old = await getDocs(
+    query(txCol(uid), where('cycle', '==', cycleId), where('source', '==', 'allocation')),
+  );
+
+  const batch = writeBatch(db);
+
+  for (const d of old.docs) {
+    const t = d.data();
+    batch.delete(d.ref);
+    batch.update(doc(bucketsCol(uid), String(t.bucketId)), {
+      balanceVnd: increment(-Number(t.amountVnd ?? 0)),
+      updatedAt: now,
+    });
+  }
+
+  batch.set(doc(incomeCol(uid), `income-${cycleId}-salary`), {
+    occurredAt: now,
+    cycle: cycleId,
+    amountVnd: plan.salaryVnd,
+    kind: 'salary',
+    note: `Salary ${cycleId}`,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  batch.update(cycleRef(uid, cycleId), { limits: plan.limits, incomeVnd: plan.salaryVnd });
+
+  for (const [bucketId, amountVnd] of Object.entries(plan.fundAllocations)) {
+    if (amountVnd <= 0) continue;
+    batch.set(doc(txCol(uid), `alloc-${cycleId}-${bucketId}`), {
+      occurredAt: now,
+      cycle: cycleId,
+      bucketId,
+      bank: 'BIDV',
+      amountVnd,
+      direction: 'in',
+      note: `Allocation ${cycleId}`,
+      source: 'allocation',
+      createdAt: now,
+      updatedAt: now,
+    });
+    batch.update(doc(bucketsCol(uid), bucketId), {
+      balanceVnd: increment(amountVnd),
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+}
+
+/**
  * Đóng sổ. Một batch: chốt chu kỳ, và chuyển phần dư vào quỹ đích.
  *
  * Không tự chuyển tiền thật, không tự tạo giao dịch. Chỉ ghi con số.
@@ -133,6 +222,8 @@ export async function closeCycle(
   cycleId: string,
   surplusVnd: number,
   surplusTo: SurplusTarget,
+  /** Chụp lại để bảng dòng tiền theo năm khỏi đọc lại toàn bộ giao dịch. */
+  snapshot: { outVnd: number; investedVnd: number; incomeVnd: number },
 ): Promise<void> {
   const batch = writeBatch(db);
 
@@ -141,6 +232,8 @@ export async function closeCycle(
     closedAt: Date.now(),
     surplusVnd,
     surplusTo,
+    closedTotals: { outVnd: snapshot.outVnd, investedVnd: snapshot.investedVnd },
+    closedIncomeVnd: snapshot.incomeVnd,
   });
 
   // 'hold' = để nguyên, không cộng vào đâu cả.

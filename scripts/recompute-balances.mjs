@@ -6,6 +6,10 @@
 //
 // balanceVnd la so denormalize (de khoi cong ca lich su moi lan mo app).
 // Day la cach kiem tra no con khop khong, va sua lai khi lech.
+//
+// Tu khi Generator ghi khoan chia luong thanh giao dich `allocation`, moi
+// dong tien vao quy deu la mot ban ghi - nen phep cong o day la day du.
+// Truoc do quy chi bao gio giam, va chay script nay se xoa sach so du.
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
