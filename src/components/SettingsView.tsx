@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, startupStore } from '@/lib/startup';
+import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import type { Bucket } from '@/types/fina';
 
 export default function SettingsView({ email }: { email: string | null }) {
@@ -39,6 +41,28 @@ export default function SettingsView({ email }: { email: string | null }) {
       setMsg(`Could not write buckets (${code}).`);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const [exporting, setExporting] = useState(false);
+  const stale = daysSinceExport();
+
+  const exportAs = async (kind: 'json' | 'csv') => {
+    if (!uid) return;
+    setExporting(true);
+    try {
+      const backup = await buildBackup(uid);
+      const stamp = new Date().toISOString().slice(0, 10);
+      if (kind === 'json') {
+        download(`fina-${stamp}.json`, JSON.stringify(backup, null, 2), 'application/json');
+      } else {
+        download(`fina-${stamp}.csv`, toCsv(backup), 'text/csv');
+      }
+      markExported();
+    } catch {
+      setMsg('Could not build the export.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -148,8 +172,42 @@ export default function SettingsView({ email }: { email: string | null }) {
         )}
       </Card>
 
+      <Card title="Backup">
+        <p className="mb-3 text-sm text-muted">
+          Firestore does not back this up for you. Export is the whole safety net.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={!uid || exporting}
+            onClick={() => exportAs('json')}
+            className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-bg disabled:opacity-30"
+          >
+            {exporting ? 'Reading…' : 'Export JSON'}
+          </button>
+          <button
+            type="button"
+            disabled={!uid || exporting}
+            onClick={() => exportAs('csv')}
+            className="rounded-lg border border-line px-4 py-2 text-sm disabled:opacity-30"
+          >
+            Export CSV
+          </button>
+        </div>
+        {stale !== null && stale >= 35 && (
+          <p className="mt-3 text-xs text-over">Last export was {stale} days ago.</p>
+        )}
+        <p className="mt-3 text-xs text-faint">
+          Restoring is at{' '}
+          <Link href="/settings/restore" className="underline">
+            /settings/restore
+          </Link>
+          . It only adds what is missing — it never overwrites or deletes.
+        </p>
+      </Card>
+
       <p className="text-xs text-muted">
-        Stage 2. Cycle settings, reminders and export arrive later.
+        Stage 4. Reminders and AI insights arrive later.
       </p>
     </div>
   );
