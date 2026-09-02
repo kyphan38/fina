@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { disablePush, enablePush, pushState, registerServiceWorker, type PushState } from '@/lib/push';
+import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
 
 const MESSAGE: Record<PushState, string> = {
   not_installed:
@@ -20,7 +20,6 @@ export default function PushCard({ uid, quietDays }: { uid: string | null; quiet
 
   useEffect(() => {
     let cancelled = false;
-    void registerServiceWorker();
     void pushState().then((s) => {
       if (!cancelled) setState(s);
     });
