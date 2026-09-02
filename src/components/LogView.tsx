@@ -201,11 +201,21 @@ export default function LogView() {
 
       <div className="relative shrink-0 border-t border-line pt-2.5">
         <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
-          <span className={`text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
-            {selected ? selected.name : 'Pick a bucket'}
+          <span className="min-w-0 flex-1">
+            <span className={`block text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
+              {selected ? selected.name : 'Pick a bucket'}
+            </span>
+            {/* Gợi ý chỉ hiện lúc chưa gõ gì - biến mất ngay khi bắt đầu nhập,
+                nên không tốn chỗ vào đúng lúc màn hình chật nhất. */}
+            {selected && !buf && selected.hint && (
+              <span className="mt-0.5 block truncate text-[11px] text-faint">
+                {selected.hint}
+                {selected.standardVnd > 0 && ` · standard ${formatVnd(selected.standardVnd)}`}
+              </span>
+            )}
           </span>
           <span
-            className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
+            className={`shrink-0 text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
               buf ? '' : 'text-faint'
             }`}
           >

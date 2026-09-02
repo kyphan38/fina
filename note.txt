@@ -1,0 +1,3 @@
+tôi muốn generator, lúc đó sẽ lấy data dựa trên standard ở setting, sau đó cho phép chỉnh sửa, nếu cái nào vượt quá hoặc thấp quá thì highlight để dễ quan sát và cân bằng và điều chỉnh, đồng thời hiển thị luôn con số là bao nhiêu nhé
+
+về cơ bản data ở standard ở setting hầu như không thay đổi trong nhiều tháng, nếu cái nào lâu dài thì mới cho phép thay đổi, còn về ngắn hạn thì thay đổi ở generator trong tương lai

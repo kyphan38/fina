@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
 import { allocate } from '@/lib/generator';
+import { setCycleLimits } from '@/lib/cycles';
+import { cycleLabel } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
 
@@ -14,17 +16,41 @@ import type { Bucket } from '@/types/fina';
  * Các nhóm là số tiền cố định, ETF ăn phần dư. Phần trăm là kết quả tính ra.
  */
 export default function GeneratorSheet({
+  uid,
+  cycleId,
+  cycleClosed,
   buckets,
   incomeVnd,
   onClose,
 }: {
+  uid: string;
+  cycleId: string;
+  cycleClosed: boolean;
   buckets: Bucket[];
   incomeVnd: number | null;
   onClose: () => void;
 }) {
   const [buf, setBuf] = useState(incomeVnd ? fromVnd(incomeVnd) : '');
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const salary = toVnd(buf) ?? 0;
   const r = allocate(salary, buckets);
+  const { month } = cycleLabel(cycleId);
+
+  const apply = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const limits: Record<string, number> = {};
+      for (const a of r.monthly) limits[a.bucket.id] = a.amountVnd;
+      await setCycleLimits(uid, cycleId, limits, salary);
+      onClose();
+    } catch (err) {
+      setError(`Could not apply (${(err as { code?: string })?.code ?? 'unknown'}).`);
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
@@ -63,14 +89,43 @@ export default function GeneratorSheet({
           </p>
         </section>
 
-        <div className="mt-3">
-          <Numpad
-            onKey={(k) => setBuf((cur) => pressKey(cur, k))}
-            canSave={false}
-            saveLabel="Planning only"
-            onSave={() => {}}
-          />
-        </div>
+        {confirming ? (
+          <div className="mt-3 rounded-[10px] border border-line px-3 py-3">
+            <p className="text-sm">
+              Replace this cycle&rsquo;s limits with these amounts?
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {month} is already running. Whatever you have spent stays; only the limits
+              move.
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={apply}
+              className="mt-3 w-full rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-30"
+            >
+              {busy ? 'Applying…' : `Apply to ${month}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="mt-1 w-full py-2 text-xs text-muted"
+            >
+              Back
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <Numpad
+              onKey={(k) => setBuf((cur) => pressKey(cur, k))}
+              canSave={salary > 0 && !cycleClosed}
+              saveLabel={cycleClosed ? 'Cycle is closed' : `Apply to ${month}`}
+              onSave={() => setConfirming(true)}
+            />
+          </div>
+        )}
+
+        {error && <p className="mt-2 text-xs text-over">{error}</p>}
         <button
           type="button"
           onClick={onClose}

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // functions/ la package rieng: lib/ la output CommonJS da build, va src/
+    // co eslint cua chinh no khi can. Khong lint o day.
+    "functions/**",
   ]),
 ]);
 

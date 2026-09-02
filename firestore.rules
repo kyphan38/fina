@@ -25,6 +25,10 @@ service cloud.firestore {
         && d.kind in ['budget', 'fund']
         && d.bank in ['VCB', 'BIDV', 'VPS']
         && isVnd(d.baselineVnd)
+        // standardVnd cung la tien: chan so thuc ngay o tang DB, giong
+        // baselineVnd. Mot phep nhan voi so thuc da tung lam hong ca batch seed.
+        && (!('standardVnd' in d.keys()) || isVnd(d.standardVnd))
+        && (!('hint' in d.keys()) || d.hint == null || d.hint is string)
         && d.order is int
         && d.active is bool
         // balanceVnd chỉ có ở fund, và có thể âm khi tiêu lố

@@ -27,8 +27,12 @@ export interface Bucket {
   name: string;
   kind: BucketKind;
   bank: Bank;
-  /** Số tiền chuẩn mỗi chu kỳ. */
+  /** Mức mặc định khi MỞ chu kỳ mới. Không đụng chu kỳ đang chạy. */
   baselineVnd: number;
+  /** Mức chuẩn người dùng tự đặt. Chỉ để so sánh, không bao giờ tự áp dụng. */
+  standardVnd: number;
+  /** Bucket này gồm những gì. Hiện khi chọn, tự ẩn khi bắt đầu gõ số. */
+  hint: string | null;
   /**
    * Chỉ dùng với kind='fund'. Denormalize để khỏi cộng lại toàn bộ lịch sử
    * mỗi lần mở app. Có thể âm khi tiêu lố. Dựng lại được bằng
@@ -121,7 +125,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type SeedBucket = Pick<
   Bucket,
-  'id' | 'name' | 'kind' | 'bank' | 'baselineVnd' | 'order' | 'goal'
+  'id' | 'name' | 'kind' | 'bank' | 'baselineVnd' | 'standardVnd' | 'hint' | 'order' | 'goal'
 >;
 
 // Viết thẳng số nguyên, KHÔNG nhân với số thực: 4.1 * 1_000_000 trong JS ra
@@ -129,33 +133,70 @@ export type SeedBucket = Pick<
 // Chính money.ts đã cảnh báo chuyện này - nó cũng đúng với dữ liệu seed.
 export const SEED_BUCKETS: SeedBucket[] = [
   // --- VCB, reset mỗi chu kỳ. Thứ tự theo SỐ LẦN LOG, không theo số tiền. ---
-  { id: 'food', name: 'Food', kind: 'budget', bank: 'VCB', baselineVnd: 3_000_000, order: 10, goal: null },
-  { id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB', baselineVnd: 1_800_000, order: 20, goal: null },
-  { id: 'social', name: 'Social', kind: 'budget', bank: 'VCB', baselineVnd: 700_000, order: 30, goal: null },
-  { id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB', baselineVnd: 800_000, order: 40, goal: null },
-  // Wifi (3tr/năm) nằm ở quỹ Reserve, nên đây chỉ còn card điện thoại.
-  // Cần xem lại sau 2 chu kỳ dùng thật.
-  { id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB', baselineVnd: 200_000, order: 50, goal: null },
-  // Vừa là hũ linh tinh, vừa là đệm khi tiêu lố. Reset mỗi chu kỳ.
-  { id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB', baselineVnd: 1_000_000, order: 60, goal: null },
+  {
+    id: 'food', name: 'Food', kind: 'budget', bank: 'VCB',
+    baselineVnd: 3_000_000, standardVnd: 3_000_000, order: 10, goal: null,
+    hint: 'Meals, coffee, groceries, BHX',
+  },
+  {
+    id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB',
+    baselineVnd: 1_000_000, standardVnd: 1_000_000, order: 20, goal: null,
+    hint: 'Skincare, serum, acne meds, supplements, haircut',
+  },
+  {
+    id: 'social', name: 'Social', kind: 'budget', bank: 'VCB',
+    baselineVnd: 1_000_000, standardVnd: 1_000_000, order: 30, goal: null,
+    hint: 'Rounds with friends, happy hour, team dinners, gifts',
+  },
+  {
+    id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB',
+    baselineVnd: 500_000, standardVnd: 500_000, order: 40, goal: null,
+    hint: 'Subscriptions (Gemini, Claude, GCP), small accessories',
+  },
+  {
+    id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB',
+    baselineVnd: 500_000, standardVnd: 500_000, order: 50, goal: null,
+    hint: 'Phone top-ups, mobile data',
+  },
+  {
+    id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB',
+    baselineVnd: 1_000_000, standardVnd: 1_000_000, order: 60, goal: null,
+    hint: 'Odds and ends, and the cushion when a bucket runs over',
+  },
 
   // --- BIDV, cộng dồn ---
   {
-    id: 'healthFund',
-    name: 'Health Fund',
-    kind: 'fund',
-    bank: 'BIDV',
-    baselineVnd: 3_500_000,
-    order: 70,
-    goal: { targetVnd: 42_000_000, targetDate: '2027-09' },
+    // id giữ nguyên 'healthFund' để lịch sử không đứt, chỉ đổi tên hiển thị.
+    id: 'healthFund', name: 'Health', kind: 'fund', bank: 'BIDV',
+    baselineVnd: 3_000_000, standardVnd: 3_000_000, order: 70, goal: null,
+    hint: 'Scar treatment, laser, acne clinic, consultations',
   },
-  { id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV', baselineVnd: 4_100_000, order: 80, goal: null },
-  { id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV', baselineVnd: 1_200_000, order: 90, goal: null },
-  // Wifi (năm), iPhone, xe máy. Con số chưa chốt - đặt trong Settings.
-  { id: 'reserve', name: 'Reserve', kind: 'fund', bank: 'BIDV', baselineVnd: 0, order: 100, goal: null },
-  { id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV', baselineVnd: 250_000, order: 110, goal: null },
+  {
+    id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV',
+    baselineVnd: 3_000_000, standardVnd: 3_000_000, order: 80, goal: null,
+    hint: 'Appliances, clothes, dog food, running shoes, devices',
+  },
+  {
+    id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV',
+    baselineVnd: 2_000_000, standardVnd: 2_000_000, order: 90, goal: null,
+    hint: 'Everything spent on a trip, meals included',
+  },
+  {
+    id: 'reserve', name: 'Reserve', kind: 'fund', bank: 'BIDV',
+    baselineVnd: 2_000_000, standardVnd: 2_000_000, order: 100, goal: null,
+    hint: 'Yearly wifi, phone, motorbike',
+  },
+  {
+    id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV',
+    baselineVnd: 500_000, standardVnd: 500_000, order: 110, goal: null,
+    hint: 'Real emergencies - leave it alone',
+  },
 
   // --- VPS ---
   // Phần dư sau khi phân bổ, nên baseline = 0.
-  { id: 'etf', name: 'ETF', kind: 'fund', bank: 'VPS', baselineVnd: 0, order: 120, goal: null },
+  {
+    id: 'etf', name: 'ETF', kind: 'fund', bank: 'VPS',
+    baselineVnd: 0, standardVnd: 0, order: 120, goal: null,
+    hint: 'What is left after allocation, moved to VPS',
+  },
 ];

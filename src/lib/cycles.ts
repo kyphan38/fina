@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   setDoc,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 
@@ -102,6 +103,24 @@ export function computeSurplus(
     (sum, [bucketId, limit]) => sum + (limit - (spent[bucketId] ?? 0)),
     0,
   );
+}
+
+/**
+ * Ghi đè `limits` của chu kỳ ĐANG CHẠY.
+ *
+ * Đây là đường duy nhất để Baseline chảy sang Limit, và nó luôn do người
+ * dùng bấm - Generator hoặc sửa tay ở Summary. Sửa baseline trong Settings
+ * không bao giờ tự chảy sang đây (nguyên tắc #14).
+ */
+export async function setCycleLimits(
+  uid: string,
+  cycleId: string,
+  limits: Record<string, number>,
+  incomeVnd?: number | null,
+): Promise<void> {
+  const patch: Record<string, unknown> = { limits };
+  if (incomeVnd !== undefined) patch.incomeVnd = incomeVnd;
+  await updateDoc(cycleRef(uid, cycleId), patch);
 }
 
 /**

@@ -7,13 +7,17 @@ import GeneratorSheet from '@/components/GeneratorSheet';
 import AmountSheet from '@/components/AmountSheet';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
-import { formatVnd } from '@/lib/money';
+import { formatVnd, fromVnd, toVnd } from '@/lib/money';
+import { setCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit } from '@/lib/transactions';
 import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
   const s = useSummary();
   const [sheet, setSheet] = useState<'none' | 'generator' | 'etf'>('none');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [etfOpen, setEtfOpen] = useState(false);
 
   if (s.loading) return <p className="pt-6 text-sm text-muted">Loading…</p>;
   if (s.monthly.length === 0) {
@@ -51,10 +55,67 @@ export default function SummaryView() {
         </p>
       </header>
 
-      <Block title="VCB — Monthly">
+      <Block
+        title="VCB — Monthly"
+        action={
+          hasLimits && s.cycle?.status === 'open' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(
+                  Object.fromEntries(s.monthly.map((b) => [b.id, fromVnd(s.limits[b.id] ?? 0)])),
+                );
+                setEditing((v) => !v);
+              }}
+              className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
+            >
+              {editing ? 'Cancel' : 'Edit limits'}
+            </button>
+          ) : null
+        }
+      >
         {!hasLimits && (
           <p className="pb-2 text-xs text-faint">No limits recorded for this cycle.</p>
         )}
+
+        {editing && (
+          <>
+            <p className="pb-2 text-xs text-muted">
+              This cycle only. Standard amounts in Settings are untouched.
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {s.monthly.map((b) => (
+                <li key={b.id} className="flex items-center gap-3">
+                  <span className="flex-1 text-sm">{b.name}</span>
+                  <input
+                    value={draft[b.id] ?? ''}
+                    inputMode="decimal"
+                    aria-label={`${b.name} limit`}
+                    onChange={(e) => setDraft((d) => ({ ...d, [b.id]: e.target.value }))}
+                    className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
+                  />
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!s.uid) return;
+                const next: Record<string, number> = {};
+                for (const b of s.monthly) {
+                  const raw = (draft[b.id] ?? '').trim();
+                  next[b.id] = raw === '' || raw === '0' ? 0 : (toVnd(raw) ?? s.limits[b.id] ?? 0);
+                }
+                await setCycleLimits(s.uid, s.cycleId, next);
+                setEditing(false);
+              }}
+              className="mt-3 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg"
+            >
+              Save limits
+            </button>
+          </>
+        )}
+        {!editing && (
         <ul className="flex flex-col gap-2">
           {s.monthly.map((b) => (
             <BudgetRow
@@ -66,6 +127,7 @@ export default function SummaryView() {
             />
           ))}
         </ul>
+        )}
         <Totals
           left={`Spent ${formatVnd(s.monthlySpent)}`}
           right={
@@ -85,7 +147,20 @@ export default function SummaryView() {
         <Totals left="Total" right={formatVnd(s.fundsTotal)} />
       </Block>
 
-      <Block title="VPS">
+      <Block
+        title="VPS"
+        action={
+          s.etfDeposits.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setEtfOpen((v) => !v)}
+              className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
+            >
+              {etfOpen ? 'Hide' : `${s.etfDeposits.length} deposits`}
+            </button>
+          ) : null
+        }
+      >
         <div className="flex items-center justify-between">
           <span className="text-sm">ETF</span>
           <span className="flex items-center gap-3">
@@ -99,6 +174,24 @@ export default function SummaryView() {
             </button>
           </span>
         </div>
+
+        {etfOpen && (
+          <ul className="mt-3 flex flex-col divide-y divide-line border-t border-line">
+            {s.etfDeposits.map((d) => (
+              <li key={d.id} className="flex items-baseline gap-3 py-1.5 text-xs">
+                <span className="w-24 shrink-0 text-faint">
+                  {new Date(d.occurredAt).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: '2-digit',
+                  })}
+                </span>
+                <span className="font-medium">{formatVnd(d.amountVnd)}</span>
+                <span className="ml-auto truncate text-muted">{d.note ?? ''}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Block>
 
       <button
@@ -111,6 +204,9 @@ export default function SummaryView() {
 
       {sheet === 'generator' && (
         <GeneratorSheet
+          uid={s.uid!}
+          cycleId={s.cycleId}
+          cycleClosed={s.cycle?.status === 'closed'}
           buckets={s.buckets}
           incomeVnd={s.cycle?.incomeVnd ?? null}
           onClose={() => setSheet('none')}
@@ -122,8 +218,9 @@ export default function SummaryView() {
           title="Add ETF deposit"
           confirmLabel="Add"
           onCancel={() => setSheet('none')}
-          onConfirm={async (amountVnd, note) => {
-            if (s.uid) await addEtfDeposit(s.uid, amountVnd, note);
+          withDate
+          onConfirm={async (amountVnd, note, occurredAt) => {
+            if (s.uid) await addEtfDeposit(s.uid, amountVnd, note, occurredAt);
             setSheet('none');
           }}
         />
@@ -195,11 +292,20 @@ function FundRow({ bucket }: { bucket: Bucket }) {
   );
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Block({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="mt-5 rounded-xl border border-line bg-surface px-4 py-3">
-      <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+      <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}
+        {action}
       </h2>
       {children}
     </section>

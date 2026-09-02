@@ -35,11 +35,11 @@ test('computeSurplus - bỏ qua chi tiêu vào bucket không có trong limits', 
 
 test('allocate - ETF là phần dư, phần trăm là kết quả tính ra', () => {
   const r = allocate(39_065_000, buckets);
-  assert.equal(r.monthlyTotalVnd, 7_500_000);
-  assert.equal(r.fundsTotalVnd, 9_050_000);
-  assert.equal(r.etfVnd, 39_065_000 - 7_500_000 - 9_050_000);
-  assert.equal(r.etfVnd, 22_515_000);
-  assert.equal(Math.round(r.etfPercent), 58);
+  assert.equal(r.monthlyTotalVnd, 7_000_000);
+  assert.equal(r.fundsTotalVnd, 10_500_000);
+  assert.equal(r.etfVnd, 39_065_000 - 7_000_000 - 10_500_000);
+  assert.equal(r.etfVnd, 21_565_000);
+  assert.equal(Math.round(r.etfPercent), 55);
 });
 
 test('allocate - tăng một baseline thì ETF tụt đúng bằng chừng đó', () => {
@@ -53,8 +53,8 @@ test('allocate - tăng một baseline thì ETF tụt đúng bằng chừng đó'
 test('allocate - lương thiếu thì ETF âm, không tự cắt bucket nào', () => {
   const r = allocate(10_000_000, buckets);
   assert.ok(r.etfVnd < 0);
-  assert.equal(r.monthlyTotalVnd, 7_500_000);
-  assert.equal(r.fundsTotalVnd, 9_050_000);
+  assert.equal(r.monthlyTotalVnd, 7_000_000);
+  assert.equal(r.fundsTotalVnd, 10_500_000);
 });
 
 test('allocate - ETF không tự tính vào phần quỹ', () => {
@@ -64,5 +64,5 @@ test('allocate - ETF không tự tính vào phần quỹ', () => {
 
 test('allocate - bucket đã tắt thì không được phân bổ', () => {
   const off = buckets.map((b) => (b.id === 'travel' ? { ...b, active: false } : b));
-  assert.equal(allocate(39_065_000, off).fundsTotalVnd, 9_050_000 - 1_200_000);
+  assert.equal(allocate(39_065_000, off).fundsTotalVnd, 10_500_000 - 2_000_000);
 });
