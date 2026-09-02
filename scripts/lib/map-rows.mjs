@@ -29,6 +29,9 @@ const RULES = {
     [['wifi', 'card dt'], 'reserve'],
     [['ca phe'], 'food'],
     [['sach', 'bang diem', 'film', 'grab', 'cho me', 'photocopy', 'op lung'], 'buffer'],
+    // Others khong co ghi chu: nguoi dung khong nho la gi, va so tien nho.
+    // Xep vao buffer - dung cho hu "linh tinh" - thay vi dung ca lan import.
+    [[''], 'buffer'],
   ],
 };
 
@@ -42,6 +45,7 @@ const FALLBACK = { FDU: 'food', Health: 'beauty', Tech: 'tech' };
  */
 export function mapRow(category, note) {
   const n = norm(note ?? '');
+  // includes('') luon dung, nen luat [''] o cuoi Others = "moi thu con lai".
   const has = (keys) => keys.some((k) => n.includes(k));
 
   if (has(TRANSFER)) return SKIP_TRANSFER;
