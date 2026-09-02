@@ -2,8 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { balanceDeltas, type TxShape } from '@/lib/tx-edit';
 
-const fund = (id: string, amountVnd: number): TxShape => ({ bucketId: id, kind: 'fund', amountVnd });
-const budget = (id: string, amountVnd: number): TxShape => ({ bucketId: id, kind: 'budget', amountVnd });
+const fund = (id: string, amountVnd: number): TxShape =>
+  ({ bucketId: id, kind: 'fund', amountVnd, direction: 'out' });
+const budget = (id: string, amountVnd: number): TxShape =>
+  ({ bucketId: id, kind: 'budget', amountVnd, direction: 'out' });
+const inTo = (id: string, amountVnd: number): TxShape =>
+  ({ bucketId: id, kind: 'fund', amountVnd, direction: 'in' });
 
 test('sửa số tiền, cùng một quỹ', () => {
   assert.deepEqual(balanceDeltas(fund('travel', 500_000), fund('travel', 800_000)), {
@@ -51,19 +55,25 @@ test('tạo mới trừ số dư quỹ', () => {
   assert.deepEqual(balanceDeltas(null, fund('travel', 500_000)), { travel: -500_000 });
 });
 
-test('ETF đi ngược chiều: tiền chỉ đi VÀO', () => {
-  // Nạp mới -> số dư tăng
-  assert.deepEqual(balanceDeltas(null, fund('etf', 3_425_000)), { etf: 3_425_000 });
-  // Xoá một lần nạp -> số dư giảm
-  assert.deepEqual(balanceDeltas(fund('etf', 3_425_000), null), { etf: -3_425_000 });
-  // Sửa số tiền nạp
-  assert.deepEqual(balanceDeltas(fund('etf', 1_000_000), fund('etf', 1_500_000)), {
+test('tiền đi VÀO thì cộng số dư - nạp ETF và khoản được hoàn', () => {
+  assert.deepEqual(balanceDeltas(null, inTo('etf', 3_425_000)), { etf: 3_425_000 });
+  assert.deepEqual(balanceDeltas(inTo('etf', 3_425_000), null), { etf: -3_425_000 });
+  assert.deepEqual(balanceDeltas(inTo('etf', 1_000_000), inTo('etf', 1_500_000)), {
     etf: 500_000,
+  });
+  // Ứng tiền đi picnic từ quỹ Travel rồi được trả lại
+  assert.deepEqual(balanceDeltas(null, inTo('travel', 1_000_000)), { travel: 1_000_000 });
+});
+
+test('đổi chiều của một giao dịch thì số dư nhảy gấp đôi', () => {
+  // Ghi nhầm khoản hoàn tiền thành khoản chi, rồi sửa lại
+  assert.deepEqual(balanceDeltas(fund('travel', 500_000), inTo('travel', 500_000)), {
+    travel: 1_000_000,
   });
 });
 
 test('chuyển một khoản chi nhầm sang ETF: cả hai quỹ đều đúng chiều', () => {
-  assert.deepEqual(balanceDeltas(fund('travel', 1_000_000), fund('etf', 1_000_000)), {
+  assert.deepEqual(balanceDeltas(fund('travel', 1_000_000), inTo('etf', 1_000_000)), {
     travel: 1_000_000,
     etf: 1_000_000,
   });

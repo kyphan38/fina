@@ -6,22 +6,18 @@
 // và test nó, thay vì rải vào component.
 // ============================================================
 
-import type { BucketKind } from '@/types/fina';
+import type { BucketKind, TxDirection } from '@/types/fina';
 
 export interface TxShape {
   bucketId: string;
   kind: BucketKind;
   amountVnd: number;
+  direction: TxDirection;
 }
 
-/**
- * Một giao dịch tác động lên số dư quỹ theo chiều nào.
- *
- * Mọi quỹ đều là tiền ĐI RA (−1). ETF là ngoại lệ duy nhất: tiền chỉ đi
- * VÀO nó (+1). Quên chỗ này thì xoá một lần nạp ETF sẽ làm số dư tăng lên.
- */
-function signOf(bucketId: string): 1 | -1 {
-  return bucketId === 'etf' ? 1 : -1;
+/** Tác động lên số dư quỹ: đi ra thì trừ, đi vào thì cộng. */
+function signOf(direction: TxDirection): 1 | -1 {
+  return direction === 'in' ? 1 : -1;
 }
 
 /**
@@ -43,11 +39,11 @@ export function balanceDeltas(
 
   // Gỡ tác động của bản cũ...
   if (before && before.kind === 'fund') {
-    add(before.bucketId, -signOf(before.bucketId) * before.amountVnd);
+    add(before.bucketId, -signOf(before.direction) * before.amountVnd);
   }
   // ...rồi áp tác động của bản mới.
   if (after && after.kind === 'fund') {
-    add(after.bucketId, signOf(after.bucketId) * after.amountVnd);
+    add(after.bucketId, signOf(after.direction) * after.amountVnd);
   }
 
   for (const [id, v] of Object.entries(deltas)) {

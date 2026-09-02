@@ -86,7 +86,7 @@ export default function PendingCovers() {
         <button
           type="button"
           disabled={busy}
-          onClick={() => void cancelCover(uid, cover.id)}
+          onClick={() => void cancelCover(uid, cover)}
           className="ml-auto text-xs text-muted"
         >
           Undo

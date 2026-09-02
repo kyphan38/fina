@@ -42,6 +42,8 @@ service cloud.firestore {
         && d.bucketId is string
         && d.bank in ['VCB', 'BIDV', 'VPS']
         && isVnd(d.amountVnd) && d.amountVnd > 0
+        // amountVnd luon duong; chieu nam o `direction`, khong nam o dau.
+        && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
         && d.source in ['web', 'import'];
     }

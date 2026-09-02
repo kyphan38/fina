@@ -28,12 +28,13 @@ const db = getFirestore(app);
 const buckets = await db.collection(`users/${UID}/buckets`).get();
 const txs = await db.collection(`users/${UID}/transactions`).get();
 
-// Moi quy la tien di ra. ETF la ngoai le: tien chi di vao.
+// Chieu nam o `direction`. Ban ghi cu chua co field do: ETF la tien vao,
+// con lai la tien ra.
 const computed = {};
 for (const d of txs.docs) {
   const t = d.data();
-  const sign = t.bucketId === 'etf' ? 1 : -1;
-  computed[t.bucketId] = (computed[t.bucketId] ?? 0) + sign * t.amountVnd;
+  const dir = t.direction ?? (t.bucketId === 'etf' ? 'in' : 'out');
+  computed[t.bucketId] = (computed[t.bucketId] ?? 0) + (dir === 'in' ? 1 : -1) * t.amountVnd;
 }
 
 const f = (v) => (v / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 0 });

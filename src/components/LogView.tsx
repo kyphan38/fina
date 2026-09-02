@@ -24,6 +24,9 @@ export default function LogView() {
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [coverReq, setCoverReq] = useState<CoverRequest | null>(null);
+  // Tiền được hoàn lại: ứng tiền đi picnic rồi bạn bè trả lại. Luôn trả về
+  // 'out' sau mỗi lần Save để không bao giờ lỡ để bật.
+  const [direction, setDirection] = useState<'out' | 'in'>('out');
   // Mặc định gập. Mở ra rồi thì GIỮ NGUYÊN cho tới khi tự đóng - đi du lịch
   // cả tuần không phải mở lại mỗi lần.
   const fundsOpen = useSyncExternalStore(
@@ -76,7 +79,7 @@ export default function LogView() {
 
     // Tính phần vượt bằng trạng thái TRƯỚC khi ghi. Tính sau thì listener có
     // thể đã cộng chính giao dịch này vào và phần vượt bị đếm hai lần.
-    const overflowVnd = overflowOf({
+    const overflowVnd = direction === 'in' ? 0 : overflowOf({
       bucketId: selected.id,
       kind: selected.kind,
       limitVnd: selected.kind === 'budget' ? limitOf(selected) : undefined,
@@ -91,6 +94,7 @@ export default function LogView() {
         selected,
         amountVnd,
         trimmed || null,
+        direction,
       );
 
       const isFund = selected.kind === 'fund';
@@ -103,13 +107,16 @@ export default function LogView() {
               : `${formatVnd(left)} of ${formatVnd(limitOf(selected))} left`;
           })();
 
-      setToast(`${selected.name} · ${formatVnd(amountVnd)} · ${after}`);
+      setToast(
+        `${selected.name} · ${direction === 'in' ? '+' : ''}${formatVnd(amountVnd)} · ${after}`,
+      );
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToast(null), 2600);
 
       // Giữ nguyên bucket đang chọn - hay log liên tiếp cùng một nhóm.
       setBuf('');
       setNote('');
+      setDirection('out');
 
       // Hộp thoại bù đến SAU khi giao dịch đã nằm trong Firestore.
       if (overflowVnd > 0) {
@@ -125,6 +132,7 @@ export default function LogView() {
             bucketId: selected.id,
             bank: selected.bank,
             amountVnd,
+            direction,
             note: trimmed || null,
             source: 'web',
             createdAt: occurredAt,
@@ -236,12 +244,24 @@ export default function LogView() {
               </span>
             )}
           </span>
-          <span
-            className={`shrink-0 text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
-              buf ? '' : 'text-faint'
-            }`}
-          >
-            {buf || '0'}
+          <span className="flex shrink-0 items-baseline gap-2">
+            <button
+              type="button"
+              onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
+              aria-label={direction === 'in' ? 'Money in' : 'Money out'}
+              className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${
+                direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
+              }`}
+            >
+              {direction === 'in' ? '+' : '−'}
+            </button>
+            <span
+              className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
+                buf ? '' : 'text-faint'
+              }`}
+            >
+              {buf || '0'}
+            </span>
           </span>
         </div>
 

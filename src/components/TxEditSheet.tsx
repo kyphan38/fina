@@ -31,6 +31,7 @@ export default function TxEditSheet({
   const [note, setNote] = useState(tx.note ?? '');
   const [bucketId, setBucketId] = useState(tx.bucketId);
   const [when, setWhen] = useState(toLocalInput(tx.occurredAt));
+  const [direction, setDirection] = useState(tx.direction);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,8 +58,20 @@ export default function TxEditSheet({
       <div className="max-h-[92dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
         <div className="flex items-baseline justify-between pb-2">
           <span className="text-xs font-semibold">Edit entry</span>
-          <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
-            {buf || '0'}
+          <span className="flex items-baseline gap-2">
+            <button
+              type="button"
+              onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
+              aria-label={direction === 'in' ? 'Money in' : 'Money out'}
+              className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${
+                direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
+              }`}
+            >
+              {direction === 'in' ? '+' : '−'}
+            </button>
+            <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
+              {buf || '0'}
+            </span>
           </span>
         </div>
 
@@ -101,6 +114,7 @@ export default function TxEditSheet({
               updateTransaction(uid, tx, beforeKind, {
                 bucket: bucket!,
                 amountVnd: amountVnd!,
+                direction,
                 note: note.trim() || null,
                 occurredAt: new Date(when).getTime(),
               }),

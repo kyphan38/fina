@@ -141,7 +141,7 @@ for (let i = 0; i < out.length; i += 400) {
   for (const t of out.slice(i, i + 400)) {
     batch.set(db.doc(`users/${UID}/transactions/${t.id}`), {
       occurredAt: t.occurredAt, cycle: t.cycle, bucketId: t.bucketId, bank: t.bank,
-      amountVnd: t.amountVnd, note: t.note, source: 'import',
+      amountVnd: t.amountVnd, direction: 'out', note: t.note, source: 'import',
       createdAt: now, updatedAt: now,
     });
     written++;

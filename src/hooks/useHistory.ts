@@ -56,8 +56,10 @@ export function useHistory() {
     return [...filtered].sort((a, b) => b.occurredAt - a.occurredAt);
   }, [txs, bucketFilter]);
 
+  // Tổng ròng: khoản được hoàn trừ đi. ETF là giao dịch 'in' nên tự động
+  // không cộng vào chi tiêu.
   const total = useMemo(
-    () => rows.reduce((sum, t) => sum + (t.bucketId === 'etf' ? 0 : t.amountVnd), 0),
+    () => rows.reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0),
     [rows],
   );
 
