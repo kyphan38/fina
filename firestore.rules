@@ -45,7 +45,7 @@ service cloud.firestore {
         // amountVnd luon duong; chieu nam o `direction`, khong nam o dau.
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
-        && d.source in ['web', 'import'];
+        && d.source in ['web', 'import', 'allocation'];
     }
 
     function validCover(d) {
@@ -90,6 +90,20 @@ service cloud.firestore {
       // meta/settings, meta/fcm
       match /meta/{docId} {
         allow read, write: if isOwner(uid);
+      }
+
+      // income/{id} - tiền vào. Collection RIÊNG với transactions: thu không
+      // phải chi tiêu, mà để chung với chi tiêu thì mọi phép cộng đều phải
+      // nhớ loại nó ra, và sẽ có lần quên.
+      match /income/{incomeId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasAll(['occurredAt', 'cycle', 'amountVnd', 'kind'])
+          && request.resource.data.occurredAt is int
+          && request.resource.data.cycle.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && isVnd(request.resource.data.amountVnd)
+          && request.resource.data.amountVnd > 0
+          && request.resource.data.kind in ['salary', 'other'];
       }
 
       // insights/{cycleId} - nhận xét AI đã sinh (Stage 7)

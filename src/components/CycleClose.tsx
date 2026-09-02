@@ -26,6 +26,7 @@ export default function CycleClose({
   spent,
   covered,
   surplusVnd,
+  snapshot,
   pendingCount,
 }: {
   uid: string;
@@ -35,6 +36,8 @@ export default function CycleClose({
   covered: Record<string, number>;
   /** Đã cộng lại phần bù lấy từ BIDV - tính ở useSummary. */
   surplusVnd: number;
+  /** Chụp lại vào document chu kỳ, để bảng theo năm khỏi đọc lại giao dịch. */
+  snapshot: { outVnd: number; investedVnd: number; incomeVnd: number };
   pendingCount: number;
 }) {
   const [target, setTarget] = useState<SurplusTarget>('etf');
@@ -128,7 +131,7 @@ export default function CycleClose({
           setBusy(true);
           setError(null);
           try {
-            await closeCycle(uid, cycle.id, surplus, surplus > 0 ? target : 'hold');
+            await closeCycle(uid, cycle.id, surplus, surplus > 0 ? target : 'hold', snapshot);
           } catch (err) {
             const code = (err as { code?: string })?.code ?? 'unknown';
             setError(`Could not close the cycle (${code}).`);

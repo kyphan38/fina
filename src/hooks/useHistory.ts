@@ -8,6 +8,7 @@ import { clockStore } from '@/lib/clock';
 import { cycleOf } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { watchCycleTransactions } from '@/lib/transactions';
+import { netSpending } from '@/lib/cashflow';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export function useHistory() {
@@ -22,6 +23,9 @@ export function useHistory() {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [bucketFilter, setBucketFilter] = useState<string | null>(null);
+  // Khoản chia lương vào quỹ ngày 25 không phải thứ bạn muốn lướt qua mỗi
+  // ngày. Ẩn mặc định, bật lên khi cần đối chiếu.
+  const [showAllocations, setShowAllocations] = useState(false);
 
   const selected = cycle ?? currentCycle;
 
@@ -51,26 +55,24 @@ export function useHistory() {
 
   const byId = useMemo(() => new Map(buckets.map((b) => [b.id, b])), [buckets]);
 
+  const allocationCount = useMemo(
+    () => txs.filter((t) => t.source === 'allocation').length,
+    [txs],
+  );
+
   const rows = useMemo(() => {
-    const filtered = bucketFilter ? txs.filter((t) => t.bucketId === bucketFilter) : txs;
+    let filtered = showAllocations ? txs : txs.filter((t) => t.source !== 'allocation');
+    if (bucketFilter) filtered = filtered.filter((t) => t.bucketId === bucketFilter);
     return [...filtered].sort((a, b) => b.occurredAt - a.occurredAt);
-  }, [txs, bucketFilter]);
+  }, [txs, bucketFilter, showAllocations]);
 
   /**
    * Tổng ròng của những khoản THẬT SỰ là chi tiêu.
    *
-   * Khoản được hoàn thì trừ đi - ứng 850 tiền picnic rồi nhận lại 430 nghĩa
-   * là tiêu 420. Nhưng nạp ETF thì bỏ hẳn ra: đó là chuyển tiền sang đầu tư,
-   * không phải chi tiêu, và tính nó là số âm sẽ làm tổng nhìn như bạn tiêu
-   * ít hơn thực tế.
+   * Dùng chung một luật với bảng Cash flow ở Summary - hai chỗ tính chi tiêu
+   * theo hai cách là hai chỗ sẽ lệch nhau.
    */
-  const total = useMemo(
-    () =>
-      rows
-        .filter((t) => t.bucketId !== 'etf')
-        .reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0),
-    [rows],
-  );
+  const total = useMemo(() => netSpending(rows), [rows]);
 
   return {
     uid,
@@ -81,6 +83,9 @@ export function useHistory() {
     setCycle,
     bucketFilter,
     setBucketFilter,
+    showAllocations,
+    setShowAllocations,
+    allocationCount,
     rows,
     total,
   };

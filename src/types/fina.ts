@@ -50,7 +50,11 @@ export interface Bucket {
   updatedAt: number;
 }
 
-export type TxSource = 'web' | 'import';
+/**
+ * `allocation` là khoản chia lương vào quỹ ngày 25. Nó KHÔNG phải chi tiêu -
+ * mọi phép cộng chi tiêu phải loại nó ra (xem `cashflow.ts`).
+ */
+export type TxSource = 'web' | 'import' | 'allocation';
 
 /**
  * Chiều của tiền.
@@ -80,6 +84,28 @@ export interface Transaction {
   updatedAt: number;
 }
 
+export type IncomeKind = 'salary' | 'other';
+
+/**
+ * Firestore: users/{uid}/income/{id}
+ *
+ * Collection RIÊNG, không nằm chung `transactions`. Đã có một lỗi chứng minh
+ * lý do: tổng ở History từng trừ khoản nạp ETF vì nó là giao dịch `in`. Thứ
+ * gì không phải chi tiêu mà để chung với chi tiêu thì mọi phép cộng đều phải
+ * nhớ loại nó ra, và sẽ có lần quên.
+ */
+export interface Income {
+  id: string;
+  occurredAt: number;
+  cycle: string;
+  /** Luôn dương. */
+  amountVnd: number;
+  kind: IncomeKind;
+  note: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type CycleStatus = 'open' | 'closed';
 export type SurplusTarget = 'etf' | 'reserve' | 'hold';
 
@@ -95,6 +121,12 @@ export interface Cycle {
   closedAt: number | null;
   surplusVnd: number | null;
   surplusTo: SurplusTarget | null;
+  /**
+   * Chụp lại lúc đóng sổ, để bảng dòng tiền theo năm không phải đọc lại toàn
+   * bộ giao dịch của 12 chu kỳ.
+   */
+  closedTotals: { outVnd: number; investedVnd: number } | null;
+  closedIncomeVnd: number | null;
 }
 
 export type CoverStatus = 'pending' | 'done';
