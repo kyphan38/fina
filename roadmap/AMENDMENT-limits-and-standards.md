@@ -17,13 +17,19 @@ làm - nó đang hiện chữ "Planning only".
 
 Ba khái niệm khác nhau đang dùng chung một cái tên.
 
-## Ba con số, ba cái tên
+## Hai con số, hai cái tên
+
+Bản nháp đầu có ba (`Standard` / `Baseline` / `Limit`). Người dùng mô tả lại
+cách mình làm - *"standard ở Settings hầu như không đổi nhiều tháng, điều
+chỉnh ngắn hạn làm ở Generator"* - và `Baseline` lộ ra là thừa: nó chỉ là
+"mặc định khi mở chu kỳ", đúng việc Standard làm được.
 
 | | Là gì | Sửa ở đâu | Ảnh hưởng |
 |---|---|---|---|
-| **Standard** | mức chuẩn của người dùng, mốc để so | Settings | không gì cả |
-| **Baseline** | mức mặc định khi mở chu kỳ mới | Settings | chu kỳ **sau** |
+| **Standard** | mức chuẩn, hiếm khi đổi | Settings | mở chu kỳ mới, và điền sẵn Generator |
 | **Limit** | hạn mức của chu kỳ đang chạy | Generator → Apply, hoặc sửa tay ở Summary | chu kỳ **này** |
+
+`baselineVnd` đã bị xoá khỏi model và khỏi Firestore.
 
 Generator dùng vào ngày 25. Bấm **Apply** thì Baseline chảy sang Limit. Các
 ngày khác hai con số không dính nhau - đúng nguyên tắc #14.
@@ -65,7 +71,10 @@ và cố ý siết. Ghi lại ở đây để sáu tháng sau khỏi tưởng l�
   *"Used when a new cycle opens. Changing these does not touch the cycle you are in."*
 - Mỗi dòng hiện cả `standard` và `baseline`, lệch nhau thì thấy ngay.
 
-### 2. Generator có nút Apply thật
+### 2. Generator: đọc Standard, sửa được tại chỗ, tô đậm chỗ lệch
+- Điền sẵn từ `standardVnd`. Sửa số nào cũng được, **chỉ sống trong lần mở
+  này** - tháng sau lại bắt đầu từ Standard. Đó là ý nghĩa của "ngắn hạn".
+- Lệch chuẩn thì hiện `+500` / `−300`; lệch quá **20%** thì tô đậm và viền đỏ.
 - `Apply to <tháng>` ghi `limits` + `incomeVnd` cho **chu kỳ đang chạy**.
 - Có bước xác nhận: nó ghi đè hạn mức đang dùng.
 - Chu kỳ đã đóng thì nút bị vô hiệu (rules cũng chặn).
@@ -96,6 +105,28 @@ Chỉ ghi mẫu nào mà trang **liên tục hiển thị** từ lúc điều h�
 numpad vẽ xong. Trang từng bị ẩn giữa chừng → bỏ mẫu, và nói rõ là đã bỏ.
 
 Những số thật đo được: **1.02 / 1.7 / 2.12 / 2.5** - đạt mốc 1,5s ấm / 2,5s nguội.
+
+### 8. Bù tiền là bắt buộc, hoặc bỏ hẳn bản ghi
+
+Người dùng luôn trả tiền / chuyển khoản **trước**, log **sau**. Nên lúc log
+thì tiền đã đi rồi, và luôn tồn tại một nguồn nào đó đã bù. Hộp thoại bù
+không còn nút `Decide later`.
+
+Nhưng giao dịch vẫn được **lưu trước** khi hỏi. Chặn trước khi lưu chỉ khác
+ở đúng một tình huống, và nó là tình huống xấu: đang xếp hàng, hộp thoại
+bật lên, khoá máy đi ra → giao dịch không bao giờ tồn tại. Lưu trước thì dù
+app chết giữa chừng, dải nhắc vẫn hỏi lại ở lần mở sau.
+
+Thay cho `Decide later` là **`Discard this entry`**: xoá hẳn giao dịch. Người
+dùng biết và chấp nhận rằng số dư trong app sẽ lệch với ngân hàng - đó là
+một lựa chọn có ý thức, khác hẳn với việc mất bản ghi vì lỡ tay.
+
+### 9. Không hiện lịch sử tiêu lố trong Generator
+
+Đã hỏi và người dùng bỏ. Ghi lại chỗ nào **đang** hiện tiêu lố, vì câu hỏi
+này sẽ quay lại: ô đỏ ở Log, dòng `−X` ở Summary, và bảng `+/−` lúc đóng sổ.
+Cả ba đều **chỉ trong chu kỳ đang chạy**. Không có gì nhìn qua nhiều chu kỳ -
+ý `"Beauty vượt 4/6 chu kỳ"` nằm ở Stage 7 và chưa làm.
 
 ## Đã cân nhắc và KHÔNG làm
 

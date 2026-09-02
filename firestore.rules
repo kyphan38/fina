@@ -20,14 +20,13 @@ service cloud.firestore {
     }
 
     function validBucket(d) {
-      return d.keys().hasAll(['name', 'kind', 'bank', 'baselineVnd', 'order', 'active'])
+      return d.keys().hasAll(['name', 'kind', 'bank', 'standardVnd', 'order', 'active'])
         && d.name is string
         && d.kind in ['budget', 'fund']
         && d.bank in ['VCB', 'BIDV', 'VPS']
-        && isVnd(d.baselineVnd)
-        // standardVnd cung la tien: chan so thuc ngay o tang DB, giong
-        // baselineVnd. Mot phep nhan voi so thuc da tung lam hong ca batch seed.
-        && (!('standardVnd' in d.keys()) || isVnd(d.standardVnd))
+        // Chan so thuc ngay o tang DB: mot phep nhan voi so thuc
+        // (4.1 * 1_000_000) da tung lam hong ca batch seed.
+        && isVnd(d.standardVnd)
         && (!('hint' in d.keys()) || d.hint == null || d.hint is string)
         && d.order is int
         && d.active is bool

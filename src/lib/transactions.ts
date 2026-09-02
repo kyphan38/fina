@@ -54,7 +54,8 @@ export function watchCycleTransactions(
  * Ghi một giao dịch. Với bucket dạng fund thì trừ luôn balanceVnd trong
  * CÙNG một batch - hai lệnh ghi rời sẽ có lúc lệch nhau.
  *
- * Trả về id sinh ở client, nên UI cập nhật ngay không đợi server.
+ * Trả về id sinh ở client và mốc thời gian đã dùng, nên component không phải
+ * tự gọi Date.now() trong lúc render (React 19 cấm).
  */
 export async function addTransaction(
   uid: string,
@@ -62,7 +63,7 @@ export async function addTransaction(
   amountVnd: number,
   note: string | null,
   occurredAt: number = Date.now(),
-): Promise<string> {
+): Promise<{ id: string; occurredAt: number }> {
   const ref = doc(txCol(uid));
   const now = Date.now();
   const batch = writeBatch(db);
@@ -89,7 +90,7 @@ export async function addTransaction(
   }
 
   await batch.commit();
-  return ref.id;
+  return { id: ref.id, occurredAt };
 }
 
 /**

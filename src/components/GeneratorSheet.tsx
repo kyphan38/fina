@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
-import { allocate } from '@/lib/generator';
+import { allocate, type Allocation } from '@/lib/generator';
 import { setCycleLimits } from '@/lib/cycles';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
@@ -34,9 +34,19 @@ export default function GeneratorSheet({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Số sửa tay chỉ sống trong lần mở này. Tháng sau mở lại Generator là quay
+  // về chuẩn - đó là ý nghĩa của "điều chỉnh ngắn hạn".
+  const [edits, setEdits] = useState<Record<string, string>>({});
+
   const salary = toVnd(buf) ?? 0;
-  const r = allocate(salary, buckets);
+  const overrides: Record<string, number> = {};
+  for (const [id, raw] of Object.entries(edits)) {
+    const v = raw.trim() === '' || raw.trim() === '0' ? 0 : toVnd(raw);
+    if (v !== null) overrides[id] = v;
+  }
+  const r = allocate(salary, buckets, overrides);
   const { month } = cycleLabel(cycleId);
+  const edited = Object.keys(overrides).length > 0;
 
   const apply = async () => {
     setBusy(true);
@@ -65,13 +75,13 @@ export default function GeneratorSheet({
 
         <Group title="VCB — Monthly" total={r.monthlyTotalVnd} salary={salary}>
           {r.monthly.map((a) => (
-            <Row key={a.bucket.id} name={a.bucket.name} amount={a.amountVnd} />
+            <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
         </Group>
 
         <Group title="BIDV — Funds" total={r.fundsTotalVnd} salary={salary}>
           {r.funds.map((a) => (
-            <Row key={a.bucket.id} name={a.bucket.name} amount={a.amountVnd} />
+            <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
         </Group>
 
@@ -86,6 +96,7 @@ export default function GeneratorSheet({
             {r.etfVnd < 0
               ? `Salary is ${formatVnd(-r.etfVnd)} short of the allocations.`
               : 'Whatever is left after the fixed amounts.'}
+            {edited && ' Edits here apply to this cycle only — Settings is untouched.'}
           </p>
         </section>
 
@@ -163,11 +174,38 @@ function Group({
   );
 }
 
-function Row({ name, amount }: { name: string; amount: number }) {
+function Row({
+  a,
+  edits,
+  setEdits,
+}: {
+  a: Allocation;
+  edits: Record<string, string>;
+  setEdits: (fn: (e: Record<string, string>) => Record<string, string>) => void;
+}) {
+  const off = a.deltaVnd !== 0;
   return (
-    <li className="flex justify-between text-xs text-muted">
-      <span>{name}</span>
-      <span>{formatVnd(amount)}</span>
+    <li className="flex items-center gap-2 py-0.5 text-xs">
+      <span className="flex-1 truncate">{a.bucket.name}</span>
+
+      {off && (
+        <span className={a.farFromStandard ? 'font-semibold text-over' : 'text-muted'}>
+          {a.deltaVnd > 0 ? '+' : '−'}
+          {formatVnd(Math.abs(a.deltaVnd))}
+        </span>
+      )}
+
+      <span className="w-10 text-right text-faint">{Math.round(a.percent)}%</span>
+
+      <input
+        value={edits[a.bucket.id] ?? fromVnd(a.standardVnd)}
+        inputMode="decimal"
+        aria-label={`${a.bucket.name} amount`}
+        onChange={(e) => setEdits((prev) => ({ ...prev, [a.bucket.id]: e.target.value }))}
+        className={`w-20 rounded-md border bg-surface-2 px-2 py-1 text-right text-xs ${
+          a.farFromStandard ? 'border-over' : 'border-line'
+        }`}
+      />
     </li>
   );
 }

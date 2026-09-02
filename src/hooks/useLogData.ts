@@ -57,7 +57,7 @@ export function useLogData() {
   // chưa mở Summary lần nào) thì tạm dùng baseline - Summary sẽ chốt lại.
   const limits = useMemo(() => cycleDoc?.limits ?? null, [cycleDoc]);
   const limitOf = useMemo(
-    () => (b: Bucket) => limits?.[b.id] ?? b.baselineVnd,
+    () => (b: Bucket) => limits?.[b.id] ?? b.standardVnd,
     [limits],
   );
 

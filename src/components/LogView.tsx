@@ -86,16 +86,21 @@ export default function LogView() {
     });
 
     try {
-      const txId = await addTransaction(uid, selected, amountVnd, trimmed || null);
+      const { id: txId, occurredAt } = await addTransaction(
+        uid,
+        selected,
+        amountVnd,
+        trimmed || null,
+      );
 
       const isFund = selected.kind === 'fund';
       const after = isFund
         ? `${formatVnd(selected.balanceVnd - amountVnd)} left in fund`
         : (() => {
-            const left = selected.baselineVnd - (spent[selected.id] ?? 0) - amountVnd;
+            const left = limitOf(selected) - (spent[selected.id] ?? 0) - amountVnd;
             return left < 0
               ? `over by ${formatVnd(-left)}`
-              : `${formatVnd(left)} of ${formatVnd(selected.baselineVnd)} left`;
+              : `${formatVnd(left)} of ${formatVnd(limitOf(selected))} left`;
           })();
 
       setToast(`${selected.name} · ${formatVnd(amountVnd)} · ${after}`);
@@ -108,7 +113,24 @@ export default function LogView() {
 
       // Hộp thoại bù đến SAU khi giao dịch đã nằm trong Firestore.
       if (overflowVnd > 0) {
-        setCoverReq({ txId, cycle, toBucket: selected, amountVnd: overflowVnd });
+        setCoverReq({
+          txId,
+          cycle,
+          toBucket: selected,
+          amountVnd: overflowVnd,
+          tx: {
+            id: txId,
+            occurredAt,
+            cycle,
+            bucketId: selected.id,
+            bank: selected.bank,
+            amountVnd,
+            note: trimmed || null,
+            source: 'web',
+            createdAt: occurredAt,
+            updatedAt: occurredAt,
+          },
+        });
       }
     } catch {
       setToast('Could not save. Check your connection.');
@@ -241,7 +263,6 @@ export default function LogView() {
           bufferLimitVnd={limitOf(buckets.find((b) => b.id === 'buffer') ?? coverReq.toBucket)}
           bufferUsedVnd={(spent.buffer ?? 0) + (covered.buffer ?? 0)}
           onDone={() => setCoverReq(null)}
-          onDismiss={() => setCoverReq(null)}
         />
       )}
 
