@@ -87,6 +87,41 @@ export async function addTransaction(
   return ref.id;
 }
 
+/**
+ * Nạp tiền vào ETF. Đây là ngoại lệ duy nhất mà một giao dịch mang nghĩa
+ * TIỀN VÀO - mọi bucket khác chỉ đi ra. Vẫn ghi vào `transactions` chứ không
+ * chỉ tăng số dư, vì Stage 4 phải sửa được và Stage 7 phải đọc được lịch sử nạp.
+ */
+export async function addEtfDeposit(
+  uid: string,
+  amountVnd: number,
+  note: string | null,
+  occurredAt: number = Date.now(),
+): Promise<string> {
+  const ref = doc(txCol(uid));
+  const now = Date.now();
+  const batch = writeBatch(db);
+
+  batch.set(ref, {
+    occurredAt,
+    cycle: cycleOf(new Date(occurredAt)),
+    bucketId: 'etf',
+    bank: 'VPS',
+    amountVnd,
+    note: note && note.length > 0 ? note : null,
+    source: 'web',
+    createdAt: now,
+    updatedAt: now,
+  });
+  batch.update(doc(bucketsCol(uid), 'etf'), {
+    balanceVnd: increment(amountVnd),
+    updatedAt: now,
+  });
+
+  await batch.commit();
+  return ref.id;
+}
+
 /** Tổng đã tiêu theo từng bucket. Tính ở client, KHÔNG denormalize -
  *  Stage 4 cho sửa giao dịch, denormalize sẽ lệch ngay. */
 export function spentByBucket(txs: Transaction[]): Record<string, number> {
