@@ -90,7 +90,69 @@ test('cashFlow - không có gì thì mọi số là 0, không phải NaN', () =>
   const f = cashFlow([], []);
   assert.deepEqual(f, {
     inVnd: 0, salaryVnd: 0, otherVnd: 0, outVnd: 0, investedVnd: 0, leftVnd: 0,
+    allocatedVnd: 0, inFundsVnd: 0, unallocatedVnd: 0,
   });
+});
+
+test('cashFlow - tách Left: đúng dữ liệu tháng 9 thật', () => {
+  const income = [inc({ amountVnd: 39_065_000 })];
+  const txs = [
+    // VCB tiêu 2.415 (đã trừ khoản hoàn)
+    tx({ bucketId: 'food', bank: 'VCB', amountVnd: 1_265_000 }),
+    tx({ bucketId: 'food', bank: 'VCB', amountVnd: 50_000, direction: 'in' }),
+    tx({ bucketId: 'social', bank: 'VCB', amountVnd: 850_000 }),
+    tx({ bucketId: 'social', bank: 'VCB', amountVnd: 430_000, direction: 'in' }),
+    tx({ bucketId: 'beauty', bank: 'VCB', amountVnd: 380_000 }),
+    tx({ bucketId: 'tech', bank: 'VCB', amountVnd: 300_000 }),
+    tx({ bucketId: 'utilities', bank: 'VCB', amountVnd: 100_000 }),
+    // BIDV tiêu 1.400
+    tx({ bucketId: 'purchases', bank: 'BIDV', amountVnd: 1_400_000 }),
+    // Chia sang quỹ 10.500
+    tx({ bucketId: 'healthFund', bank: 'BIDV', amountVnd: 3_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'purchases', bank: 'BIDV', amountVnd: 3_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'travel', bank: 'BIDV', amountVnd: 2_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'reserve', bank: 'BIDV', amountVnd: 2_000_000, direction: 'in', source: 'allocation' }),
+    tx({ bucketId: 'emergency', bank: 'BIDV', amountVnd: 500_000, direction: 'in', source: 'allocation' }),
+    // Nạp VPS
+    tx({ bucketId: 'etf', bank: 'VPS', amountVnd: 3_425_000, direction: 'in' }),
+  ];
+  const f = cashFlow(income, txs);
+  assert.equal(f.outVnd, 3_815_000);
+  assert.equal(f.investedVnd, 3_425_000);
+  assert.equal(f.leftVnd, 31_825_000);
+  assert.equal(f.allocatedVnd, 10_500_000);
+  assert.equal(f.inFundsVnd, 9_100_000);
+  assert.equal(f.unallocatedVnd, 22_725_000);
+});
+
+test('cashFlow - hai nửa của Left luôn cộng lại đúng bằng Left', () => {
+  const cases: [Income[], Transaction[]][] = [
+    [[inc({ amountVnd: 39_065_000 })], []],
+    [
+      [inc({ amountVnd: 10_000_000 }), inc({ id: 'i2', amountVnd: 2_000_000, kind: 'other' })],
+      [
+        tx({ bucketId: 'travel', bank: 'BIDV', amountVnd: 2_000_000, direction: 'in', source: 'allocation' }),
+        tx({ bucketId: 'travel', bank: 'BIDV', amountVnd: 900_000 }),
+        tx({ bucketId: 'food', bank: 'VCB', amountVnd: 1_100_000 }),
+        tx({ bucketId: 'etf', bank: 'VPS', amountVnd: 4_000_000, direction: 'in' }),
+      ],
+    ],
+    [[], [tx({ bucketId: 'food', bank: 'VCB', amountVnd: 500_000 })]],
+  ];
+  for (const [income, txs] of cases) {
+    const f = cashFlow(income, txs);
+    assert.equal(f.inFundsVnd + f.unallocatedVnd, f.leftVnd);
+  }
+});
+
+test('cashFlow - thưởng giữa chu kỳ nằm ở unallocated', () => {
+  const before = cashFlow([inc({ amountVnd: 39_065_000 })], []);
+  const after = cashFlow(
+    [inc({ amountVnd: 39_065_000 }), inc({ id: 'b', amountVnd: 2_000_000, kind: 'other' })],
+    [],
+  );
+  assert.equal(after.unallocatedVnd - before.unallocatedVnd, 2_000_000);
+  assert.equal(after.inFundsVnd, before.inFundsVnd);
 });
 
 test('regression - source phải giữ nguyên "allocation" khi đọc từ Firestore', () => {

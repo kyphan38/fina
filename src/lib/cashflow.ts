@@ -18,8 +18,22 @@ export interface CashFlow {
   /** Chi tiêu ròng: đã trừ khoản được hoàn, đã bỏ phân bổ và đầu tư. */
   outVnd: number;
   investedVnd: number;
-  /** Tiền còn trong tài khoản: chưa tiêu và chưa đem đầu tư. */
+  /** Tiền còn lại của chu kỳ: chưa tiêu và chưa đem đầu tư. */
   leftVnd: number;
+
+  // --- Tách `left` ra làm hai, vì hai nửa này khác nhau về bản chất ---
+
+  /** Đã chuyển sang quỹ BIDV trong chu kỳ này. */
+  allocatedVnd: number;
+  /** Phần của `allocated` chưa bị tiêu: tiền đã có việc, đang nằm ở quỹ. */
+  inFundsVnd: number;
+  /**
+   * Tiền vào VCB mà CHƯA được giao việc gì: chưa tiêu, chưa vào quỹ, chưa
+   * lên VPS. Khoản thưởng giữa chu kỳ nằm ở đây.
+   *
+   * `inFundsVnd + unallocatedVnd === leftVnd` - luôn đúng, có test.
+   */
+  unallocatedVnd: number;
 }
 
 /** Giao dịch này có tính là chi tiêu không. */
@@ -45,6 +59,20 @@ export function invested(txs: Transaction[]): number {
     .reduce((sum, t) => sum + (t.direction === 'in' ? t.amountVnd : -t.amountVnd), 0);
 }
 
+/** Tiền chuyển từ VCB sang quỹ BIDV trong chu kỳ. */
+export function allocated(txs: Transaction[]): number {
+  return txs
+    .filter((t) => t.source === 'allocation')
+    .reduce((sum, t) => sum + (t.direction === 'in' ? t.amountVnd : -t.amountVnd), 0);
+}
+
+/** Chi tiêu ròng, chỉ tính các bucket nằm ở một ngân hàng. */
+function spendingAt(txs: Transaction[], bank: Transaction['bank']): number {
+  return txs
+    .filter((t) => isSpending(t) && t.bank === bank)
+    .reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0);
+}
+
 export function cashFlow(income: Income[], txs: Transaction[]): CashFlow {
   const salaryVnd = income
     .filter((i) => i.kind === 'salary')
@@ -56,8 +84,22 @@ export function cashFlow(income: Income[], txs: Transaction[]): CashFlow {
   const inVnd = salaryVnd + otherVnd;
   const outVnd = netSpending(txs);
   const investedVnd = invested(txs);
+  const allocatedVnd = allocated(txs);
 
-  return { inVnd, salaryVnd, otherVnd, outVnd, investedVnd, leftVnd: inVnd - outVnd - investedVnd };
+  const inFundsVnd = allocatedVnd - spendingAt(txs, 'BIDV');
+  const unallocatedVnd = inVnd - allocatedVnd - spendingAt(txs, 'VCB') - investedVnd;
+
+  return {
+    inVnd,
+    salaryVnd,
+    otherVnd,
+    outVnd,
+    investedVnd,
+    leftVnd: inVnd - outVnd - investedVnd,
+    allocatedVnd,
+    inFundsVnd,
+    unallocatedVnd,
+  };
 }
 
 /** Cộng nhiều chu kỳ lại. Dùng cho bảng theo năm. */
@@ -70,7 +112,13 @@ export function sumCashFlow(parts: CashFlow[]): CashFlow {
       outVnd: a.outVnd + p.outVnd,
       investedVnd: a.investedVnd + p.investedVnd,
       leftVnd: a.leftVnd + p.leftVnd,
+      allocatedVnd: a.allocatedVnd + p.allocatedVnd,
+      inFundsVnd: a.inFundsVnd + p.inFundsVnd,
+      unallocatedVnd: a.unallocatedVnd + p.unallocatedVnd,
     }),
-    { inVnd: 0, salaryVnd: 0, otherVnd: 0, outVnd: 0, investedVnd: 0, leftVnd: 0 },
+    {
+      inVnd: 0, salaryVnd: 0, otherVnd: 0, outVnd: 0, investedVnd: 0, leftVnd: 0,
+      allocatedVnd: 0, inFundsVnd: 0, unallocatedVnd: 0,
+    },
   );
 }
