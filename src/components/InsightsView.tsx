@@ -95,6 +95,7 @@ export default function InsightsView() {
         </p>
       </Block>
 
+      <div className="min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-5">
       {buffer && (
         <Block title="Buffer, last six cycles">
           <ul className="flex flex-col gap-1.5">
@@ -130,6 +131,8 @@ export default function InsightsView() {
           <Trend rows={s.recent} bucket={focusBucket} />
         </Block>
       )}
+
+      </div>
 
       <p className="mt-5 text-xs text-muted">
         Written notes arrive once three cycles have closed. Two points make a line but not

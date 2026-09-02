@@ -24,7 +24,7 @@ export default function BottomNav() {
       className="shrink-0 border-t border-line bg-surface"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <ul className="mx-auto flex max-w-2xl">
+      <ul className="mx-auto flex max-w-2xl min-[900px]:max-w-5xl">
         {TABS.map((tab) => {
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (

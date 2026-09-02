@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import BucketTile from '@/components/BucketTile';
 import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
+import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, pressKey, toVnd } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
@@ -170,6 +171,18 @@ export default function LogView() {
     }
   };
 
+  useLogKeyboard({
+    tiles: all,
+    selectedId,
+    onSelect: setSelectedId,
+    onKey,
+    onSave: () => {
+      if (canSave) void save();
+    },
+    onClear: () => setBuf(''),
+    onFlip: () => setDirection((d) => (d === 'out' ? 'in' : 'out')),
+  });
+
   const { month } = cycleLabel(cycle);
   const { day, total } = cycleProgress(cycle);
 
@@ -189,7 +202,10 @@ export default function LogView() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    // Trên Mac: lưới bucket bên trái, vùng nhập bên phải. Không còn lý do
+    // nào để nút Save phải nằm dưới đáy khi màn hình rộng gấp ba lần.
+    <div className="flex h-full flex-col min-[900px]:flex-row min-[900px]:gap-7">
+      <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 items-end justify-between border-b border-line pb-2.5 pt-3">
         <p className="text-xs leading-snug text-muted">
           Cycle <b className="font-semibold text-ink">{month}</b>
@@ -227,15 +243,18 @@ export default function LogView() {
             type="button"
             onClick={toggleFunds}
             aria-expanded={fundsOpen}
-            className="ml-auto flex items-center gap-1.5 text-[11px] uppercase tracking-[0.09em] text-faint"
+            className="ml-auto flex items-center gap-1.5 text-[11px] uppercase tracking-[0.09em] text-faint min-[900px]:hidden"
           >
             {fundsOpen ? 'Hide' : 'Show'}
             <span className={fundsOpen ? '' : '-rotate-90'}>▼</span>
           </button>
         }
       >
-        {fundsOpen && (
-          <div ref={fundsRef} className="grid grid-cols-3 gap-1.5">
+        {/* Trên Mac luôn hiện: có chỗ, và gập lại chẳng tiết kiệm được gì. */}
+        <div
+          ref={fundsRef}
+          className={`grid-cols-3 gap-1.5 ${fundsOpen ? 'grid' : 'hidden min-[900px]:grid'}`}
+        >
             {funds.map((b) => (
               <BucketTile
                 key={b.id}
@@ -245,12 +264,12 @@ export default function LogView() {
                 onSelect={() => setSelectedId(b.id)}
               />
             ))}
-          </div>
-        )}
+        </div>
       </Section>
       </div>
+      </div>
 
-      <div className="relative shrink-0 border-t border-line pt-2.5">
+      <div className="relative shrink-0 border-t border-line pt-2.5 min-[900px]:w-[330px] min-[900px]:border-t-0 min-[900px]:pt-4">
         <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
           {/* Không hiện gợi ý ở đây: màn hình nhập là chỗ chật nhất, và gợi ý
               chỉ cần lúc đang cấu hình. Nó nằm ở Settings. */}
@@ -287,6 +306,10 @@ export default function LogView() {
         />
 
         <Numpad onKey={onKey} onSave={save} canSave={canSave} />
+
+        <p className="hidden pb-3 text-center text-[11px] text-faint min-[900px]:block">
+          Type to enter · arrows pick a bucket · Enter saves · Esc clears · − flips
+        </p>
 
         {coverReq && uid && (
         <CoverSheet

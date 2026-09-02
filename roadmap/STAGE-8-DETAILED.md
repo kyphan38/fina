@@ -29,9 +29,13 @@ Numpad tự vẽ là để giải quyết bàn phím iOS. Trên Mac nó **cản 
 phím thật ngay đó.
 
 - Gõ số thẳng vào, không cần chạm ô nào.
-- `1`–`9` khi **chưa** chọn bucket → chọn bucket thứ n.
+- **Phím mũi tên** di chuyển trong lưới bucket.
 - `Enter` lưu, `Esc` xoá, `-` đảo chiều tiền vào/ra.
-- Numpad vẫn hiện nhưng nhỏ lại, và không phải đường duy nhất.
+- Numpad vẫn hiện, và không phải đường duy nhất.
+
+> **Sửa so với bản nháp:** ban đầu định dùng `1`–`9` để chọn bucket. Không
+> được - số là thứ gõ nhiều nhất, và một phím không thể vừa là "4" vừa là
+> "chọn Tech". Mũi tên không đụng vào gì cả.
 
 Ngưỡng: `min-width: 900px`. Dưới mức đó giữ nguyên bố cục điện thoại.
 
