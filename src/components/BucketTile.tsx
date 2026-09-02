@@ -10,22 +10,26 @@ import type { Bucket } from '@/types/fina';
 export default function BucketTile({
   bucket,
   spentVnd,
+  coveredVnd = 0,
+  limitVnd,
   selected,
   onSelect,
 }: {
   bucket: Bucket;
   spentVnd: number;
+  /** Phần đã rút khỏi bucket này để bù cho bucket khác (Buffer là chính). */
+  coveredVnd?: number;
+  /** Hạn mức đã đóng băng của chu kỳ. Bỏ trống thì lấy baseline. */
+  limitVnd?: number;
   selected: boolean;
   onSelect: () => void;
 }) {
   const isFund = bucket.kind === 'fund';
-  const value = isFund ? bucket.balanceVnd : bucket.baselineVnd - spentVnd;
+  const limit = limitVnd ?? bucket.baselineVnd;
+  const used = spentVnd + coveredVnd;
+  const value = isFund ? bucket.balanceVnd : limit - used;
   const over = value < 0;
-  const pct = isFund
-    ? 100
-    : bucket.baselineVnd > 0
-      ? Math.min(100, (spentVnd / bucket.baselineVnd) * 100)
-      : 0;
+  const pct = isFund ? 100 : limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
 
   return (
     <button

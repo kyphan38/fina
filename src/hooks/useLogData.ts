@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
+import { coveredByBucket, watchCycleCovers } from '@/lib/covers';
+import { watchCycle } from '@/lib/cycles';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { cycleOf } from '@/lib/cycle';
 import { clockStore } from '@/lib/clock';
-import type { Bucket, Transaction } from '@/types/fina';
+import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 
 /**
  * Hai listener cho cả màn hình Log: buckets (12 doc) và giao dịch của chu kỳ
@@ -19,6 +21,8 @@ export function useLogData() {
 
   const [buckets, setBuckets] = useState<Bucket[] | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
+  const [cycleDoc, setCycleDoc] = useState<Cycle | null>(null);
+  const [covers, setCovers] = useState<Cover[]>([]);
 
   // Đồng hồ dùng chung nhịp mỗi phút, nên app đang mở sẵn lúc nửa đêm ngày
   // 25 vẫn tự sang chu kỳ mới. Chuỗi cycle không đổi thì listener không
@@ -36,7 +40,26 @@ export function useLogData() {
     return watchCycleTransactions(uid, cycle, setTxs);
   }, [uid, cycle]);
 
+  useEffect(() => {
+    if (!uid) return;
+    return watchCycle(uid, cycle, setCycleDoc);
+  }, [uid, cycle]);
+
+  useEffect(() => {
+    if (!uid) return;
+    return watchCycleCovers(uid, cycle, setCovers);
+  }, [uid, cycle]);
+
   const spent = useMemo(() => spentByBucket(txs), [txs]);
+  const covered = useMemo(() => coveredByBucket(covers), [covers]);
+
+  // Hạn mức đã đóng băng của chu kỳ. Chưa có document (chu kỳ vừa sang, hoặc
+  // chưa mở Summary lần nào) thì tạm dùng baseline - Summary sẽ chốt lại.
+  const limits = useMemo(() => cycleDoc?.limits ?? null, [cycleDoc]);
+  const limitOf = useMemo(
+    () => (b: Bucket) => limits?.[b.id] ?? b.baselineVnd,
+    [limits],
+  );
 
   const { monthly, funds } = useMemo(() => {
     const active = (buckets ?? []).filter((b) => b.active);
@@ -50,17 +73,25 @@ export function useLogData() {
   }, [buckets]);
 
   const monthlyLeft = useMemo(
-    () => monthly.reduce((sum, b) => sum + Math.max(0, b.baselineVnd - (spent[b.id] ?? 0)), 0),
-    [monthly, spent],
+    () =>
+      monthly.reduce(
+        (sum, b) => sum + Math.max(0, limitOf(b) - (spent[b.id] ?? 0) - (covered[b.id] ?? 0)),
+        0,
+      ),
+    [monthly, spent, covered, limitOf],
   );
 
   return {
     uid,
     cycle,
-    buckets,
+    buckets: buckets ?? [],
     monthly,
     funds,
     spent,
+    covered,
+    limits,
+    limitOf,
+    cycleDoc,
     monthlyLeft,
     /** null = chưa tải xong; mảng rỗng = đã tải và chưa seed bucket nào. */
     loading: buckets === null,

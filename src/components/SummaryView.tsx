@@ -25,7 +25,17 @@ export default function SummaryView() {
   }
 
   if (s.needsClose && s.cycle) {
-    return <CycleClose uid={s.uid!} cycle={s.cycle} monthly={s.monthly} spent={s.spent} />;
+    return (
+      <CycleClose
+        uid={s.uid!}
+        cycle={s.cycle}
+        monthly={s.monthly}
+        spent={s.spent}
+        covered={s.covered}
+        surplusVnd={s.surplus}
+        pendingCount={s.pendingCovers.length}
+      />
+    );
   }
 
   const { month } = cycleLabel(s.cycleId);
@@ -47,7 +57,13 @@ export default function SummaryView() {
         )}
         <ul className="flex flex-col gap-2">
           {s.monthly.map((b) => (
-            <BudgetRow key={b.id} bucket={b} spentVnd={s.spent[b.id] ?? 0} limit={s.limits[b.id]} />
+            <BudgetRow
+              key={b.id}
+              bucket={b}
+              spentVnd={s.spent[b.id] ?? 0}
+              coveredVnd={s.covered[b.id] ?? 0}
+              limit={s.limits[b.id]}
+            />
           ))}
         </ul>
         <Totals
@@ -119,23 +135,28 @@ export default function SummaryView() {
 function BudgetRow({
   bucket,
   spentVnd,
+  coveredVnd,
   limit,
 }: {
   bucket: Bucket;
   spentVnd: number;
+  /** Phần đã rút khỏi bucket này để bù cho bucket khác. */
+  coveredVnd: number;
   limit: number | undefined;
 }) {
-  const over = limit !== undefined && spentVnd > limit;
-  const pct = limit ? Math.min(100, (spentVnd / limit) * 100) : 0;
+  // Buffer bị rút để bù chỗ khác vẫn là "đã dùng", dù không có giao dịch nào.
+  const used = spentVnd + coveredVnd;
+  const over = limit !== undefined && used > limit;
+  const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
 
   return (
     <li>
       <div className="flex items-baseline justify-between text-sm">
         <span>{bucket.name}</span>
         <span className={over ? 'text-over' : 'text-muted'}>
-          {formatVnd(spentVnd)}
+          {formatVnd(used)}
           {limit !== undefined && ` / ${formatVnd(limit)}`}
-          {over && ` · −${formatVnd(spentVnd - limit)}`}
+          {over && ` · −${formatVnd(used - limit)}`}
         </span>
       </div>
       <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
