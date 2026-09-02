@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import InsightPanel from '@/components/InsightPanel';
 import { useInsights, type CycleRow } from '@/hooks/useInsights';
 import { bucketAccent } from '@/lib/bucket-color';
 import { cycleLabel } from '@/lib/cycle';
@@ -134,10 +135,7 @@ export default function InsightsView() {
 
       </div>
 
-      <p className="mt-5 text-xs text-muted">
-        Written notes arrive once three cycles have closed. Two points make a line but not
-        a trend, and a remark built on that is worse than none.
-      </p>
+      {s.uid && <InsightPanel uid={s.uid} signals={s.signals} />}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { clockStore } from '@/lib/clock';
 import { cycleOf, previousCycle } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { cashFlow } from '@/lib/cashflow';
+import { computeSignals } from '@/lib/signals';
+import { cycleProgress } from '@/lib/cycle';
 import { watchCycleIncome } from '@/lib/income';
 import { watchCycleTransactions } from '@/lib/transactions';
 import type { Bucket, Cycle, Income, Transaction } from '@/types/fina';
@@ -134,5 +136,30 @@ export function useInsights() {
     return ids.map((cycleId) => rows.find((r) => r.id === cycleId) ?? null);
   }, [rows, currentCycle]);
 
-  return { uid, buckets, rows, years, recent, currentCycle, loading };
+  const signals = useMemo(() => {
+    const byId = new Map(cycles.map((c) => [c.id, c]));
+    // Cũ trước, chu kỳ đang chạy ở cuối - đúng thứ tự computeSignals cần.
+    const facts = [...rows].reverse().map((r) => ({
+      id: r.id,
+      closed: r.closed,
+      inVnd: r.inVnd,
+      outVnd: r.outVnd,
+      investedVnd: r.investedVnd,
+      leftVnd: r.leftVnd,
+      byBucket: r.byBucket,
+      limits: byId.get(r.id)?.limits ?? {},
+    }));
+    const { day, total } = cycleProgress(currentCycle);
+    return computeSignals({
+      cycles: facts,
+      buckets,
+      amounts: liveTxs
+        .filter((t) => t.source !== 'allocation' && t.bucketId !== 'etf' && t.direction === 'out')
+        .map((t) => ({ bucketId: t.bucketId, amountVnd: t.amountVnd })),
+      day,
+      totalDays: total,
+    });
+  }, [rows, cycles, buckets, liveTxs, currentCycle]);
+
+  return { uid, buckets, rows, years, recent, currentCycle, signals, loading };
 }

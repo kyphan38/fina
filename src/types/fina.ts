@@ -39,6 +39,13 @@ export interface Bucket {
   /** Thứ tự trên lưới. Cố định - không tự sắp theo tần suất. */
   order: number;
   active: boolean;
+  /**
+   * Tiêu rải đều trong tháng hay tiêu theo cục.
+   *
+   * Chỉ bucket "đều" mới so được với nhịp tuyến tính. Health và Purchases đến
+   * theo cục - so với nhịp đều sẽ báo động giả liên tục cho tới khi bị bỏ qua.
+   */
+  evenlySpent: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -178,7 +185,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type SeedBucket = Pick<
   Bucket,
-  'id' | 'name' | 'kind' | 'bank' | 'standardVnd' | 'hint' | 'order'
+  'id' | 'name' | 'kind' | 'bank' | 'standardVnd' | 'hint' | 'order' | 'evenlySpent'
 >;
 
 // Viết thẳng số nguyên, KHÔNG nhân với số thực: 4.1 * 1_000_000 trong JS ra
@@ -188,32 +195,32 @@ export const SEED_BUCKETS: SeedBucket[] = [
   // --- VCB, reset mỗi chu kỳ. Thứ tự theo SỐ LẦN LOG, không theo số tiền. ---
   {
     id: 'food', name: 'Food', kind: 'budget', bank: 'VCB',
-    standardVnd: 3_000_000, order: 10,
+    standardVnd: 3_000_000, order: 10, evenlySpent: true,
     hint: 'Meals, coffee, groceries, BHX',
   },
   {
     id: 'beauty', name: 'Beauty', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 20,
+    standardVnd: 1_000_000, order: 20, evenlySpent: false,
     hint: 'Skincare, serum, acne meds, supplements, haircut',
   },
   {
     id: 'social', name: 'Social', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 30,
+    standardVnd: 1_000_000, order: 30, evenlySpent: false,
     hint: 'Rounds with friends, happy hour, team dinners, gifts',
   },
   {
     id: 'tech', name: 'Tech', kind: 'budget', bank: 'VCB',
-    standardVnd: 500_000, order: 40,
+    standardVnd: 500_000, order: 40, evenlySpent: false,
     hint: 'Subscriptions (Gemini, Claude, GCP), small accessories',
   },
   {
     id: 'utilities', name: 'Utilities', kind: 'budget', bank: 'VCB',
-    standardVnd: 500_000, order: 50,
+    standardVnd: 500_000, order: 50, evenlySpent: true,
     hint: 'Phone top-ups, mobile data',
   },
   {
     id: 'buffer', name: 'Buffer', kind: 'budget', bank: 'VCB',
-    standardVnd: 1_000_000, order: 60,
+    standardVnd: 1_000_000, order: 60, evenlySpent: false,
     hint: 'Odds and ends, and the cushion when a bucket runs over',
   },
 
@@ -221,27 +228,27 @@ export const SEED_BUCKETS: SeedBucket[] = [
   {
     // id giữ nguyên 'healthFund' để lịch sử không đứt, chỉ đổi tên hiển thị.
     id: 'healthFund', name: 'Health', kind: 'fund', bank: 'BIDV',
-    standardVnd: 3_000_000, order: 70,
+    standardVnd: 3_000_000, order: 70, evenlySpent: false,
     hint: 'Scar treatment, laser, acne clinic, consultations',
   },
   {
     id: 'purchases', name: 'Purchases', kind: 'fund', bank: 'BIDV',
-    standardVnd: 3_000_000, order: 80,
+    standardVnd: 3_000_000, order: 80, evenlySpent: false,
     hint: 'Appliances, clothes, dog food, running shoes, devices',
   },
   {
     id: 'travel', name: 'Travel', kind: 'fund', bank: 'BIDV',
-    standardVnd: 2_000_000, order: 90,
+    standardVnd: 2_000_000, order: 90, evenlySpent: false,
     hint: 'Everything spent on a trip, meals included',
   },
   {
     id: 'reserve', name: 'Reserve', kind: 'fund', bank: 'BIDV',
-    standardVnd: 2_000_000, order: 100,
+    standardVnd: 2_000_000, order: 100, evenlySpent: false,
     hint: 'Yearly wifi, phone, motorbike',
   },
   {
     id: 'emergency', name: 'Emergency', kind: 'fund', bank: 'BIDV',
-    standardVnd: 500_000, order: 110,
+    standardVnd: 500_000, order: 110, evenlySpent: false,
     hint: 'Real emergencies - leave it alone',
   },
 
@@ -249,7 +256,7 @@ export const SEED_BUCKETS: SeedBucket[] = [
   // Phần dư sau khi phân bổ, nên baseline = 0.
   {
     id: 'etf', name: 'ETF', kind: 'fund', bank: 'VPS',
-    standardVnd: 0, order: 120,
+    standardVnd: 0, order: 120, evenlySpent: false,
     hint: 'What is left after allocation, moved to VPS',
   },
 ];

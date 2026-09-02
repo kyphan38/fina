@@ -106,7 +106,7 @@ service cloud.firestore {
           && request.resource.data.kind in ['salary', 'other'];
       }
 
-      // insights/{cycleId} - nhận xét AI đã sinh (Stage 7)
+      // insights/{cycleId} - nhan xet AI da sinh, cache theo digestHash
       match /insights/{insightId} {
         allow read, write: if isOwner(uid);
       }
