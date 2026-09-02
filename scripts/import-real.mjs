@@ -67,6 +67,16 @@ const SEP = [
   ['2026-09-02T18:15','social',40,'Mua nhau cho anh em'],
 ];
 
+// ---- Luong, tra ngay 25 -> roi vao chu ky thang sau ----
+const INCOME = [
+  ['2026-03-25T09:00', 17882.391], ['2026-04-25T09:00', 23934.449],
+  ['2026-05-25T09:00', 16963.482], ['2026-06-25T09:00', 38329.284],
+  ['2026-07-25T09:00', 21195.244], ['2026-08-25T09:00', 38575.387],
+];
+
+// So du VCB nguoi dung doc ra cho chu ky 2026-09.
+const SEP_BALANCE_NOW = 7172.713*K;
+
 // ---- ETF: nap tay theo tung moc ----
 const ETF_OPENING = 167825*K;
 const ETF_DEPOSITS = [
@@ -132,7 +142,28 @@ for (const [b, now] of Object.entries(FUND_NOW)) {
 opening.push({ id:'open-etf', occurredAt: OPEN_AT, cycle: cycleOf(new Date(OPEN_AT)),
   bucketId:'etf', bank:'VPS', amountVnd: ETF_OPENING, direction:'in', note:'Opening balance', source:'opening' });
 
-const all = [...opening, ...history, ...sep, ...etf];
+// ---- Dong can bang cho chu ky 2026-09 ----
+//
+// Han muc tru chi tieu ra 7.150,196 nhung so du that la 7.172,713. Chenh
+// 22.517 - mot khoan chua co trong ghi chu. Ghi mot dong `in` de con so
+// trong app khop voi thuc te, va ghi ro no la dong can bang chu khong phai
+// mot khoan tien that quay lai.
+const sepSpent = sep.reduce((a,t)=>a+t.amountVnd,0);
+const sepLimit = Object.values(SEP_LIMITS).reduce((a,b)=>a+b,0);
+const gap = SEP_BALANCE_NOW - (sepLimit - sepSpent);
+const adjust = gap === 0 ? [] : [{
+  id: 'adjust-2026-09', occurredAt: at('2026-08-25T08:00'), cycle: '2026-09',
+  bucketId: 'buffer', bank: 'VCB', amountVnd: Math.abs(Math.round(gap)),
+  direction: gap > 0 ? 'in' : 'out',
+  note: 'Adjustment to match statement', source: 'web',
+}];
+
+const income = INCOME.map(([iso,k], n) => ({
+  id: `income-${n+1}`, occurredAt: at(iso), cycle: cycleOf(new Date(at(iso))),
+  amountVnd: Math.round(k*K), kind: 'salary', note: null,
+}));
+
+const all = [...opening, ...history, ...sep, ...adjust, ...etf];
 
 // ---- Bao cao ----
 const f = (v) => (v/K).toLocaleString('vi-VN',{maximumFractionDigits:0});
@@ -149,7 +180,13 @@ for (const [b, v] of Object.entries(sepByBucket).sort((a,c)=>c[1]-a[1])) {
   console.log(`  ${b.padEnd(11)} ${f(v).padStart(8)} / ${f(SEP_LIMITS[b] ?? 0).padStart(8)}`);
 }
 console.log(`  ${'TONG'.padEnd(11)} ${f(sepTotal).padStart(8)} / ${f(Object.values(SEP_LIMITS).reduce((a,b)=>a+b,0)).padStart(8)}`);
-console.log(`  Con lai   ${f(Object.values(SEP_LIMITS).reduce((a,b)=>a+b,0) - sepTotal).padStart(10)}   (ban doc ra: 7.173)`);
+const adjusted = sepLimit - sepSpent + (gap > 0 ? gap : gap);
+console.log(`  Con lai   ${f(sepLimit - sepSpent).padStart(10)}   truoc khi can bang`);
+console.log(`  Can bang  ${f(gap).padStart(10)}   -> ${f(adjusted)}   (ban doc ra: 7.173)`);
+
+console.log('\nThu nhap:');
+for (const i of income) console.log(`  ${i.cycle}  ${f(i.amountVnd).padStart(10)}`);
+console.log(`  ${'TONG'.padEnd(7)} ${f(income.reduce((a,i)=>a+i.amountVnd,0)).padStart(10)}`);
 
 console.log('\nSo du quy sau khi cong het:');
 const bal = {};
@@ -189,6 +226,10 @@ for (let i=0;i<all.length;i+=400) {
 }
 
 const b2 = db.batch();
+for (const i of income) {
+  const { id, ...rest } = i;
+  b2.set(db.doc(`users/${UID}/income/${id}`), { ...rest, createdAt: now, updatedAt: now });
+}
 for (const id of Object.keys(byCycle)) {
   const { startAt, endAt } = cycleRange(id);
   const current = id === '2026-09';
@@ -204,4 +245,4 @@ for (const [b,v] of Object.entries(bal)) {
   b2.update(db.doc(`users/${UID}/buckets/${b}`), { balanceVnd: v, updatedAt: now });
 }
 await b2.commit();
-console.log(`\nDa ghi ${all.length} giao dich, ${Object.keys(byCycle).length} chu ky.`);
+console.log(`\nDa ghi ${all.length} giao dich, ${income.length} thu nhap, ${Object.keys(byCycle).length} chu ky.`);
