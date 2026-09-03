@@ -91,7 +91,7 @@ export default function InsightsView() {
           </table>
         </div>
         <p className="mt-2 text-[11px] text-faint">
-          A cycle with no snapshot shows <span className="text-ink">—</span>, never a zero.
+          A cycle with no snapshot shows <span className="text-ink">-</span>, never a zero.
           Zero would be a claim; the dash is not.
         </p>
       </Block>
@@ -144,13 +144,13 @@ function Cell({ v, closed, strong }: { v: number; closed: boolean; strong?: bool
   const missing = closed && v === 0;
   return (
     <td className={`py-1.5 ${strong ? 'font-semibold' : ''}`}>
-      {missing ? <span className="text-faint">—</span> : formatVnd(v)}
+      {missing ? <span className="text-faint">-</span> : formatVnd(v)}
     </td>
   );
 }
 
 function BufferRow({ row, limitVnd }: { row: CycleRow | null; limitVnd: number }) {
-  if (!row) return <li className="text-xs text-faint">—</li>;
+  if (!row) return <li className="text-xs text-faint">-</li>;
   const used = row.byBucket.buffer ?? 0;
   const pct = limitVnd > 0 ? Math.min(100, (used / limitVnd) * 100) : 0;
   const over = used > limitVnd;
@@ -189,13 +189,13 @@ function Trend({ rows, bucket }: { rows: (CycleRow | null)[]; bucket: Bucket }) 
               }}
             />
             <span className="text-[10px] text-faint">
-              {r ? cycleLabel(r.id).month.slice(0, 3) : '—'}
+              {r ? cycleLabel(r.id).month.slice(0, 3) : '-'}
             </span>
           </div>
         ))}
       </div>
       <p className="mt-2 text-[11px] text-faint">
-        Standard is {formatVnd(bucket.standardVnd)}. Bars are net spending — refunds
+        Standard is {formatVnd(bucket.standardVnd)}. Bars are net spending - refunds
         already taken off.
       </p>
     </>

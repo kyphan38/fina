@@ -67,7 +67,7 @@ export default function SummaryView() {
       {/* Trên Mac ba khối đứng cạnh nhau; trên điện thoại vẫn xếp dọc. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
-        title="VCB — Monthly"
+        title="VCB - Monthly"
         action={
           hasLimits && s.cycle?.status === 'open' ? (
             <button
@@ -149,7 +149,7 @@ export default function SummaryView() {
         />
       </Block>
 
-      <Block title="BIDV — Funds">
+      <Block title="BIDV - Funds">
         <ul className="flex flex-col gap-2">
           {s.funds.map((b) => (
             <FundRow key={b.id} bucket={b} onTopUp={() => setTopUp(b)} />
@@ -247,7 +247,7 @@ export default function SummaryView() {
           </li>
         </ul>
         <p className="mt-1.5 text-[11px] text-faint">
-          Unassigned is money that arrived and has no job yet — a bonus lands here. The
+          Unassigned is money that arrived and has no job yet - a bonus lands here. The
           Generator picks it up on the 25th.
         </p>
       </Block>

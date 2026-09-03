@@ -67,7 +67,7 @@ export default function PushCard({ uid, quietDays }: { uid: string | null; quiet
 
       <p className="mt-3 text-xs text-faint">
         A push at 22:00 after {quietDays} quiet days. You log on 27% of days, so a daily
-        nudge would fire around 266 times a year — most of them on days you genuinely
+        nudge would fire around 266 times a year - most of them on days you genuinely
         spent nothing.
       </p>
     </section>

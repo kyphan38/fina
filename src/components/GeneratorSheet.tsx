@@ -104,17 +104,17 @@ export default function GeneratorSheet({
             onClick={() => setBuf(fromVnd(salary + carryVnd))}
             className="mb-2 w-full rounded-lg border border-line px-3 py-1.5 text-left text-[11px] text-muted"
           >
-            {formatVnd(carryVnd)} was still unassigned last cycle — tap to add it in
+            {formatVnd(carryVnd)} was still unassigned last cycle - tap to add it in
           </button>
         )}
 
-        <Group title="VCB — Monthly" total={r.monthlyTotalVnd} salary={salary}>
+        <Group title="VCB - Monthly" total={r.monthlyTotalVnd} salary={salary}>
           {r.monthly.map((a) => (
             <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
         </Group>
 
-        <Group title="BIDV — Funds" total={r.fundsTotalVnd} salary={salary}>
+        <Group title="BIDV - Funds" total={r.fundsTotalVnd} salary={salary}>
           {r.funds.map((a) => (
             <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
@@ -131,7 +131,7 @@ export default function GeneratorSheet({
             {r.etfVnd < 0
               ? `Salary is ${formatVnd(-r.etfVnd)} short of the allocations.`
               : 'Whatever is left after the fixed amounts.'}
-            {edited && ' Edits here apply to this cycle only — Settings is untouched.'}
+            {edited && ' Edits here apply to this cycle only - Settings is untouched.'}
           </p>
         </section>
 
@@ -160,7 +160,7 @@ export default function GeneratorSheet({
             </ul>
             {edited && (
               <p className="mt-2 text-[11px] text-faint">
-                Replaces this cycle&rsquo;s allocation — it does not add to it.
+                Replaces this cycle&rsquo;s allocation - it does not add to it.
               </p>
             )}
             <button

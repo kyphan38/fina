@@ -4,6 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 
 import { app, db } from '@/lib/firebase-client';
+import { registerServiceWorker } from '@/lib/sw';
 
 export type PushState =
   /** Đang mở trong tab trình duyệt. iOS chỉ gửi push cho PWA đã cài. */
@@ -40,16 +41,6 @@ export async function pushState(): Promise<PushState> {
   if (!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) return 'no_key';
   if (Notification.permission === 'denied') return 'blocked';
   return Notification.permission === 'granted' ? 'on' : 'off';
-}
-
-/** Đăng ký service worker. Gọi được nhiều lần. */
-export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
-  try {
-    return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  } catch {
-    return null;
-  }
 }
 
 /**

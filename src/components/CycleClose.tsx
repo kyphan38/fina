@@ -122,7 +122,7 @@ export default function CycleClose({
         surplus < 0 && (
           <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
             Still {formatVnd(-surplus)} short after the covers. The money already left
-            VCB — nothing moves on its own.
+            VCB - nothing moves on its own.
           </p>
         )
       )}

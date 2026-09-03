@@ -61,7 +61,7 @@ Màn hình `Insights`, khối đầu tiên. Đọc `closedTotals` - không đọ
   Year              312.520     84.200    181.139     47.181
 ```
 
-Chu kỳ chưa có `closedTotals` hiện `—`, **không hiện số 0**. Số 0 nói dối,
+Chu kỳ chưa có `closedTotals` hiện `-`, **không hiện số 0**. Số 0 nói dối,
 dấu gạch thì không.
 
 ### Ràng buộc
