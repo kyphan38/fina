@@ -202,21 +202,21 @@ whole to the cycle of its `occurredAt`.
 
 ---
 
-## Security review — 2026-09-02
+## Security review - 2026-09-02
 
 | # | Check | Result |
 |---|---|---|
-| 1 | No secret in git history | **Pass** — only the `*firebase-adminsdk*.json` pattern in `.gitignore` and a mention in a roadmap doc. No key, no private key |
-| 2 | No secret in a `NEXT_PUBLIC_*` var | **Pass** — Firebase web config and the VAPID public key, both public by design |
-| 3 | Rules deny unauthenticated reads | **Pass** — `buckets`, `transactions`, `income` all return `403 PERMISSION_DENIED` over the REST API |
-| 4 | Auth route rejects bad input | **Pass** — no token 400, garbage token 401. `GET` returns `{authenticated:false}` by design; it is a status probe and leaks nothing |
-| 5 | Rate limit on `/api/insight` | **Pass** — 10 calls / 5 min per user, counted in Firestore. An in-memory counter would barely bind on serverless, where each request may land on a different instance |
-| 6 | Allowlist blocks other emails | **Pass** — checked in `api/auth/session` when trading the token, and again in `server-auth` on every server-side read |
-| 7 | Cookie `httpOnly` + `secure` + `sameSite: lax` | **Pass** — `secure` in production only, so localhost still works |
-| 8 | No personal data in production logs | **Pass** — one `console.warn` about the Firestore cache, and the function logs `error.name` plus a uid. No amounts, no notes |
-| 9 | Firebase Console → Authorized domains | **Manual — check this yourself.** A script cannot |
-| 10 | Rules reject a non-integer amount | **Pass** — `isVnd()` requires `is int && >= 0`; typing `25.5` into a raw write is refused at the database |
-| 11 | Own Firebase project | **Pass** — `kyphan38-fina-app`, `(default)`. `logi`, `cogi` and `noda` each have their own |
+| 1 | No secret in git history | **Pass** - only the `*firebase-adminsdk*.json` pattern in `.gitignore` and a mention in a roadmap doc. No key, no private key |
+| 2 | No secret in a `NEXT_PUBLIC_*` var | **Pass** - Firebase web config and the VAPID public key, both public by design |
+| 3 | Rules deny unauthenticated reads | **Pass** - `buckets`, `transactions`, `income` all return `403 PERMISSION_DENIED` over the REST API |
+| 4 | Auth route rejects bad input | **Pass** - no token 400, garbage token 401. `GET` returns `{authenticated:false}` by design; it is a status probe and leaks nothing |
+| 5 | Rate limit on `/api/insight` | **Pass** - 10 calls / 5 min per user, counted in Firestore. An in-memory counter would barely bind on serverless, where each request may land on a different instance |
+| 6 | Allowlist blocks other emails | **Pass** - checked in `api/auth/session` when trading the token, and again in `server-auth` on every server-side read |
+| 7 | Cookie `httpOnly` + `secure` + `sameSite: lax` | **Pass** - `secure` in production only, so localhost still works |
+| 8 | No personal data in production logs | **Pass** - one `console.warn` about the Firestore cache, and the function logs `error.name` plus a uid. No amounts, no notes |
+| 9 | Firebase Console → Authorized domains | **Manual - check this yourself.** A script cannot |
+| 10 | Rules reject a non-integer amount | **Pass** - `isVnd()` requires `is int && >= 0`; typing `25.5` into a raw write is refused at the database |
+| 11 | Own Firebase project | **Pass** - `kyphan38-fina-app`, `(default)`. `logi`, `cogi` and `noda` each have their own |
 
 Item 9 is the only one a script cannot check. Open Firebase Console → Auth →
 Settings → Authorized domains and remove anything that is not the real domain
@@ -261,14 +261,14 @@ All of them are dry-run by default; `--commit` writes.
 
 | Stage | Status | Date |
 |---|---|---|
-| 1 — Foundation & Auth | done | 2026-09-02 |
-| 2 — Buckets & Quick Log | done | 2026-09-02 |
-| 3 — Summary & Cycle | done | 2026-09-02 |
-| 4 — History, Edit & Import | done, real ledger imported | 2026-09-03 |
-| 5 — Overspend & Cover | done | 2026-09-02 |
-| 6 — PWA & Reminder | done, deployed | 2026-09-02 |
-| 7 — Insights | done — charts and written notes. Needs `GEMINI_API_KEY` set to run | 2026-09-03 |
-| 8 — Mac layout & handover | debts paid, Mac layout done, this review done | 2026-09-02 |
+| 1 - Foundation & Auth | done | 2026-09-02 |
+| 2 - Buckets & Quick Log | done | 2026-09-02 |
+| 3 - Summary & Cycle | done | 2026-09-02 |
+| 4 - History, Edit & Import | done, real ledger imported | 2026-09-03 |
+| 5 - Overspend & Cover | done | 2026-09-02 |
+| 6 - PWA & Reminder | done, deployed | 2026-09-02 |
+| 7 - Insights | done - charts and written notes. Needs `GEMINI_API_KEY` set to run | 2026-09-03 |
+| 8 - Mac layout & handover | debts paid, Mac layout done, this review done | 2026-09-02 |
 
 The real ledger is in: 181 transactions across six cycles, six salary records,
 and fund balances that reconcile to the dong. Remaining before `Budget.numbers`
@@ -288,7 +288,7 @@ Each of these passed locally and failed only in production or on the phone.
 - **The app's tsconfig swept in `functions/src`,** whose dependencies Vercel
   never installs. Passed here because that folder exists locally.
 - **`toTx()` mapped any unknown `source` to `'web'`,** so allocations counted as
-  spending — and being inbound, they *subtracted*. Cash flow read `Left` larger
+  spending - and being inbound, they *subtracted*. Cash flow read `Left` larger
   than `In`.
 - **Startup was measured to the first keypad tap,** which recorded how long
   someone took to decide to type: one reading was 28 seconds. Measuring to the

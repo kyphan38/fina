@@ -35,7 +35,7 @@ export default function SettingsView({ email }: { email: string | null }) {
     setBusy(true);
     try {
       const result = await seedBuckets(uid);
-      setMsg(result === 'seeded' ? 'Buckets created.' : 'Buckets already exist — nothing changed.');
+      setMsg(result === 'seeded' ? 'Buckets created.' : 'Buckets already exist - nothing changed.');
     } catch (err) {
       // Hiện nguyên mã lỗi Firestore. 'permission-denied' nghĩa là rules từ
       // chối dữ liệu, không phải mất mạng - hai chuyện cần sửa khác hẳn nhau.
@@ -83,7 +83,7 @@ export default function SettingsView({ email }: { email: string | null }) {
   return (
     <div className="mt-4 flex flex-col gap-5">
       <Card title="Signed in as">
-        <p className="text-sm">{email ?? '—'}</p>
+        <p className="text-sm">{email ?? '-'}</p>
         <button
           type="button"
           onClick={signOut}
@@ -189,7 +189,7 @@ export default function SettingsView({ email }: { email: string | null }) {
             <p className="mt-2 text-xs text-faint">
               Measured to the frame the keypad is painted, and only while the app stayed
               visible the whole time. Waking a suspended app is not a page load, so those
-              runs are dropped{skipped > 0 ? ` — ${skipped} so far` : ''}. Target: 1.50s
+              runs are dropped{skipped > 0 ? ` - ${skipped} so far` : ''}. Target: 1.50s
               warm, 2.50s after iOS kills the app.
             </p>
             <button
@@ -235,7 +235,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           <Link href="/settings/restore" className="underline">
             /settings/restore
           </Link>
-          . It only adds what is missing — it never overwrites or deletes.
+          . It only adds what is missing - it never overwrites or deletes.
         </p>
       </Card>
 

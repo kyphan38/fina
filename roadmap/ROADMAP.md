@@ -89,7 +89,7 @@ nay vẫn đúng.
 `Month` và `Year` **không lưu**. Chúng được suy ra từ `cycle` khi hiển thị và khi
 export. Lưu ba field rời sẽ có ngày chúng nói khác nhau.
 
-### `users/{uid}/cycles/{cycleId}`   — id là `2026-09`
+### `users/{uid}/cycles/{cycleId}`   - id là `2026-09`
 
 ```ts
 {

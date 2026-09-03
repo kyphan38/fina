@@ -142,7 +142,7 @@ export default function TxEditSheet({
               confirmDelete ? 'bg-over font-semibold text-bg' : 'text-over'
             }`}
           >
-            {confirmDelete ? `Delete ${formatVnd(tx.amountVnd)} — tap again` : 'Delete'}
+            {confirmDelete ? `Delete ${formatVnd(tx.amountVnd)} - tap again` : 'Delete'}
           </button>
         </div>
       </div>
