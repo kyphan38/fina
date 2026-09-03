@@ -74,15 +74,19 @@ export function useInsights() {
 
   const live = useMemo(() => cashFlow(liveIncome, liveTxs), [liveIncome, liveTxs]);
 
+  const liveByBucket = useMemo(() => {
+    const byBucket: Record<string, number> = {};
+    for (const t of liveTxs) {
+      if (t.source === 'allocation' || t.bucketId === 'etf') continue;
+      const signed = t.direction === 'in' ? -t.amountVnd : t.amountVnd;
+      byBucket[t.bucketId] = (byBucket[t.bucketId] ?? 0) + signed;
+    }
+    return byBucket;
+  }, [liveTxs]);
+
   const rows: CycleRow[] = useMemo(() => {
     const out = cycles.map((c) => {
       if (c.id === currentCycle) {
-        const byBucket: Record<string, number> = {};
-        for (const t of liveTxs) {
-          if (t.source === 'allocation' || t.bucketId === 'etf') continue;
-          const signed = t.direction === 'in' ? -t.amountVnd : t.amountVnd;
-          byBucket[t.bucketId] = (byBucket[t.bucketId] ?? 0) + signed;
-        }
         return {
           id: c.id,
           closed: false,
@@ -90,7 +94,7 @@ export function useInsights() {
           outVnd: live.outVnd,
           investedVnd: live.investedVnd,
           leftVnd: live.leftVnd,
-          byBucket,
+          byBucket: liveByBucket,
         };
       }
       const t = c.closedTotals;
@@ -114,11 +118,11 @@ export function useInsights() {
         outVnd: live.outVnd,
         investedVnd: live.investedVnd,
         leftVnd: live.leftVnd,
-        byBucket: {},
+        byBucket: liveByBucket,
       });
     }
     return out.sort((a, b) => (a.id < b.id ? 1 : -1));
-  }, [cycles, currentCycle, live, liveTxs]);
+  }, [cycles, currentCycle, live, liveByBucket]);
 
   const years = useMemo(
     () => [...new Set(rows.map((r) => r.id.slice(0, 4)))].sort().reverse(),

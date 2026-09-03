@@ -26,9 +26,8 @@ export default function InsightsView() {
       inVnd: a.inVnd + r.inVnd,
       outVnd: a.outVnd + r.outVnd,
       investedVnd: a.investedVnd + r.investedVnd,
-      leftVnd: a.leftVnd + r.leftVnd,
     }),
-    { inVnd: 0, outVnd: 0, investedVnd: 0, leftVnd: 0 },
+    { inVnd: 0, outVnd: 0, investedVnd: 0 },
   );
 
   const buffer = s.buckets.find((b) => b.id === 'buffer');
@@ -64,7 +63,6 @@ export default function InsightsView() {
                 <th className="pb-1.5 font-medium">In</th>
                 <th className="pb-1.5 font-medium">Out</th>
                 <th className="pb-1.5 font-medium">Invested</th>
-                <th className="pb-1.5 font-medium">Left</th>
               </tr>
             </thead>
             <tbody>
@@ -77,7 +75,6 @@ export default function InsightsView() {
                   <Cell v={r.inVnd} closed={r.closed} />
                   <Cell v={r.outVnd} closed={r.closed} />
                   <Cell v={r.investedVnd} closed={r.closed} />
-                  <Cell v={r.leftVnd} closed={r.closed} strong />
                 </tr>
               ))}
               <tr className="border-t border-line font-semibold">
@@ -85,7 +82,6 @@ export default function InsightsView() {
                 <td>{formatVnd(total.inVnd)}</td>
                 <td>{formatVnd(total.outVnd)}</td>
                 <td>{formatVnd(total.investedVnd)}</td>
-                <td>{formatVnd(total.leftVnd)}</td>
               </tr>
             </tbody>
           </table>
