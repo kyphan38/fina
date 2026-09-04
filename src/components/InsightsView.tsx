@@ -173,21 +173,32 @@ function Trend({ rows, bucket }: { rows: (CycleRow | null)[]; bucket: Bucket }) 
 
   return (
     <>
+      {/* Cột phải là con TRỰC TIẾP của khung cao cố định. Bọc chúng trong một
+          div cao theo nội dung (items-end không kéo giãn con) thì `height: %`
+          không còn mốc nào để so, trình duyệt bỏ qua, và mọi cột tụt xuống
+          đúng minHeight - sáu ô bằng nhau trông y như biểu đồ không có dữ
+          liệu. Nhãn tháng vì vậy nằm ở hàng riêng, khớp cột bằng cùng
+          flex-1 và cùng gap. */}
       <div className="flex h-28 items-end gap-1.5">
+        {rows.map((_, n) => (
+          <span
+            key={n}
+            className="flex-1 rounded-t-[3px]"
+            style={{
+              // Tiêu ròng có thể âm (được hoàn nhiều hơn chi). Chiều cao âm
+              // là giá trị không hợp lệ, và cả cột lại biến mất.
+              height: `${Math.max(0, (values[n] / peak) * 100)}%`,
+              minHeight: values[n] > 0 ? 3 : 0,
+              background: bucketAccent(bucket.id),
+            }}
+          />
+        ))}
+      </div>
+      <div className="mt-1 flex gap-1.5">
         {rows.map((r, n) => (
-          <div key={n} className="flex flex-1 flex-col items-center gap-1">
-            <span
-              className="w-full rounded-t-[3px]"
-              style={{
-                height: `${(values[n] / peak) * 100}%`,
-                minHeight: values[n] > 0 ? 3 : 0,
-                background: bucketAccent(bucket.id),
-              }}
-            />
-            <span className="text-[10px] text-faint">
-              {r ? cycleLabel(r.id).month.slice(0, 3) : '-'}
-            </span>
-          </div>
+          <span key={n} className="flex-1 text-center text-[10px] text-faint">
+            {r ? cycleLabel(r.id).month.slice(0, 3) : '-'}
+          </span>
         ))}
       </div>
       <p className="mt-2 text-[11px] text-faint">

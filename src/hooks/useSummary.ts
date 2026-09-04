@@ -93,8 +93,8 @@ export function useSummary() {
     [limits],
   );
   const fundsTotal = useMemo(() => funds.reduce((s, b) => s + b.balanceVnd, 0), [funds]);
-  // Bù từ Buffer nằm trong VCB nên chỉ là di chuyển nội bộ - tổng không đổi.
-  // Bù từ BIDV thì có: tiền từ ngoài chảy vào, phải cộng lại.
+  // Chỉ tiền từ BIDV chảy VÀO một hũ VCB mới làm tổng đổi. Bù trong cùng
+  // một ngân hàng chỉ là di chuyển nội bộ.
   const surplus = useMemo(
     () => computeSurplus(limits, spent) + coveredFromOutside(covers, buckets ?? []),
     [limits, spent, covers, buckets],

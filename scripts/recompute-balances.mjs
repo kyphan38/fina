@@ -31,6 +31,10 @@ const db = getFirestore(app);
 
 const buckets = await db.collection(`users/${UID}/buckets`).get();
 const txs = await db.collection(`users/${UID}/transactions`).get();
+const covers = await db.collection(`users/${UID}/covers`).get();
+
+const kindOf = {};
+for (const d of buckets.docs) kindOf[d.id] = d.data().kind;
 
 // Chieu nam o `direction`. Ban ghi cu chua co field do: ETF la tien vao,
 // con lai la tien ra.
@@ -39,6 +43,20 @@ for (const d of txs.docs) {
   const t = d.data();
   const dir = t.direction ?? (t.bucketId === 'etf' ? 'in' : 'out');
   computed[t.bucketId] = (computed[t.bucketId] ?? 0) + (dir === 'in' ? 1 : -1) * t.amountVnd;
+}
+
+// Moi lan bu DA XONG cung di chuyen tien that: ra khoi quy nguon, vao quy
+// dich. Bo qua chung o day thi script se dap lai dung cai loi no phai sua -
+// quy dich ket o so am du da co tien chuyen vao.
+for (const d of covers.docs) {
+  const c = d.data();
+  if (c.status !== 'done') continue;
+  if (kindOf[c.fromBucketId] === 'fund') {
+    computed[c.fromBucketId] = (computed[c.fromBucketId] ?? 0) - c.amountVnd;
+  }
+  if (kindOf[c.toBucketId] === 'fund') {
+    computed[c.toBucketId] = (computed[c.toBucketId] ?? 0) + c.amountVnd;
+  }
 }
 
 const f = (v) => (v / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 0 });

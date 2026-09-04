@@ -152,9 +152,14 @@ export interface Cover {
   cycle: string;
   toBucketId: string;
   fromBucketId: string;
+  /** Tên hiển thị chụp lại lúc tạo, để dải nhắc gọi đúng tên hai đầu mà
+   *  không phải nghe thêm một listener bucket nào. Bản ghi cũ không có thì
+   *  rơi về id. */
+  toName: string;
+  fromName: string;
   /** Chỉ phần vượt, không phải cả giao dịch. */
   amountVnd: number;
-  /** true khi nguồn bù ở BIDV - cần chuyển khoản thật. */
+  /** true khi hai đầu khác ngân hàng - cần chuyển khoản thật. */
   needsTransfer: boolean;
   status: CoverStatus;
   createdAt: number;

@@ -53,9 +53,12 @@ export default function PendingCovers() {
 
   return (
     <div className="shrink-0 border-t border-line bg-surface-2 px-4 py-2.5">
+      {/* Đích là tên bucket, KHÔNG phải "VCB". Bù cho một quỹ BIDV thì tiền
+          phải sang chính quỹ đó; nói sai chỗ nhận là bảo người dùng chuyển
+          nhầm tài khoản. */}
       <p className="text-xs">
         Move <b className="font-semibold">{formatVnd(cover.amountVnd)}</b> from{' '}
-        {cover.fromBucketId} to VCB
+        {cover.fromName} to <b className="font-semibold">{cover.toName}</b>
       </p>
 
       <div className="mt-2 flex items-center gap-2">

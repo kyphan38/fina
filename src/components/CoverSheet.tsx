@@ -57,7 +57,7 @@ export default function CoverSheet({
       await createCover(uid, {
         txId: request.txId,
         cycle: request.cycle,
-        toBucketId: request.toBucket.id,
+        to: request.toBucket,
         from,
         amountVnd: request.amountVnd,
       });
@@ -123,8 +123,13 @@ export default function CoverSheet({
                   <button
                     type="button"
                     disabled={!o.enough || busy}
+                    // Khác ngân hàng thì dải nhắc chuyển khoản sẽ hỏi lại,
+                    // nên vào thẳng. Cùng ngân hàng thì xong ngay lúc bấm -
+                    // đây là cơ hội cuối để đổi ý, phải hỏi một câu.
                     onClick={() =>
-                      o.bucket.bank === 'VCB' ? setPicked(o.bucket) : void commit(o.bucket)
+                      o.bucket.bank === request.toBucket.bank
+                        ? setPicked(o.bucket)
+                        : void commit(o.bucket)
                     }
                     className="flex w-full items-baseline justify-between rounded-[10px] border border-line px-3 py-3 text-left disabled:opacity-30"
                   >
