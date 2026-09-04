@@ -20,10 +20,6 @@ export const IDLE_CYCLES = 3;
 export interface CycleFacts {
   id: string;
   closed: boolean;
-  inVnd: number;
-  outVnd: number;
-  investedVnd: number;
-  leftVnd: number;
   byBucket: Record<string, number>;
   limits: Record<string, number>;
 }
@@ -62,16 +58,6 @@ export interface Signals {
   outliers: { bucketId: string; name: string; amountVnd: number; medianVnd: number }[];
   idleFunds: { bucketId: string; name: string; balanceVnd: number; idleCycles: number }[];
   negativeFunds: { bucketId: string; name: string; balanceVnd: number }[];
-  cashflow: {
-    inVnd: number;
-    outVnd: number;
-    investedVnd: number;
-    leftVnd: number;
-    /** Đầu tư trên thu nhập, %. null khi chưa có thu nhập nào. */
-    investedPct: number | null;
-    /** `left` của chu kỳ này so với trung vị các chu kỳ trước, %. */
-    leftDeviationPct: number | null;
-  };
   /** Số chu kỳ đã đóng dùng để so. Dưới 3 thì đừng nói gì về xu hướng. */
   closedCount: number;
 }
@@ -176,9 +162,6 @@ export function computeSignals(args: {
     .filter((b) => b.balanceVnd < 0)
     .map((b) => ({ bucketId: b.id, name: b.name, balanceVnd: b.balanceVnd }));
 
-  const pastLeft = past.map((c) => c.leftVnd);
-  const medLeft = median(pastLeft);
-
   return {
     cycleId: current?.id ?? '',
     day,
@@ -188,14 +171,6 @@ export function computeSignals(args: {
     outliers,
     idleFunds,
     negativeFunds,
-    cashflow: {
-      inVnd: current?.inVnd ?? 0,
-      outVnd: current?.outVnd ?? 0,
-      investedVnd: current?.investedVnd ?? 0,
-      leftVnd: current?.leftVnd ?? 0,
-      investedPct: pct(current?.investedVnd ?? 0, current?.inVnd ?? 0),
-      leftDeviationPct: medLeft > 0 ? pct((current?.leftVnd ?? 0) - medLeft, medLeft) : null,
-    },
     closedCount: past.length,
   };
 }

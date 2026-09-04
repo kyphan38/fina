@@ -259,7 +259,7 @@ if (openingCycle) {
   const { startAt, endAt } = cycleRange(openingCycle);
   batch.set(db.doc(`users/${UID}/cycles/${openingCycle}`), {
     startAt, endAt, limits: {}, status: 'closed', closedAt: now,
-    surplusVnd: null, surplusTo: null, closedTotals: null, closedIncomeVnd: null,
+    surplusVnd: null, surplusTo: null, closedTotals: null,
   });
 }
 

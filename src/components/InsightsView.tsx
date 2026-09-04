@@ -11,7 +11,6 @@ import type { Bucket } from '@/types/fina';
 
 export default function InsightsView() {
   const s = useInsights();
-  const [year, setYear] = useState<string | null>(null);
   const [focus, setFocus] = useState<string>('food');
 
   if (s.loading) return <p className="pt-6 text-sm text-muted">Loading…</p>;
@@ -19,78 +18,15 @@ export default function InsightsView() {
     return <p className="pt-6 text-sm text-muted">Nothing to show until a cycle exists.</p>;
   }
 
-  const activeYear = year ?? s.years[0];
-  const inYear = s.rows.filter((r) => r.id.startsWith(activeYear));
-  const total = inYear.reduce(
-    (a, r) => ({
-      inVnd: a.inVnd + r.inVnd,
-      outVnd: a.outVnd + r.outVnd,
-      investedVnd: a.investedVnd + r.investedVnd,
-    }),
-    { inVnd: 0, outVnd: 0, investedVnd: 0 },
-  );
-
   const buffer = s.buckets.find((b) => b.id === 'buffer');
   const budgets = s.buckets.filter((b) => b.kind === 'budget' && b.active);
   const focusBucket = budgets.find((b) => b.id === focus) ?? budgets[0];
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-      <header className="flex items-center justify-between border-b border-line pb-2.5 pt-3">
+      <header className="border-b border-line pb-2.5 pt-3">
         <h1 className="text-lg font-semibold">Insights</h1>
-        {s.years.length > 1 && (
-          <select
-            value={activeYear}
-            onChange={(e) => setYear(e.target.value)}
-            aria-label="Year"
-            className="rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-xs"
-          >
-            {s.years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        )}
       </header>
-
-      <Block title={`Cash flow · ${activeYear}`}>
-        <div className="-mx-1 overflow-x-auto">
-          <table className="w-full min-w-[420px] text-right text-xs">
-            <thead>
-              <tr className="text-faint">
-                <th className="pb-1.5 text-left font-medium">Cycle</th>
-                <th className="pb-1.5 font-medium">In</th>
-                <th className="pb-1.5 font-medium">Out</th>
-                <th className="pb-1.5 font-medium">Invested</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inYear.map((r) => (
-                <tr key={r.id} className="border-t border-line">
-                  <td className="py-1.5 text-left">
-                    {cycleLabel(r.id).month.slice(0, 3)}
-                    {!r.closed && <span className="ml-1.5 text-faint">running</span>}
-                  </td>
-                  <Cell v={r.inVnd} closed={r.closed} />
-                  <Cell v={r.outVnd} closed={r.closed} />
-                  <Cell v={r.investedVnd} closed={r.closed} />
-                </tr>
-              ))}
-              <tr className="border-t border-line font-semibold">
-                <td className="py-1.5 text-left">Year</td>
-                <td>{formatVnd(total.inVnd)}</td>
-                <td>{formatVnd(total.outVnd)}</td>
-                <td>{formatVnd(total.investedVnd)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-2 text-[11px] text-faint">
-          A cycle with no snapshot shows <span className="text-ink">-</span>, never a zero.
-          Zero would be a claim; the dash is not.
-        </p>
-      </Block>
 
       <div className="min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-5">
       {buffer && (
@@ -133,15 +69,6 @@ export default function InsightsView() {
 
       {s.uid && <InsightPanel uid={s.uid} signals={s.signals} />}
     </div>
-  );
-}
-
-function Cell({ v, closed, strong }: { v: number; closed: boolean; strong?: boolean }) {
-  const missing = closed && v === 0;
-  return (
-    <td className={`py-1.5 ${strong ? 'font-semibold' : ''}`}>
-      {missing ? <span className="text-faint">-</span> : formatVnd(v)}
-    </td>
   );
 }
 

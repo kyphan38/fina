@@ -17,9 +17,7 @@ import { db } from '@/lib/firebase-client';
 import { bucketsCol } from '@/lib/buckets';
 import { cycleRange } from '@/lib/cycle';
 import { txCol } from '@/lib/transactions';
-import { incomeCol } from '@/lib/income';
-import { cashFlow } from '@/lib/cashflow';
-import type { Bucket, Cycle, Income, SurplusTarget, Transaction } from '@/types/fina';
+import type { Bucket, Cycle, SurplusTarget } from '@/types/fina';
 
 export const cyclesCol = (uid: string) => collection(db, 'users', uid, 'cycles');
 const cycleRef = (uid: string, id: string) => doc(cyclesCol(uid), id);
@@ -35,7 +33,6 @@ function toCycle(id: string, data: Record<string, unknown>): Cycle {
     surplusVnd: data.surplusVnd == null ? null : Number(data.surplusVnd),
     surplusTo: (data.surplusTo as SurplusTarget | null) ?? null,
     closedTotals: (data.closedTotals as Cycle['closedTotals']) ?? null,
-    closedIncomeVnd: data.closedIncomeVnd == null ? null : Number(data.closedIncomeVnd),
   };
 }
 
@@ -75,7 +72,6 @@ export async function ensureCycle(
     surplusVnd: null,
     surplusTo: null,
     closedTotals: null,
-    closedIncomeVnd: null,
   };
   await setDoc(ref, fresh);
   return { id: cycleId, ...fresh };
@@ -149,7 +145,9 @@ export async function applyCyclePlan(
   uid: string,
   cycleId: string,
   plan: {
-    salaryVnd: number;
+    /** Số đem chia của kỳ này: phần dư còn lại cộng khoản vừa nhận. KHÔNG
+     *  phải lương - lương được theo dõi riêng và không đi qua đây. */
+    divideVnd: number;
     limits: Record<string, number>;
     /** bucketId -> số tiền, chỉ quỹ. Không gồm etf. */
     fundAllocations: Record<string, number>;
@@ -180,18 +178,8 @@ export async function applyCyclePlan(
     });
   }
 
-  batch.set(doc(incomeCol(uid), `income-${cycleId}-salary`), {
-    occurredAt: now,
-    cycle: cycleId,
-    amountVnd: plan.salaryVnd,
-    kind: 'salary',
-    note: `Salary ${cycleId}`,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  // KHÔNG ghi lương vào document chu kỳ nữa: nó đã là một bản ghi trong
-  // `income/`. Hai chỗ giữ cùng một con số thì sớm muộn chúng lệch nhau.
+  // Con số đem chia KHÔNG được lưu lại ở đâu cả. Nó chỉ là đầu vào để tính
+  // hạn mức; giữ nó lại là dựng lại đúng thứ vừa bỏ đi (theo dõi dòng tiền).
   batch.update(cycleRef(uid, cycleId), { limits: plan.limits });
 
   for (const [bucketId, amountVnd] of Object.entries(plan.fundAllocations)) {
@@ -218,23 +206,6 @@ export async function applyCyclePlan(
 }
 
 /**
- * Tiền vào VCB mà chưa được giao việc gì, của một chu kỳ.
- *
- * Dùng để điền sẵn ô lương ở Generator: ngày 25 người dùng vốn cộng nhẩm
- * "lương mới + phần dư kỳ trước" rồi mới gõ vào. App làm hộ phép cộng đó.
- */
-export async function cycleUnallocated(uid: string, cycleId: string): Promise<number> {
-  const [txSnap, incSnap] = await Promise.all([
-    getDocs(query(txCol(uid), where('cycle', '==', cycleId))),
-    getDocs(query(incomeCol(uid), where('cycle', '==', cycleId))),
-  ]);
-  return cashFlow(
-    incSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Income),
-    txSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Transaction),
-  ).unallocatedVnd;
-}
-
-/**
  * Đóng sổ. Một batch: chốt chu kỳ, và chuyển phần dư vào quỹ đích.
  *
  * Không tự chuyển tiền thật, không tự tạo giao dịch. Chỉ ghi con số.
@@ -244,13 +215,8 @@ export async function closeCycle(
   cycleId: string,
   surplusVnd: number,
   surplusTo: SurplusTarget,
-  /** Chụp lại để bảng dòng tiền theo năm khỏi đọc lại toàn bộ giao dịch. */
-  snapshot: {
-    outVnd: number;
-    investedVnd: number;
-    incomeVnd: number;
-    byBucket: Record<string, number>;
-  },
+  /** Chụp lại để Trend và Notes khỏi đọc lại toàn bộ giao dịch của kỳ. */
+  snapshot: { byBucket: Record<string, number> },
 ): Promise<void> {
   const batch = writeBatch(db);
 
@@ -259,12 +225,7 @@ export async function closeCycle(
     closedAt: Date.now(),
     surplusVnd,
     surplusTo,
-    closedTotals: {
-      outVnd: snapshot.outVnd,
-      investedVnd: snapshot.investedVnd,
-      byBucket: snapshot.byBucket,
-    },
-    closedIncomeVnd: snapshot.incomeVnd,
+    closedTotals: { byBucket: snapshot.byBucket },
   });
 
   // 'hold' = để nguyên, không cộng vào đâu cả.

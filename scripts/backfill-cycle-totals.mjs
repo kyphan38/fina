@@ -5,15 +5,15 @@
 //     scripts/backfill-cycle-totals.mjs --uid <UID> [--commit]
 //
 // closedTotals chi duoc ghi tu khi buoc dong so co no. Chu ky import va chu
-// ky seed khong co, nen bang dong tien theo nam khong doc duoc.
+// ky seed khong co, nen Trend o Insights khong ve duoc.
 //
-// Tinh bang CHINH cashflow.ts - khong chep lai cong thuc.
+// Tinh bang CHINH spending.ts - khong chep lai cong thuc.
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-import { cashFlow, isSpending } from '@/lib/cashflow';
+import { isSpending } from '@/lib/spending';
 
 const COMMIT = process.argv.includes('--commit');
 const i = process.argv.indexOf('--uid');
@@ -35,12 +35,11 @@ for (const d of cycles.docs) {
   const c = d.data();
   if (c.status !== 'closed') continue;
 
-  const [txSnap, incSnap] = await Promise.all([
-    db.collection(`users/${UID}/transactions`).where('cycle', '==', d.id).get(),
-    db.collection(`users/${UID}/income`).where('cycle', '==', d.id).get(),
-  ]);
+  const txSnap = await db
+    .collection(`users/${UID}/transactions`)
+    .where('cycle', '==', d.id)
+    .get();
   const txs = txSnap.docs.map((t) => ({ id: t.id, ...t.data() }));
-  const flow = cashFlow(incSnap.docs.map((x) => x.data()), txs);
 
   const byBucket = {};
   for (const t of txs) {
@@ -49,22 +48,13 @@ for (const d of cycles.docs) {
     byBucket[t.bucketId] = (byBucket[t.bucketId] ?? 0) + signed;
   }
 
+  const have = c.closedTotals?.byBucket;
   const already =
-    c.closedTotals?.outVnd === flow.outVnd &&
-    c.closedTotals?.investedVnd === flow.investedVnd &&
-    c.closedIncomeVnd === flow.inVnd &&
-    c.closedTotals?.byBucket !== undefined;
+    have !== undefined && JSON.stringify(have) === JSON.stringify(byBucket);
 
-  console.log(
-    `${already ? 'ok  ' : 'GHI '} ${d.id}  in ${f(flow.inVnd).padStart(8)}  ` +
-      `out ${f(flow.outVnd).padStart(8)}  invested ${f(flow.investedVnd).padStart(8)}`,
-  );
-  if (!already) {
-    updates.push([d.id, {
-      closedTotals: { outVnd: flow.outVnd, investedVnd: flow.investedVnd, byBucket },
-      closedIncomeVnd: flow.inVnd,
-    }]);
-  }
+  const tieu = Object.values(byBucket).reduce((a, b) => a + b, 0);
+  console.log(`${already ? 'ok  ' : 'GHI '} ${d.id}  tieu ${f(tieu).padStart(10)}`);
+  if (!already) updates.push([d.id, { closedTotals: { byBucket } }]);
 }
 
 if (updates.length === 0) {

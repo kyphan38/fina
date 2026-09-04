@@ -7,20 +7,15 @@ import { watchBuckets } from '@/lib/buckets';
 import { clockStore } from '@/lib/clock';
 import { cycleOf, previousCycle } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
-import { cashFlow } from '@/lib/cashflow';
 import { computeSignals } from '@/lib/signals';
 import { cycleProgress } from '@/lib/cycle';
-import { watchCycleIncome } from '@/lib/income';
 import { watchCycleTransactions } from '@/lib/transactions';
-import type { Bucket, Cycle, Income, Transaction } from '@/types/fina';
+import type { Bucket, Cycle, Transaction } from '@/types/fina';
 
 export interface CycleRow {
   id: string;
   closed: boolean;
-  inVnd: number;
-  outVnd: number;
-  investedVnd: number;
-  leftVnd: number;
+  /** Chi tiêu ròng theo từng bucket. */
   byBucket: Record<string, number>;
 }
 
@@ -39,7 +34,6 @@ export function useInsights() {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [liveTxs, setLiveTxs] = useState<Transaction[]>([]);
-  const [liveIncome, setLiveIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,11 +44,6 @@ export function useInsights() {
   useEffect(() => {
     if (!uid) return;
     return watchCycleTransactions(uid, currentCycle, setLiveTxs);
-  }, [uid, currentCycle]);
-
-  useEffect(() => {
-    if (!uid) return;
-    return watchCycleIncome(uid, currentCycle, setLiveIncome);
   }, [uid, currentCycle]);
 
   useEffect(() => {
@@ -72,8 +61,6 @@ export function useInsights() {
     };
   }, [uid]);
 
-  const live = useMemo(() => cashFlow(liveIncome, liveTxs), [liveIncome, liveTxs]);
-
   const liveByBucket = useMemo(() => {
     const byBucket: Record<string, number> = {};
     for (const t of liveTxs) {
@@ -87,47 +74,16 @@ export function useInsights() {
   const rows: CycleRow[] = useMemo(() => {
     const out = cycles.map((c) => {
       if (c.id === currentCycle) {
-        return {
-          id: c.id,
-          closed: false,
-          inVnd: live.inVnd,
-          outVnd: live.outVnd,
-          investedVnd: live.investedVnd,
-          leftVnd: live.leftVnd,
-          byBucket: liveByBucket,
-        };
+        return { id: c.id, closed: false, byBucket: liveByBucket };
       }
-      const t = c.closedTotals;
-      const inVnd = c.closedIncomeVnd ?? 0;
-      return {
-        id: c.id,
-        closed: true,
-        inVnd,
-        outVnd: t?.outVnd ?? 0,
-        investedVnd: t?.investedVnd ?? 0,
-        leftVnd: inVnd - (t?.outVnd ?? 0) - (t?.investedVnd ?? 0),
-        byBucket: t?.byBucket ?? {},
-      };
+      return { id: c.id, closed: true, byBucket: c.closedTotals?.byBucket ?? {} };
     });
     // Chu kỳ hiện tại có thể chưa có document.
     if (!out.some((r) => r.id === currentCycle)) {
-      out.unshift({
-        id: currentCycle,
-        closed: false,
-        inVnd: live.inVnd,
-        outVnd: live.outVnd,
-        investedVnd: live.investedVnd,
-        leftVnd: live.leftVnd,
-        byBucket: liveByBucket,
-      });
+      out.unshift({ id: currentCycle, closed: false, byBucket: liveByBucket });
     }
     return out.sort((a, b) => (a.id < b.id ? 1 : -1));
-  }, [cycles, currentCycle, live, liveByBucket]);
-
-  const years = useMemo(
-    () => [...new Set(rows.map((r) => r.id.slice(0, 4)))].sort().reverse(),
-    [rows],
-  );
+  }, [cycles, currentCycle, liveByBucket]);
 
   /** Sáu chu kỳ gần nhất, cũ trước - để vẽ biểu đồ đọc từ trái sang phải. */
   const recent = useMemo(() => {
@@ -146,10 +102,6 @@ export function useInsights() {
     const facts = [...rows].reverse().map((r) => ({
       id: r.id,
       closed: r.closed,
-      inVnd: r.inVnd,
-      outVnd: r.outVnd,
-      investedVnd: r.investedVnd,
-      leftVnd: r.leftVnd,
       byBucket: r.byBucket,
       limits: byId.get(r.id)?.limits ?? {},
     }));
@@ -165,5 +117,5 @@ export function useInsights() {
     });
   }, [rows, cycles, buckets, liveTxs, currentCycle]);
 
-  return { uid, buckets, rows, years, recent, currentCycle, signals, loading };
+  return { uid, buckets, rows, recent, currentCycle, signals, loading };
 }

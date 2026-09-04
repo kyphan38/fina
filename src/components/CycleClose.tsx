@@ -37,13 +37,8 @@ export default function CycleClose({
   covered: Record<string, number>;
   /** Đã cộng lại phần bù lấy từ BIDV - tính ở useSummary. */
   surplusVnd: number;
-  /** Chụp lại vào document chu kỳ, để bảng theo năm khỏi đọc lại giao dịch. */
-  snapshot: {
-    outVnd: number;
-    investedVnd: number;
-    incomeVnd: number;
-    byBucket: Record<string, number>;
-  };
+  /** Chụp lại vào document chu kỳ, để Trend khỏi đọc lại giao dịch. */
+  snapshot: { byBucket: Record<string, number> };
   pendingCount: number;
 }) {
   const [target, setTarget] = useState<SurplusTarget>('etf');

@@ -9,13 +9,13 @@ const buckets: Bucket[] = SEED_BUCKETS.map((s) => ({
 }));
 
 const cycle = (id: string, over: Partial<CycleFacts> = {}): CycleFacts => ({
-  id, closed: true, inVnd: 39_065 * K, outVnd: 0, investedVnd: 0, leftVnd: 0,
+  id, closed: true,
   byBucket: {}, limits: { food: 3_000 * K, social: 1_000 * K }, ...over,
 });
 
 const base = (food: number[], current: number) => ({
   cycles: [
-    ...food.map((v, i) => cycle(`2026-0${i + 4}`, { byBucket: { food: v * K }, leftVnd: 10_000 * K })),
+    ...food.map((v, i) => cycle(`2026-0${i + 4}`, { byBucket: { food: v * K } })),
     cycle('2026-09', { closed: false, byBucket: { food: current * K } }),
   ],
   buckets, amounts: [], day: 9, totalDays: 30,
@@ -112,5 +112,4 @@ test('không có lịch sử thì không bịa ra độ lệch', () => {
     buckets, amounts: [], day: 1, totalDays: 30,
   });
   assert.equal(s.buckets.find((b) => b.bucketId === 'food')!.deviationPct, null);
-  assert.equal(s.cashflow.leftDeviationPct, null);
 });
