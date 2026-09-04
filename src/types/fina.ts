@@ -111,6 +111,21 @@ export interface Cycle {
   closedTotals: { byBucket: Record<string, number> } | null;
 }
 
+/**
+ * Firestore: users/{uid}/salary/{cycleId}
+ *
+ * Collection RIÊNG, không nằm trong `transactions` hay chu kỳ: lương là con
+ * số cần che, và để nó lẫn vào dữ liệu chi tiêu thì mọi màn hình đều có nguy
+ * cơ vô tình hiện nó ra.
+ */
+export interface Salary {
+  /** '2026-09' - cũng chính là id document. */
+  cycle: string;
+  amountVnd: number;
+  note: string | null;
+  updatedAt: number;
+}
+
 export type CoverStatus = 'pending' | 'done';
 
 /** Firestore: users/{uid}/covers/{coverId} - Stage 5 */

@@ -92,6 +92,22 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      // salary/{cycleId} - luong nhap tay, mot chu ky mot ban ghi.
+      //
+      // Man chan mat khau nam o CLIENT nen no khong bao ve duoc gi o day:
+      // chu tai khoan van doc duoc. Rules chi lam dung viec cua rules - chan
+      // nguoi khac va chan du lieu rac.
+      match /salary/{cycleId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && cycleId.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && request.resource.data.keys().hasOnly(['amountVnd', 'note', 'updatedAt'])
+          && isVnd(request.resource.data.amountVnd)
+          && request.resource.data.amountVnd > 0
+          && (request.resource.data.note == null || request.resource.data.note is string)
+          && request.resource.data.updatedAt is int;
+      }
+
       // insights/{cycleId} - nhan xet AI da sinh, cache theo digestHash
       match /insights/{insightId} {
         allow read, write: if isOwner(uid);

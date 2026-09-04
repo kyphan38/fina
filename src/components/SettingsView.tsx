@@ -239,8 +239,14 @@ export default function SettingsView({ email }: { email: string | null }) {
         </p>
       </Card>
 
+      {/* Không có tab riêng ở thanh dưới và không nói nó chứa gì: ai cầm
+          điện thoại lúc app đang mở sẵn cũng không thấy chữ "salary" ở đâu.
+          Trang đó tự khoá bằng mật khẩu. */}
       <p className="text-xs text-muted">
-        Stage 4. Reminders and AI insights arrive later.
+        Stage 4. Reminders and AI insights arrive later.{' '}
+        <Link href="/salary" className="text-faint underline">
+          More
+        </Link>
       </p>
     </div>
   );
