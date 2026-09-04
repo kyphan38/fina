@@ -11,7 +11,7 @@ const buckets: Bucket[] = SEED_BUCKETS.map((s) => ({
 }));
 
 const cycle = (id: string, food: number, closed = true): CycleFacts => ({
-  id, closed, inVnd: 39_065 * K, outVnd: food * K, investedVnd: 0, leftVnd: 10_000 * K,
+  id, closed,
   byBucket: { food: food * K }, limits: { food: 3_000 * K },
 });
 

@@ -92,20 +92,6 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
-      // income/{id} - tiền vào. Collection RIÊNG với transactions: thu không
-      // phải chi tiêu, mà để chung với chi tiêu thì mọi phép cộng đều phải
-      // nhớ loại nó ra, và sẽ có lần quên.
-      match /income/{incomeId} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.keys().hasAll(['occurredAt', 'cycle', 'amountVnd', 'kind'])
-          && request.resource.data.occurredAt is int
-          && request.resource.data.cycle.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
-          && isVnd(request.resource.data.amountVnd)
-          && request.resource.data.amountVnd > 0
-          && request.resource.data.kind in ['salary', 'other'];
-      }
-
       // insights/{cycleId} - nhan xet AI da sinh, cache theo digestHash
       match /insights/{insightId} {
         allow read, write: if isOwner(uid);

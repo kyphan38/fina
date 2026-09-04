@@ -25,14 +25,6 @@ export interface Digest {
   outliers: { name: string; amount: number; median: number }[];
   idleFunds: { name: string; balance: number; cycles: number }[];
   negativeFunds: { name: string; balance: number }[];
-  cashflow: {
-    in: number;
-    out: number;
-    invested: number;
-    left: number;
-    investedPct: number | null;
-    leftDeviationPct: number | null;
-  };
 }
 
 /** Số tiền gửi model theo NGHÌN, đúng đơn vị người dùng đọc trên màn hình. */
@@ -56,14 +48,6 @@ export function buildDigest(s: Signals): Digest {
     outliers: s.outliers.map((o) => ({ name: o.name, amount: k(o.amountVnd), median: k(o.medianVnd) })),
     idleFunds: s.idleFunds.map((f) => ({ name: f.name, balance: k(f.balanceVnd), cycles: f.idleCycles })),
     negativeFunds: s.negativeFunds.map((f) => ({ name: f.name, balance: k(f.balanceVnd) })),
-    cashflow: {
-      in: k(s.cashflow.inVnd),
-      out: k(s.cashflow.outVnd),
-      invested: k(s.cashflow.investedVnd),
-      left: k(s.cashflow.leftVnd),
-      investedPct: s.cashflow.investedPct,
-      leftDeviationPct: s.cashflow.leftDeviationPct,
-    },
   };
 }
 
@@ -91,9 +75,6 @@ export function allowedNumbers(d: Digest): Set<string> {
   for (const o of d.outliers) { add(o.amount); add(o.median); }
   for (const f of d.idleFunds) { add(f.balance); add(f.cycles); }
   for (const f of d.negativeFunds) add(f.balance);
-  const c = d.cashflow;
-  add(c.in); add(c.out); add(c.invested); add(c.left);
-  add(c.investedPct); add(c.leftDeviationPct);
   return out;
 }
 

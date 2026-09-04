@@ -238,7 +238,7 @@ for (const id of Object.keys(byCycle)) {
     limits: current ? SEP_LIMITS : {},
     status: current ? 'open' : 'closed',
     closedAt: current ? null : now,
-    surplusVnd: null, surplusTo: null, closedTotals: null, closedIncomeVnd: null,
+    surplusVnd: null, surplusTo: null, closedTotals: null,
   });
 }
 for (const [b,v] of Object.entries(bal)) {

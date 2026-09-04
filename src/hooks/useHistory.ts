@@ -9,7 +9,7 @@ import { historyCycleStore } from '@/lib/prefs';
 import { cycleOf } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { watchCycleTransactions } from '@/lib/transactions';
-import { netSpending } from '@/lib/cashflow';
+import { netSpending } from '@/lib/spending';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export function useHistory() {

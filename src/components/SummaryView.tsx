@@ -11,12 +11,11 @@ import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import { overrideCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit, addFundTopUp } from '@/lib/transactions';
-import { addIncome } from '@/lib/income';
 import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
   const s = useSummary();
-  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf' | 'income'>('none');
+  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf'>('none');
   const [topUp, setTopUp] = useState<Bucket | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -40,12 +39,7 @@ export default function SummaryView() {
         spent={s.spent}
         covered={s.covered}
         surplusVnd={s.surplus}
-        snapshot={{
-          outVnd: s.flow.outVnd,
-          investedVnd: s.flow.investedVnd,
-          incomeVnd: s.flow.inVnd,
-          byBucket: s.spent,
-        }}
+        snapshot={{ byBucket: s.spent }}
         pendingCount={s.pendingCovers.length}
       />
     );
@@ -207,51 +201,6 @@ export default function SummaryView() {
 
       </div>
 
-      <Block
-        title="Cash flow"
-        action={
-          <button
-            type="button"
-            onClick={() => setSheet('income')}
-            className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
-          >
-            Add income
-          </button>
-        }
-      >
-        <ul className="flex flex-col gap-1.5 text-sm">
-          <Flow label="In" value={s.flow.inVnd} sign="+" strong />
-          {s.flow.otherVnd > 0 && (
-            <>
-              <Flow label="Salary" value={s.flow.salaryVnd} sub />
-              <Flow label="Other" value={s.flow.otherVnd} sub />
-            </>
-          )}
-          <Flow label="Out" value={s.flow.outVnd} sign="−" />
-          <Flow label="Invested" value={s.flow.investedVnd} sign="−" />
-        </ul>
-        <div className="mt-3 flex justify-between border-t border-line pt-2 text-sm font-semibold">
-          <span>Left</span>
-          <span className={s.flow.leftVnd < 0 ? 'text-over' : ''}>
-            {formatVnd(s.flow.leftVnd)}
-          </span>
-        </div>
-        <ul className="mt-1 flex flex-col gap-0.5 pl-3 text-xs text-muted">
-          <li className="flex justify-between">
-            <span>in funds</span>
-            <span>{formatVnd(s.flow.inFundsVnd)}</span>
-          </li>
-          <li className="flex justify-between">
-            <span>unassigned</span>
-            <span>{formatVnd(s.flow.unallocatedVnd)}</span>
-          </li>
-        </ul>
-        <p className="mt-1.5 text-[11px] text-faint">
-          Unassigned is money that arrived and has no job yet - a bonus lands here. The
-          Generator picks it up on the 25th.
-        </p>
-      </Block>
-
       <button
         type="button"
         onClick={() => setSheet('generator')}
@@ -266,7 +215,6 @@ export default function SummaryView() {
           cycleId={s.cycleId}
           cycleClosed={s.cycle?.status === 'closed'}
           buckets={s.buckets}
-          salaryVnd={s.salaryVnd}
           onClose={() => setSheet('none')}
         />
       )}
@@ -280,21 +228,6 @@ export default function SummaryView() {
           onConfirm={async (amountVnd, note, occurredAt) => {
             if (s.uid) await addFundTopUp(s.uid, topUp, amountVnd, note, occurredAt);
             setTopUp(null);
-          }}
-        />
-      )}
-
-      {sheet === 'income' && (
-        <AmountSheet
-          title="Add income"
-          confirmLabel="Add"
-          withDate
-          onCancel={() => setSheet('none')}
-          onConfirm={async (amountVnd, note, occurredAt) => {
-            if (s.uid) {
-              await addIncome(s.uid, { amountVnd, kind: 'other', note, occurredAt });
-            }
-            setSheet('none');
           }}
         />
       )}
@@ -374,39 +307,6 @@ function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
           </button>
         </span>
       </div>
-    </li>
-  );
-}
-
-/**
- * Out và Invested là dòng tiền ĐI RA, nên hiện dấu `−` ở nhãn thay vì đảo
- * dấu con số. Đảo dấu làm `Invested −3.425` trông như rút tiền về, và người
- * đọc phải tự đoán quy ước.
- */
-function Flow({
-  label,
-  value,
-  sign,
-  strong,
-  sub,
-}: {
-  label: string;
-  value: number;
-  sign?: '+' | '−';
-  strong?: boolean;
-  sub?: boolean;
-}) {
-  return (
-    <li
-      className={`flex justify-between ${sub ? 'pl-3 text-xs text-muted' : ''} ${
-        strong ? 'font-semibold' : ''
-      }`}
-    >
-      <span>{label}</span>
-      <span>
-        {sign && value !== 0 && <span className="text-faint">{sign}</span>}
-        {formatVnd(Math.abs(value))}
-      </span>
     </li>
   );
 }

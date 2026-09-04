@@ -158,7 +158,7 @@ for (const id of cycles) {
   const { startAt, endAt } = cycleRange(id);
   await ref.set({
     startAt, endAt, limits: {}, status: 'closed', closedAt: now,
-    surplusVnd: null, surplusTo: null, closedTotals: null, closedIncomeVnd: null,
+    surplusVnd: null, surplusTo: null, closedTotals: null,
   });
 }
 
