@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { toVnd, fromVnd, formatVnd, pressKey } from '@/lib/money';
+import { evalAmount, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 
 test('toVnd - gõ theo nghìn, lưu ra VND nguyên', () => {
   assert.equal(toVnd('25'), 25_000);
@@ -78,4 +78,64 @@ test('pressKey - tối đa 3 số lẻ, tối đa 7 số nguyên', () => {
 test('pressKey - số 0 mở đầu bị thay, không thành "05"', () => {
   assert.equal(pressKey('0', '5'), '5');
   assert.equal(pressKey('0', '.'), '0.');
+});
+
+// ---------------------------------------------------------------
+// Gộp nhiều khoản nhỏ trong một lần gõ
+// ---------------------------------------------------------------
+
+test('evalAmount - cộng nhiều khoản: ba cốc cà phê một sáng', () => {
+  assert.equal(evalAmount('25+30+18'), 73_000);
+});
+
+test('evalAmount - trừ được, dùng khi nhớ nhầm rồi bớt lại', () => {
+  assert.equal(evalAmount('100-25'), 75_000);
+  assert.equal(evalAmount('25+30.5-4'), 51_500);
+});
+
+test('evalAmount - một số trơn vẫn ra đúng như toVnd', () => {
+  assert.equal(evalAmount('155.36'), toVnd('155.36'));
+  assert.equal(evalAmount('25'), 25_000);
+});
+
+test('evalAmount - làm tròn TỪNG khoản rồi mới cộng, không để số thực trôi', () => {
+  // 0.1 + 0.2 trong JS là 0.30000000000000004. Cộng số thực rồi mới nhân
+  // 1000 sẽ ra 300.00000000000006 và Firestore rules chặn số không nguyên.
+  const v = evalAmount('0.1+0.2');
+  assert.equal(v, 300);
+  assert.ok(Number.isInteger(v));
+});
+
+test('evalAmount - dấu phẩy cũng là dấu thập phân (bàn phím tiếng Việt)', () => {
+  assert.equal(evalAmount('25,5+4,5'), 30_000);
+});
+
+test('evalAmount - chuỗi chưa gõ xong thì chưa cho lưu', () => {
+  assert.equal(evalAmount('25+'), null);
+  assert.equal(evalAmount('25+-'), null);
+  assert.equal(evalAmount(''), null);
+});
+
+test('evalAmount - không mở đầu bằng dấu, và tổng phải dương', () => {
+  // Chiều tiền nằm ở nút OUT/IN, không nằm ở dấu của số.
+  assert.equal(evalAmount('-25'), null);
+  assert.equal(evalAmount('25-25'), null);
+  assert.equal(evalAmount('25-30'), null);
+});
+
+test('pressKey - dấu thập phân tính theo TỪNG khoản, không theo cả chuỗi', () => {
+  // '25.5+3.2' là hai khoản hợp lệ, không phải một số hai dấu chấm.
+  assert.equal(pressKey('25.5+3', '.'), '25.5+3.');
+  assert.equal(pressKey('25.5+3.2', '.'), '25.5+3.2');
+});
+
+test('pressKey - không mở đầu bằng dấu, gõ hai dấu liền thì thay chứ không nối', () => {
+  assert.equal(pressKey('', '+'), '');
+  assert.equal(pressKey('25+', '-'), '25-');
+  assert.equal(pressKey('25.', '+'), '25.');
+});
+
+test('pressKey - giới hạn chữ số áp cho khoản đang gõ, không cho cả chuỗi', () => {
+  assert.equal(pressKey('1234567+12', '3'), '1234567+123');
+  assert.equal(pressKey('25+0', '5'), '25+5');
 });

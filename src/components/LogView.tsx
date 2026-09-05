@@ -7,7 +7,7 @@ import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
 import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
-import { formatVnd, pressKey, toVnd } from '@/lib/money';
+import { evalAmount, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
@@ -69,7 +69,10 @@ export default function LogView() {
     if (ready) markReady();
   }, [ready]);
   const selected = all.find((b) => b.id === selectedId) ?? null;
-  const amountVnd = toVnd(buf);
+  const amountVnd = evalAmount(buf);
+  // Có dấu cộng/trừ thì con số to là TỔNG, còn biểu thức hiện nhỏ bên trên -
+  // gộp mấy khoản lẻ mà không thấy tổng thì vẫn phải tự cộng nhẩm.
+  const combining = /[+-]/.test(buf);
   const canSave = Boolean(uid && selected && amountVnd !== null && !saving);
 
   const onKey = useCallback((key: string) => {
@@ -277,22 +280,32 @@ export default function LogView() {
             {selected ? selected.name : 'Pick a bucket'}
           </span>
           <span className="flex shrink-0 items-baseline gap-2">
+            {/* Chữ OUT/IN chứ không phải −/+: numpad giờ có phím + và − để
+                cộng nhiều khoản, và một màn hình không thể có hai nghĩa cho
+                cùng một ký hiệu. */}
             <button
               type="button"
               onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
               aria-label={direction === 'in' ? 'Money in' : 'Money out'}
-              className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${
+              className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide ${
                 direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
               }`}
             >
-              {direction === 'in' ? '+' : '−'}
+              {direction === 'in' ? 'IN' : 'OUT'}
             </button>
-            <span
-              className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
-                buf ? '' : 'text-faint'
-              }`}
-            >
-              {buf || '0'}
+            <span className="flex flex-col items-end">
+              {combining && (
+                <span className="max-w-[190px] truncate text-[11px] leading-tight text-faint">
+                  {buf}
+                </span>
+              )}
+              <span
+                className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
+                  buf ? '' : 'text-faint'
+                }`}
+              >
+                {combining ? (amountVnd === null ? '…' : formatVnd(amountVnd)) : buf || '0'}
+              </span>
             </span>
           </span>
         </div>
@@ -305,10 +318,10 @@ export default function LogView() {
           className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"
         />
 
-        <Numpad onKey={onKey} onSave={save} canSave={canSave} />
+        <Numpad onKey={onKey} onSave={save} canSave={canSave} ops />
 
         <p className="hidden pb-3 text-center text-[11px] text-faint min-[900px]:block">
-          Type to enter · arrows pick a bucket · Enter saves · Esc clears · − flips
+          Type to enter · + − combine · arrows pick a bucket · Enter saves · Esc clears · f flips
         </p>
 
         {coverReq && uid && (

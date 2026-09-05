@@ -6,14 +6,14 @@ import type { Salary } from '@/types/fina';
 export const salaryCol = (uid: string) => collection(db, 'users', uid, 'salary');
 
 /**
- * Một chu kỳ một bản ghi, id CHÍNH là id chu kỳ ('2026-09').
+ * Một tháng một bản ghi, id CHÍNH là tháng ('2026-09').
  *
  * Nhờ vậy nhập lại tháng cũ là ghi đè chứ không đẻ ra bản thứ hai, và không
  * bao giờ có hai con số cho cùng một tháng.
  */
 function toSalary(id: string, data: Record<string, unknown>): Salary {
   return {
-    cycle: id,
+    month: id,
     amountVnd: Number(data.amountVnd ?? 0),
     note: (data.note as string | null) ?? null,
     updatedAt: Number(data.updatedAt ?? 0),
@@ -26,33 +26,44 @@ export function watchSalaries(uid: string, cb: (rows: Salary[]) => void): () => 
     cb(
       snap.docs
         .map((d) => toSalary(d.id, d.data()))
-        .sort((a, b) => (a.cycle < b.cycle ? 1 : -1)),
+        .sort((a, b) => (a.month < b.month ? 1 : -1)),
     ),
   );
 }
 
 export async function setSalary(
   uid: string,
-  cycle: string,
+  month: string,
   amountVnd: number,
   note: string | null,
 ): Promise<void> {
-  await setDoc(doc(salaryCol(uid), cycle), {
+  await setDoc(doc(salaryCol(uid), month), {
     amountVnd,
     note: note && note.length > 0 ? note : null,
     updatedAt: Date.now(),
   });
 }
 
-export async function removeSalary(uid: string, cycle: string): Promise<void> {
-  await deleteDoc(doc(salaryCol(uid), cycle));
+export async function removeSalary(uid: string, month: string): Promise<void> {
+  await deleteDoc(doc(salaryCol(uid), month));
 }
 
-/** Tổng theo năm, năm mới trước. Năm lấy từ id chu kỳ. */
+/**
+ * Tháng dương lịch của một mốc thời gian: '2026-09'.
+ *
+ * CỐ Ý không dùng `cycleOf`. Chu kỳ chi tiêu cắt ngày 25, nên đúng hôm lĩnh
+ * lương (25/09) `cycleOf` đã trả về '2026-10' - lương tháng 9 sẽ bị ghi vào
+ * ô tháng 10, và cả bảng lệch một tháng.
+ */
+export function monthOf(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Tổng theo năm, năm mới trước. Năm lấy từ id tháng. */
 export function byYear(rows: Salary[]): { year: string; totalVnd: number; months: number }[] {
   const map = new Map<string, { totalVnd: number; months: number }>();
   for (const r of rows) {
-    const y = r.cycle.slice(0, 4);
+    const y = r.month.slice(0, 4);
     const cur = map.get(y) ?? { totalVnd: 0, months: 0 };
     map.set(y, { totalVnd: cur.totalVnd + r.amountVnd, months: cur.months + 1 });
   }

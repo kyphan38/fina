@@ -6,10 +6,18 @@ import AmountSheet from '@/components/AmountSheet';
 import SalaryGate from '@/components/SalaryGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { clockStore } from '@/lib/clock';
-import { cycleLabel, cycleOf } from '@/lib/cycle';
+// cycleLabel chỉ đổi 'YYYY-MM' thành tên tháng, dùng chung được.
+import { cycleLabel as monthLabel } from '@/lib/cycle';
 import { gateStore } from '@/lib/gate';
 import { formatVnd } from '@/lib/money';
-import { average, byYear, removeSalary, setSalary, watchSalaries } from '@/lib/salary';
+import {
+  average,
+  byYear,
+  monthOf,
+  removeSalary,
+  setSalary,
+  watchSalaries,
+} from '@/lib/salary';
 import type { Salary } from '@/types/fina';
 
 export default function SalaryView() {
@@ -27,7 +35,7 @@ export default function SalaryView() {
   const [editing, setEditing] = useState<string | null>(null);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
-  const currentCycle = useMemo(() => cycleOf(new Date(now)), [now]);
+  const currentMonth = useMemo(() => monthOf(new Date(now)), [now]);
 
   useEffect(() => {
     if (!uid || !unlocked) return;
@@ -36,7 +44,7 @@ export default function SalaryView() {
 
   const years = useMemo(() => byYear(rows), [rows]);
   const avg = useMemo(() => average(rows), [rows]);
-  const thisCycle = rows.find((r) => r.cycle === currentCycle) ?? null;
+  const thisMonth = rows.find((r) => r.month === currentMonth) ?? null;
 
   if (!unlocked) return <SalaryGate />;
 
@@ -56,20 +64,20 @@ export default function SalaryView() {
         </button>
       </header>
 
-      <Block title={cycleLabel(currentCycle).month}>
+      <Block title={monthLabel(currentMonth).month}>
         <div className="flex items-baseline justify-between">
           <span className="text-[26px] font-semibold">
-            {thisCycle ? formatVnd(thisCycle.amountVnd) : '-'}
+            {thisMonth ? formatVnd(thisMonth.amountVnd) : '-'}
           </span>
           <button
             type="button"
-            onClick={() => setEditing(currentCycle)}
+            onClick={() => setEditing(currentMonth)}
             className="rounded-[10px] border border-line px-3 py-1.5 text-xs"
           >
-            {thisCycle ? 'Change' : 'Add'}
+            {thisMonth ? 'Change' : 'Add'}
           </button>
         </div>
-        {thisCycle?.note && <p className="mt-1 text-xs text-muted">{thisCycle.note}</p>}
+        {thisMonth?.note && <p className="mt-1 text-xs text-muted">{thisMonth.note}</p>}
       </Block>
 
       {rows.length > 0 && (
@@ -111,9 +119,9 @@ export default function SalaryView() {
         ) : (
           <ul className="flex flex-col gap-1.5 text-xs">
             {rows.map((r) => {
-              const { month, year } = cycleLabel(r.cycle);
+              const { month, year } = monthLabel(r.month);
               return (
-                <li key={r.cycle} className="flex items-baseline gap-2.5 border-t border-line pt-1.5">
+                <li key={r.month} className="flex items-baseline gap-2.5 border-t border-line pt-1.5">
                   <span className="w-20 shrink-0 text-muted">
                     {month.slice(0, 3)} {year}
                   </span>
@@ -121,14 +129,14 @@ export default function SalaryView() {
                   <span className="ml-auto flex shrink-0 gap-3">
                     <button
                       type="button"
-                      onClick={() => setEditing(r.cycle)}
+                      onClick={() => setEditing(r.month)}
                       className="text-faint underline"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
-                      onClick={() => uid && void removeSalary(uid, r.cycle)}
+                      onClick={() => uid && void removeSalary(uid, r.month)}
                       className="text-faint underline"
                     >
                       Delete
@@ -143,7 +151,7 @@ export default function SalaryView() {
 
       {editing && (
         <AmountSheet
-          title={`Salary for ${cycleLabel(editing).month}`}
+          title={`Salary for ${monthLabel(editing).month}`}
           confirmLabel="Save"
           onCancel={() => setEditing(null)}
           onConfirm={async (amountVnd, note) => {
@@ -171,8 +179,8 @@ function Chart({ rows }: { rows: Salary[] }) {
       <div className="flex h-28 items-end gap-1.5">
         {recent.map((r) => (
           <span
-            key={r.cycle}
-            title={`${cycleLabel(r.cycle).month}: ${formatVnd(r.amountVnd)}`}
+            key={r.month}
+            title={`${monthLabel(r.month).month}: ${formatVnd(r.amountVnd)}`}
             className="flex-1 rounded-t-[3px]"
             style={{
               height: `${Math.max(0, (r.amountVnd / peak) * 100)}%`,
@@ -184,8 +192,8 @@ function Chart({ rows }: { rows: Salary[] }) {
       </div>
       <div className="mt-1 flex gap-1.5">
         {recent.map((r) => (
-          <span key={r.cycle} className="flex-1 text-center text-[10px] text-faint">
-            {cycleLabel(r.cycle).month.slice(0, 3)}
+          <span key={r.month} className="flex-1 text-center text-[10px] text-faint">
+            {monthLabel(r.month).month.slice(0, 3)}
           </span>
         ))}
       </div>

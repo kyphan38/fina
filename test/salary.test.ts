@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { average, byYear } from '@/lib/salary';
+import { average, byYear, monthOf } from '@/lib/salary';
 import type { Salary } from '@/types/fina';
 
-const row = (cycle: string, amountVnd: number): Salary => ({
-  cycle, amountVnd, note: null, updatedAt: 0,
+const row = (month: string, amountVnd: number): Salary => ({
+  month, amountVnd, note: null, updatedAt: 0,
 });
 
 test('byYear - cộng theo năm, năm mới đứng trước', () => {
@@ -35,4 +35,14 @@ test('average - chưa ghi gì thì là 0, không phải NaN', () => {
 
 test('byYear - chưa ghi gì thì không có năm nào', () => {
   assert.deepEqual(byYear([]), []);
+});
+
+test('monthOf - dùng tháng dương lịch, KHÔNG phải chu kỳ cắt ngày 25', () => {
+  // Ngày lĩnh lương là ca dễ sai nhất: cycleOf('2026-09-25') đã là '2026-10'.
+  // Lương tháng 9 phải nằm ở tháng 9.
+  assert.equal(monthOf(new Date('2026-09-25T12:00:00')), '2026-09');
+  assert.equal(monthOf(new Date('2026-09-30T23:00:00')), '2026-09');
+  assert.equal(monthOf(new Date('2026-09-01T00:00:00')), '2026-09');
+  assert.equal(monthOf(new Date('2026-12-31T12:00:00')), '2026-12');
+  assert.equal(monthOf(new Date('2026-01-05T12:00:00')), '2026-01');
 });

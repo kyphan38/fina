@@ -14,11 +14,14 @@ export default function Numpad({
   onSave,
   canSave,
   saveLabel = 'Save',
+  ops = false,
 }: {
   onKey: (key: string) => void;
   onSave: () => void;
   canSave: boolean;
   saveLabel?: string;
+  /** Hiện phím + và − để gộp nhiều khoản nhỏ trong một lần gõ. */
+  ops?: boolean;
 }) {
   return (
     <div className="grid grid-cols-3 gap-1.5">
@@ -33,6 +36,25 @@ export default function Numpad({
           {k === 'del' ? '⌫' : k}
         </button>
       ))}
+      {/* Hàng riêng, KHÔNG chen vào lưới số: mười hai phím kia đã nằm đúng
+          chỗ ngón tay quen từ lâu, xê dịch chúng để nhét thêm hai phím là
+          đánh đổi tệ. Ở đây cũng tách bạch phép tính khỏi con số. */}
+      {ops && (
+        <div className="col-span-3 grid grid-cols-2 gap-1.5">
+          {(['+', '-'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onKey(k)}
+              aria-label={k === '+' ? 'Plus' : 'Minus'}
+              className="rounded-[10px] border border-line bg-surface-2 py-2.5 text-[19px] active:bg-sunk [@media(max-height:720px)]:py-1.5"
+            >
+              {k === '-' ? '−' : k}
+            </button>
+          ))}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onSave}
