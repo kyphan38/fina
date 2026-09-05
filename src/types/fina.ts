@@ -119,8 +119,14 @@ export interface Cycle {
  * cơ vô tình hiện nó ra.
  */
 export interface Salary {
-  /** '2026-09' - cũng chính là id document. */
-  cycle: string;
+  /**
+   * '2026-09' - cũng chính là id document, và là THÁNG DƯƠNG LỊCH, KHÔNG
+   * phải chu kỳ cắt ngày 25 của phần chi tiêu.
+   *
+   * Lương nhận ngày 25/09 là lương tháng 9. Dùng `cycleOf` ở đây thì đúng
+   * ngày lĩnh lương nó nhảy sang '2026-10' và mọi tháng bị ghi lệch một ô.
+   */
+  month: string;
   amountVnd: number;
   note: string | null;
   updatedAt: number;

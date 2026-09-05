@@ -50,7 +50,12 @@ export function useLogKeyboard(args: {
         case 'Enter': onSave(); break;
         case 'Escape': onClear(); break;
         case 'Backspace': onKey('del'); break;
-        case '-': onFlip(); break;
+        // '-' và '+' là phép tính, không phải đảo chiều tiền: numpad đã có
+        // hai phím đó để gộp nhiều khoản. Đảo chiều dời sang 'f' (flip).
+        case '-':
+        case '+': onKey(e.key); break;
+        case 'f':
+        case 'F': onFlip(); break;
         case '.':
         case ',': onKey('.'); break;
         default:

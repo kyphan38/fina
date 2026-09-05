@@ -58,26 +58,85 @@ export function formatVnd(vnd: number): string {
   });
 }
 
+/** Khoản đang gõ dở - phần sau dấu cộng/trừ cuối cùng. */
+function lastTerm(s: string): string {
+  const at = Math.max(s.lastIndexOf('+'), s.lastIndexOf('-'));
+  return at === -1 ? s : s.slice(at + 1);
+}
+
 /**
  * Nối thêm một phím từ numpad vào chuỗi đang gõ.
  * Giữ toàn bộ luật gõ ở một chỗ để component không phải biết gì về tiền.
+ *
+ * Mọi giới hạn (số chữ số, một dấu thập phân) áp cho TỪNG khoản, không cho
+ * cả chuỗi: '25.5+3.2' là hai khoản hợp lệ, không phải một số có hai dấu chấm.
  */
 export function pressKey(current: string, key: string): string {
   if (key === 'del') return current.slice(0, -1);
 
+  if (key === '+' || key === '-') {
+    // Không mở đầu bằng dấu: ô số là một khoản tiền, không phải số âm.
+    if (current === '') return current;
+    // Vừa gõ dấu rồi lại gõ dấu khác = đổi ý, thay chứ không nối thêm.
+    if (/[+-]$/.test(current)) return current.slice(0, -1) + key;
+    // '25.' chưa phải một khoản xong xuôi.
+    if (current.endsWith('.')) return current;
+    return current + key;
+  }
+
   if (key === '.') {
-    if (current === '' || current.includes('.')) return current;
+    const term = lastTerm(current);
+    if (term === '' || term.includes('.')) return current;
     return `${current}.`;
   }
 
   if (!/^\d$/.test(key)) return current;
 
-  const [whole, decimals] = current.split('.');
+  const term = lastTerm(current);
+  const [whole, decimals] = term.split('.');
   // Chặn ngay lúc gõ, không đợi tới lúc lưu mới làm tròn sau lưng người dùng.
   if (decimals !== undefined && decimals.length >= MAX_DECIMALS) return current;
   if (decimals === undefined && whole.length >= 7) return current;
   // '0' -> '05' là vô nghĩa; thay luôn.
-  if (current === '0') return key;
+  if (term === '0') return current.slice(0, -1) + key;
 
   return current + key;
+}
+
+/** Một khoản lẻ trong biểu thức. Cho phép 0, khác `toVnd`. */
+function termToVnd(term: string): number | null {
+  const raw = term.trim();
+  if (raw === '' || raw === '.') return null;
+  if (!/^\d*\.?\d*$/.test(raw)) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * UNIT);
+}
+
+/**
+ * Gộp nhiều khoản nhỏ trong MỘT lần gõ: '25+30.5-4' -> 51.500đ.
+ *
+ * Ba cốc cà phê một buổi sáng là ba lần mở app; gõ '25+30+18' là một lần.
+ *
+ * Cộng theo SỐ NGUYÊN VND, làm tròn từng khoản TRƯỚC khi cộng - không cộng
+ * số thực rồi mới nhân 1000. 0.1 + 0.2 trong JS ra 0.30000000000000004, và
+ * tiền thì không được phép trôi (xem đầu file).
+ *
+ * Trả null khi chuỗi chưa hoàn chỉnh ('25+'), sai định dạng, hoặc tổng <= 0 -
+ * cùng quy ước với `toVnd`, nên nút Save tự khoá cho tới khi gõ xong.
+ */
+export function evalAmount(input: string): number | null {
+  const raw = input.trim().replace(/,/g, '.');
+  if (raw === '') return null;
+  if (/^[+-]/.test(raw)) return null;
+
+  let total = 0;
+  // Tách nhưng GIỮ dấu: '25+30-4' -> ['25', '+30', '-4']
+  for (const part of raw.split(/(?=[+-])/)) {
+    const signed = /^[+-]/.test(part);
+    const value = termToVnd(signed ? part.slice(1) : part);
+    if (value === null) return null;
+    total += (part.startsWith('-') ? -1 : 1) * value;
+  }
+  return total > 0 ? total : null;
 }
