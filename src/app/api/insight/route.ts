@@ -48,8 +48,9 @@ async function overLimit(uid: string): Promise<boolean> {
 }
 
 export async function POST(req: NextRequest) {
-  // Kiểm session TRƯỚC mọi việc khác.
-  const user = await getSessionUser();
+  // Kiểm session TRƯỚC mọi việc khác. API này gọi Gemini nên đáng để chờ
+  // thêm một vòng kiểm tra thu hồi phiên.
+  const user = await getSessionUser({ checkRevoked: true });
   if (!user) return fail('Unauthorized.', 401);
 
   const key = process.env.GEMINI_API_KEY;
