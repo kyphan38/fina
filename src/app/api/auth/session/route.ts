@@ -12,8 +12,10 @@ function fail(message: string, status: number) {
 
 // GET - client hỏi: server có coi mình là đã đăng nhập không?
 // Dùng để làm mới cookie khi nó hết hạn mà client vẫn còn user.
+// Client hỏi đúng câu "server còn coi tôi là đã đăng nhập không" nên phải trả
+// lời bằng sự thật mới nhất: kiểm tra thu hồi luôn.
 export async function GET() {
-  const user = await getSessionUser();
+  const user = await getSessionUser({ checkRevoked: true });
   return NextResponse.json({ authenticated: user !== null });
 }
 
