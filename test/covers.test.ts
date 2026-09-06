@@ -63,7 +63,31 @@ test('coveredByBucket - chỉ tính lần bù đã xong', () => {
     cover({ id: 'b', amountVnd: 500_000, status: 'pending', fromBucketId: 'reserve' }),
     cover({ id: 'c', amountVnd: 200_000 }),
   ];
-  assert.deepEqual(coveredByBucket(covers), { buffer: 500_000 });
+  // Bên cho tính dương, bên nhận tính âm. Lần bù còn pending không tính.
+  assert.deepEqual(coveredByBucket(covers), { buffer: 500_000, tech: -500_000 });
+});
+
+test('coveredByBucket - bên NHẬN được trừ, không chỉ bên cho', () => {
+  // Ca thật: Social hụt 500, chuyển 505 từ Purchases sang. Chỉ ghi bên cho
+  // thì Social vẫn đứng ở -500 dù tiền đã nằm trong ví.
+  //   limit 1.000, spent 1.500 -> đã dùng = 1.500 - 505 = 995 -> còn 5.
+  const net = coveredByBucket([
+    cover({ fromBucketId: 'purchases', toBucketId: 'social', amountVnd: 505_000 }),
+  ]);
+  assert.equal(net.purchases, 505_000);
+  assert.equal(net.social, -505_000);
+
+  const limit = 1_000_000;
+  const spent = 1_500_000;
+  assert.equal(limit - (spent + net.social), 5_000);
+});
+
+test('coveredByBucket - bù trong cùng nhóm VCB thì tổng không đổi', () => {
+  // Buffer bù cho Tech: Buffer dùng nhiều hơn, Tech dùng ít đi, cộng lại là 0.
+  const net = coveredByBucket([
+    cover({ fromBucketId: 'buffer', toBucketId: 'tech', amountVnd: 190_000 }),
+  ]);
+  assert.equal(Object.values(net).reduce((a, b) => a + b, 0), 0);
 });
 
 test('coveredFromOutside - chỉ đếm tiền từ BIDV chảy vào', () => {

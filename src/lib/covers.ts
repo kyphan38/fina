@@ -77,12 +77,33 @@ export function coverOptions(args: {
   );
 }
 
-/** Tổng đã rút ra từ mỗi bucket qua các lần bù ĐÃ xong. */
+/**
+ * Ảnh hưởng RÒNG của các lần bù ĐÃ xong lên từng bucket: tiền rút ra tính
+ * dương, tiền nhận vào tính âm. Mọi màn hình đọc nó theo cùng một công thức
+ * `đã dùng = spent + covered`.
+ *
+ * HAI ĐẦU, không phải một. Chỉ cộng cho bên cho là tiền chỉ biết đi mà không
+ * biết đến: chuyển 505 từ Purchases sang Social xong, Social vẫn đứng ở -500
+ * y như lúc chưa chuyển, trong khi tiền đã nằm trong ví rồi.
+ *
+ * Bucket dạng fund KHÔNG được dùng bảng này: số dư của chúng đã được
+ * `coverBalanceDeltas` cộng/trừ thẳng rồi, đọc thêm ở đây là đếm hai lần.
+ * Hôm nay chỉ các hũ budget đọc nó (Log, Summary, bước đóng sổ).
+ */
 export function coveredByBucket(covers: Cover[]): Record<string, number> {
   const out: Record<string, number> = {};
+  const add = (bucketId: string, value: number) => {
+    out[bucketId] = (out[bucketId] ?? 0) + value;
+  };
+
   for (const c of covers) {
     if (c.status !== 'done') continue;
-    out[c.fromBucketId] = (out[c.fromBucketId] ?? 0) + c.amountVnd;
+    add(c.fromBucketId, c.amountVnd);
+    add(c.toBucketId, -c.amountVnd);
+  }
+
+  for (const [id, v] of Object.entries(out)) {
+    if (v === 0) delete out[id];
   }
   return out;
 }
