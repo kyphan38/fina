@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 
+import Numpad from '@/components/Numpad';
 import { coverOptions, createCover } from '@/lib/covers';
 import { deleteTransaction } from '@/lib/transactions';
 import type { Transaction } from '@/types/fina';
-import { formatVnd } from '@/lib/money';
+import { evalAmount, formatVnd, fromVnd, pressKey } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
 
 export interface CoverRequest {
@@ -37,6 +38,13 @@ export default function CoverSheet({
   bufferUsedVnd: number;
   onDone: () => void;
 }) {
+  // Phần thiếu chỉ là GỢI Ý. Số thật sự chuyển là quyết định của người dùng:
+  // hụt 500 nhưng muốn đẩy 505 cho tròn việc, hoặc chuyển dư một ít để khỏi
+  // phải mở app ngân hàng lần nữa.
+  const [amountVnd, setAmountVnd] = useState(request.amountVnd);
+  const [editing, setEditing] = useState(false);
+  const [buf, setBuf] = useState('');
+
   const [picked, setPicked] = useState<Bucket | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,8 +55,14 @@ export default function CoverSheet({
     toBucketId: request.toBucket.id,
     bufferLimitVnd,
     bufferUsedVnd,
-    neededVnd: request.amountVnd,
+    // Đổi số thì "đủ hay không đủ" phải tính lại theo số MỚI, không phải
+    // theo phần thiếu ban đầu.
+    neededVnd: amountVnd,
   });
+
+  const draft = evalAmount(buf);
+  const combining = /[+-]/.test(buf);
+  const diff = amountVnd - request.amountVnd;
 
   const commit = async (from: Bucket) => {
     setBusy(true);
@@ -59,7 +73,7 @@ export default function CoverSheet({
         cycle: request.cycle,
         to: request.toBucket,
         from,
-        amountVnd: request.amountVnd,
+        amountVnd,
       });
       onDone();
     } catch (err) {
@@ -112,11 +126,74 @@ export default function CoverSheet({
               Back
             </button>
           </>
+        ) : editing ? (
+          <>
+            {/* Cùng numpad với màn Log, nên gõ '500+5' là ra 505 - không phải
+                tự cộng nhẩm rồi gõ lại con số mới. */}
+            <div className="mb-1 mt-3 flex items-baseline justify-between px-1">
+              <span className="text-xs text-muted">Move</span>
+              <span className="flex flex-col items-end">
+                {combining && (
+                  <span className="max-w-[190px] truncate text-[11px] leading-tight text-faint">
+                    {buf}
+                  </span>
+                )}
+                <span
+                  className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}
+                >
+                  {combining ? (draft === null ? '…' : formatVnd(draft)) : buf || '0'}
+                </span>
+              </span>
+            </div>
+            <Numpad
+              ops
+              onKey={(k) => setBuf((c) => pressKey(c, k))}
+              onSave={() => {
+                if (draft === null) return;
+                setAmountVnd(draft);
+                setEditing(false);
+              }}
+              canSave={draft !== null}
+              saveLabel="Done"
+            />
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="w-full py-2 text-xs text-muted"
+            >
+              Back
+            </button>
+          </>
         ) : picked === null ? (
           <>
             <p className="mb-3 mt-1 text-xs text-muted">
               The money is already gone. Say where it came from.
             </p>
+
+            {/* Viền đứt để không bị nhầm là một nguồn trong danh sách dưới. */}
+            <button
+              type="button"
+              onClick={() => {
+                setBuf(fromVnd(amountVnd));
+                setEditing(true);
+              }}
+              className="mb-2 flex w-full items-baseline justify-between rounded-[10px] border border-dashed border-line px-3 py-2.5 text-left"
+            >
+              <span className="text-xs text-muted">Move</span>
+              <span className="flex items-baseline gap-2">
+                <b className="text-sm font-semibold">{formatVnd(amountVnd)}</b>
+                <span className="text-[10px] uppercase tracking-wider text-faint">Adjust</span>
+              </span>
+            </button>
+
+            {diff !== 0 && (
+              <p className="mb-2 px-1 text-[11px] text-faint">
+                {diff > 0
+                  ? `${formatVnd(diff)} more than the gap.`
+                  : `${request.toBucket.name} stays ${formatVnd(-diff)} over after this.`}
+              </p>
+            )}
+
             <ul className="flex flex-col gap-1.5">
               {options.map((o) => (
                 <li key={o.bucket.id}>
@@ -148,7 +225,7 @@ export default function CoverSheet({
         ) : (
           <>
             <p className="mb-4 mt-2 text-sm">
-              Take {formatVnd(request.amountVnd)} from{' '}
+              Take {formatVnd(amountVnd)} from{' '}
               <b className="font-semibold">{picked.name}</b>?
             </p>
             <button
@@ -171,7 +248,7 @@ export default function CoverSheet({
 
         {error && <p className="mt-3 text-xs text-over">{error}</p>}
 
-        {!discarding && picked === null && (
+        {!discarding && !editing && picked === null && (
           <button
             type="button"
             onClick={() => setDiscarding(true)}
