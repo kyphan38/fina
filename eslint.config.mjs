@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     // functions/ la package rieng: lib/ la output CommonJS da build, va src/
     // co eslint cua chinh no khi can. Khong lint o day.
     "functions/**",
+    // Script chay trong app Scriptable tren iPhone, dung global cua Scriptable
+    // (ListWidget, Keychain...). Khong phai code cua Next.
+    "scriptable/**",
   ]),
 ]);
 
