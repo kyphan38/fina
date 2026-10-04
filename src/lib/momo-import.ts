@@ -322,3 +322,30 @@ export function sanitizeRows(value: unknown): RawRow[] {
   }
   return out;
 }
+
+/**
+ * Thêm dòng mới vào một bảng đang duyệt dở - upload thêm ảnh từ máy khác.
+ *
+ * Cùng luật số lần như `mergeScreenshots`: bảng đã có khoá K hai lần thì chỉ
+ * thêm những bản K thứ ba trở đi. Đếm cả dòng đã xoá khỏi bảng - xoá rồi
+ * upload lại ảnh cũ thì dòng đó không được hiện lại.
+ */
+export function appendRows(existing: ImportRow[], incoming: ImportRow[]): ImportRow[] {
+  const have = new Map<string, number>();
+  for (const r of existing) have.set(r.key, (have.get(r.key) ?? 0) + 1);
+  const ids = new Set(existing.map((r) => r.id));
+
+  const seen = new Map<string, number>();
+  const out: ImportRow[] = [];
+  for (const r of incoming) {
+    const n = (seen.get(r.key) ?? 0) + 1;
+    seen.set(r.key, n);
+    if (n <= (have.get(r.key) ?? 0)) continue;
+
+    let id = r.id;
+    for (let i = n; ids.has(id); i += 1) id = `${r.key}#${i + 1}`;
+    ids.add(id);
+    out.push({ ...r, id });
+  }
+  return out;
+}

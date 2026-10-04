@@ -16,7 +16,20 @@ import {
   type ImportRow,
   type RawRow,
 } from '@/lib/momo-import';
-import { addImportedTransactions, listTransactionsBetween } from '@/lib/transactions';
+import {
+  DraftGoneError,
+  activeRows,
+  addDraftRow,
+  addToDraft,
+  discardDraft,
+  patchDraftRow,
+  saveDraft,
+  setDraftMerge,
+  watchImportDraft,
+  type DraftRow,
+  type ImportDraftDoc,
+} from '@/lib/import-draft';
+import { listTransactionsBetween } from '@/lib/transactions';
 import type { Bucket } from '@/types/fina';
 
 const MAX_IMAGES = 5;
@@ -28,9 +41,6 @@ const LOOKUP_MARGIN_MS = 3 * 60 * 60_000;
 const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
 const timeOf = (ms: number) =>
   new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
-type Phase = 'pick' | 'reading' | 'review' | 'saving' | 'done';
-type Removed = ImportRow & { reason: 'removed' | 'imported' };
 
 /** Thu nhỏ ảnh ở client. Ảnh gốc iPhone 2-3 MB, gửi 5 cái là chậm và tốn. */
 async function shrink(file: File): Promise<{ mimeType: string; data: string }> {
@@ -52,24 +62,48 @@ function toLocalInput(ms: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const codeOf = (err: unknown) => (err as { code?: string })?.code ?? 'unknown';
+
+/**
+ * Bảng duyệt sống trong Firestore (lib/import-draft.ts), không trong state
+ * của component: upload trên điện thoại thì laptop thấy ngay, và ngược lại.
+ * Component chỉ giữ những gì thuộc về riêng máy này - đang đọc ảnh, đang
+ * lưu, lỗi.
+ */
 export default function ImportView() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
   const [buckets, setBuckets] = useState<Bucket[]>([]);
-  const [phase, setPhase] = useState<Phase>('pick');
+  // undefined = đang tải lần đầu, null = không có bảng nào dở.
+  const [draft, setDraft] = useState<ImportDraftDoc | null | undefined>(undefined);
+  const [reading, setReading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [rows, setRows] = useState<ImportRow[]>([]);
-  const [removed, setRemoved] = useState<Removed[]>([]);
-  const [stats, setStats] = useState({ overlap: 0, unreadable: 0 });
-  // Mặc định gộp: đa số là ăn uống, một mục một con số là đủ.
-  const [merge, setMerge] = useState(true);
-  const [savedCount, setSavedCount] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  // Bảng biến mất vì CHÍNH máy này Save/Discard thì không cần báo gì.
+  const closingHere = useRef(false);
+  const hadDraft = useRef(false);
 
   useEffect(() => {
     if (!uid) return;
     return watchBuckets(uid, setBuckets);
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    return watchImportDraft(uid, (d) => {
+      if (!d && hadDraft.current && !closingHere.current) {
+        setNotice('The table was saved or discarded on another device.');
+      }
+      if (d) setNotice(null);
+      hadDraft.current = Boolean(d);
+      closingHere.current = false;
+      setDraft(d);
+    });
   }, [uid]);
 
   // ETF chỉ nhận tiền vào lúc chia lương - không bao giờ là đích của một
@@ -82,6 +116,18 @@ export default function ImportView() {
   const fallbackBucket =
     choices.find((b) => b.id === DEFAULT_BUCKET)?.id ?? choices[0]?.id ?? DEFAULT_BUCKET;
 
+  const rows = useMemo(() => (draft ? activeRows(draft) : []), [draft]);
+  const removed = useMemo(
+    () =>
+      draft
+        ? Object.values(draft.rows)
+            .filter((r) => r.removed)
+            .sort((a, b) => b.occurredAt - a.occurredAt)
+        : [],
+    [draft],
+  );
+  const merge = draft?.merge ?? true;
+
   const read = async (files: File[]) => {
     if (!uid || files.length === 0) return;
     if (files.length > MAX_IMAGES) {
@@ -89,7 +135,9 @@ export default function ImportView() {
       return;
     }
     setError(null);
-    setPhase('reading');
+    setNotice(null);
+    setSavedCount(null);
+    setReading(true);
     try {
       const images = await Promise.all(files.map(shrink));
       const res = await fetch('/api/momo-import', {
@@ -115,35 +163,29 @@ export default function ImportView() {
         ({ kept, imported } = checkAgainstExisting(fresh, existing));
       }
 
-      setRows(kept);
-      setRemoved(imported.map((r) => ({ ...r, reason: 'imported' })));
-      setStats({ overlap: merged.overlapCount, unreadable: merged.unreadable });
-      setPhase('review');
+      const incoming: DraftRow[] = [
+        ...kept.map((r) => ({ ...r, removed: null })),
+        ...imported.map((r) => ({ ...r, removed: 'imported' as const })),
+      ];
+      await addToDraft(uid, incoming, {
+        overlap: merged.overlapCount,
+        unreadable: merged.unreadable,
+      });
     } catch (err) {
       setError((err as Error).message || 'Could not read the screenshots.');
-      setPhase('pick');
     } finally {
+      setReading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
   };
 
-  const patch = (id: string, change: Partial<ImportRow>) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...change } : r)));
-
-  const remove = (row: ImportRow) => {
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
-    setRemoved((prev) => [{ ...row, reason: 'removed' }, ...prev]);
+  // Mọi thao tác ghi thẳng vào Firestore. Listener trả về ngay bản ghi
+  // tạm ở máy này, nên màn hình không phải đợi mạng.
+  const run = (fn: () => Promise<void>) => {
+    fn().catch((err) => setError(`Could not update (${codeOf(err)}).`));
   };
-
-  const addBack = (row: Removed) => {
-    setRemoved((prev) => prev.filter((r) => r.id !== row.id));
-    const { reason, ...rest } = row;
-    void reason;
-    setRows((prev) => [...prev, rest].sort((a, b) => b.occurredAt - a.occurredAt));
-  };
-
-  const addManual = (row: ImportRow) =>
-    setRows((prev) => [...prev, row].sort((a, b) => b.occurredAt - a.occurredAt));
+  const patch = (id: string, change: Partial<Pick<DraftRow, 'bucketId' | 'note' | 'removed'>>) =>
+    uid && run(() => patchDraftRow(uid, id, change));
 
   const drafts = useMemo(() => buildDrafts(rows, merge), [rows, merge]);
 
@@ -158,60 +200,55 @@ export default function ImportView() {
 
   const save = async () => {
     if (!uid || drafts.length === 0) return;
-    setPhase('saving');
+    setSaving(true);
     setError(null);
+    closingHere.current = true;
     try {
-      setSavedCount(await addImportedTransactions(uid, drafts, byId));
-      setPhase('done');
+      setSavedCount(await saveDraft(uid, byId));
     } catch (err) {
-      setError(`Could not save (${(err as { code?: string })?.code ?? 'unknown'}).`);
-      setPhase('review');
+      closingHere.current = false;
+      setError(
+        err instanceof DraftGoneError
+          ? 'This table was already saved on another device.'
+          : `Could not save (${codeOf(err)}).`,
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
-  const reset = () => {
-    setRows([]);
-    setRemoved([]);
-    setError(null);
-    setPhase('pick');
+  const discard = () => {
+    if (!uid) return;
+    if (!confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
+    }
+    setConfirmDiscard(false);
+    closingHere.current = true;
+    run(() => discardDraft(uid));
   };
 
-  if (phase === 'pick' || phase === 'reading') {
+  const filePicker = (
+    <input
+      ref={fileRef}
+      type="file"
+      accept="image/*"
+      multiple
+      className="hidden"
+      onChange={(e) => void read(Array.from(e.target.files ?? []))}
+    />
+  );
+
+  if (draft === undefined) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         <Header />
-        <div className="pt-6">
-          <p className="text-sm text-muted">
-            Pick up to {MAX_IMAGES} screenshots of the MoMo history (tab{' '}
-            <span className="font-medium text-ink">Giao dịch</span>). Overlap between them is fine.
-          </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => void read(Array.from(e.target.files ?? []))}
-          />
-          <button
-            type="button"
-            disabled={phase === 'reading' || !uid}
-            onClick={() => fileRef.current?.click()}
-            className="mt-4 w-full rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-40"
-          >
-            {phase === 'reading' ? 'Reading screenshots…' : 'Choose screenshots'}
-          </button>
-          {error && <p className="mt-2 text-xs text-over">{error}</p>}
-          <p className="mt-4 text-[11px] text-faint">
-            Screenshots are sent to Gemini to read the text, then thrown away. Names are shown
-            here only, never saved.
-          </p>
-        </div>
+        <p className="pt-6 text-sm text-muted">Loading…</p>
       </div>
     );
   }
 
-  if (phase === 'done') {
+  if (!draft && savedCount !== null) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
         <Header />
@@ -227,7 +264,7 @@ export default function ImportView() {
           </Link>
           <button
             type="button"
-            onClick={reset}
+            onClick={() => setSavedCount(null)}
             className="flex-1 rounded-[10px] border border-line py-3 text-sm"
           >
             Import more
@@ -237,20 +274,61 @@ export default function ImportView() {
     );
   }
 
+  if (!draft) {
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+        <Header />
+        <div className="pt-6">
+          {notice && <p className="mb-3 text-xs text-up">{notice}</p>}
+          <p className="text-sm text-muted">
+            Pick up to {MAX_IMAGES} screenshots of the MoMo history (tab{' '}
+            <span className="font-medium text-ink">Giao dịch</span>). Overlap between them is fine.
+            The table shows up on all your devices.
+          </p>
+          {filePicker}
+          <button
+            type="button"
+            disabled={reading || !uid}
+            onClick={() => fileRef.current?.click()}
+            className="mt-4 w-full rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-40"
+          >
+            {reading ? 'Reading screenshots…' : 'Choose screenshots'}
+          </button>
+          {error && <p className="mt-2 text-xs text-over">{error}</p>}
+          <p className="mt-4 text-[11px] text-faint">
+            Screenshots are sent to Gemini to read the text, then thrown away. Names stay in the
+            table until you save or discard it, and never go into your entries.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const groups = groupByDay(rows);
+  const importedCount = removed.filter((r) => r.removed === 'imported').length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto pb-4">
         <Header />
 
-        <p className="pt-3 text-[11px] text-faint">
-          {rows.length} {rows.length === 1 ? 'row' : 'rows'}
-          {stats.overlap > 0 && ` · ${stats.overlap} overlapping merged`}
-          {removed.some((r) => r.reason === 'imported') &&
-            ` · ${removed.filter((r) => r.reason === 'imported').length} already imported`}
-          {stats.unreadable > 0 && ` · ${stats.unreadable} unreadable skipped`}
-        </p>
+        <div className="flex items-center gap-2 pt-3">
+          <p className="min-w-0 flex-1 text-[11px] text-faint">
+            {rows.length} {rows.length === 1 ? 'row' : 'rows'}
+            {draft.overlap > 0 && ` · ${draft.overlap} overlapping merged`}
+            {importedCount > 0 && ` · ${importedCount} already imported`}
+            {draft.unreadable > 0 && ` · ${draft.unreadable} unreadable skipped`}
+          </p>
+          {filePicker}
+          <button
+            type="button"
+            disabled={reading}
+            onClick={() => fileRef.current?.click()}
+            className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-semibold disabled:opacity-40"
+          >
+            {reading ? 'Reading…' : '+ Screenshots'}
+          </button>
+        </div>
 
         <div className="mt-2 flex rounded-[10px] border border-line p-0.5 text-xs">
           {[
@@ -261,7 +339,7 @@ export default function ImportView() {
               key={m.label}
               type="button"
               aria-pressed={merge === m.on}
-              onClick={() => setMerge(m.on)}
+              onClick={() => uid && run(() => setDraftMerge(uid, m.on))}
               className={`flex-1 rounded-lg py-1.5 ${
                 merge === m.on ? 'bg-ink font-semibold text-bg' : 'text-muted'
               }`}
@@ -292,14 +370,18 @@ export default function ImportView() {
                   choices={choices}
                   byId={byId}
                   onPatch={(c) => patch(r.id, c)}
-                  onRemove={() => remove(r)}
+                  onRemove={() => patch(r.id, { removed: 'removed' })}
                 />
               ))}
             </ul>
           </section>
         ))}
 
-        <AddRow defaultBucket={fallbackBucket} choices={choices} onAdd={addManual} />
+        <AddRow
+          defaultBucket={fallbackBucket}
+          choices={choices}
+          onAdd={(row) => uid && run(() => addDraftRow(uid, { ...row, removed: null }))}
+        />
 
         {removed.length > 0 && (
           <section className="pt-5">
@@ -314,7 +396,7 @@ export default function ImportView() {
                     {new Date(r.occurredAt).getMonth() + 1}
                   </span>
                   <span className="min-w-0 flex-1 truncate">
-                    {r.reason === 'imported' && (
+                    {r.removed === 'imported' && (
                       <b className="font-semibold text-muted">Already imported · </b>
                     )}
                     {r.title}
@@ -325,7 +407,7 @@ export default function ImportView() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => addBack(r)}
+                    onClick={() => patch(r.id, { removed: null })}
                     className="shrink-0 font-semibold text-ink underline"
                   >
                     Add back
@@ -357,18 +439,21 @@ export default function ImportView() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={reset}
-            className="rounded-[10px] border border-line px-4 py-3 text-sm text-muted"
+            onClick={discard}
+            onBlur={() => setConfirmDiscard(false)}
+            className={`rounded-[10px] border px-4 py-3 text-sm ${
+              confirmDiscard ? 'border-over bg-over font-semibold text-bg' : 'border-line text-muted'
+            }`}
           >
-            Cancel
+            {confirmDiscard ? 'Tap again' : 'Discard'}
           </button>
           <button
             type="button"
-            disabled={drafts.length === 0 || phase === 'saving'}
+            disabled={drafts.length === 0 || saving}
             onClick={save}
             className="flex-1 rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-30"
           >
-            {phase === 'saving'
+            {saving
               ? 'Saving…'
               : `Save ${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'}`}
           </button>
@@ -448,16 +533,54 @@ function RowItem({
             </option>
           ))}
         </select>
-        <input
-          value={row.note}
-          onChange={(e) => onPatch({ note: e.target.value })}
-          placeholder="Note"
-          enterKeyHint="done"
-          className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs placeholder:text-faint"
-        />
+        <NoteInput value={row.note} onCommit={(note) => onPatch({ note })} />
       </div>
       {warning && <p className="mt-1 text-[11px] text-up">{warning}</p>}
     </li>
+  );
+}
+
+/**
+ * Ô note gõ ở máy này, chỉ ghi lên Firestore khi ngừng gõ nửa giây hoặc rời
+ * ô. Ghi mỗi phím thì mỗi chữ là một lượt ghi, và bản từ máy kia có thể đè
+ * lên chữ đang gõ dở. Không đang gõ thì luôn hiện bản mới nhất từ Firestore.
+ */
+function NoteInput({ value, onCommit }: { value: string; onCommit: (note: string) => void }) {
+  const [text, setText] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const commit = (next: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    if (next !== value) onCommit(next);
+  };
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  return (
+    <input
+      value={editing ? text : value}
+      onFocus={() => {
+        setText(value);
+        setEditing(true);
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => commit(next), 500);
+      }}
+      onBlur={() => {
+        setEditing(false);
+        commit(text);
+      }}
+      placeholder="Note"
+      enterKeyHint="done"
+      className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs placeholder:text-faint"
+    />
   );
 }
 
@@ -476,7 +599,6 @@ function AddRow({
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
   const [bucketId, setBucketId] = useState(defaultBucket);
-  const seq = useRef(0);
 
   const amountVnd = toVnd(amount);
   const occurredAt = when ? new Date(when).getTime() : NaN;
@@ -549,10 +671,10 @@ function AddRow({
           type="button"
           disabled={!valid}
           onClick={() => {
-            seq.current += 1;
             const key = importKey(occurredAt, 'out', amountVnd!);
             onAdd({
-              id: `manual-${seq.current}-${key}`,
+              // Ngẫu nhiên: hai máy cùng thêm tay một lúc không được trùng id.
+              id: `manual-${crypto.randomUUID()}`,
               key,
               occurredAt,
               title: title.trim(),

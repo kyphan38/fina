@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  appendRows,
   buildDrafts,
   checkAgainstExisting,
   flagOf,
@@ -187,4 +188,18 @@ test('sanitizeRows - bỏ dòng sai hình dạng', () => {
   });
   assert.deepEqual(out.map((r) => [r.title, r.amount]), [['ok', -25_000]]);
   assert.deepEqual(sanitizeRows('nonsense'), []);
+});
+
+test('appendRows - upload thêm ảnh: dòng đã có trong bảng không lặp lại', () => {
+  const first = mergeScreenshots([[raw('A', -25_000, '13:57', '04/10'), raw('B', -35_000, '21:14', '03/10')]], NOW).rows;
+  const more = mergeScreenshots([[raw('B', -35_000, '21:14', '03/10'), raw('C', -15_000, '08:10', '02/10')]], NOW).rows;
+  assert.deepEqual(appendRows(first, more).map((r) => r.title), ['C']);
+});
+
+test('appendRows - khoá có thêm bản thứ hai thì thêm, với id mới không trùng', () => {
+  const first = mergeScreenshots([[raw('X', -15_000, '08:10', '02/10')]], NOW).rows;
+  const more = mergeScreenshots([[raw('X', -15_000, '08:10', '02/10'), raw('X', -15_000, '08:10', '02/10')]], NOW).rows;
+  const added = appendRows(first, more);
+  assert.equal(added.length, 1);
+  assert.notEqual(added[0].id, first[0].id);
 });
