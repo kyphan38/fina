@@ -16,6 +16,7 @@ import { db } from '@/lib/firebase-client';
 import { cycleOf } from '@/lib/cycle';
 import { bucketsCol } from '@/lib/buckets';
 import { balanceDeltas, type TxShape } from '@/lib/tx-edit';
+import type { ImportDraft } from '@/lib/momo-import';
 import type { Bucket, Transaction, TxDirection, TxSource } from '@/types/fina';
 
 export const txCol = (uid: string) => collection(db, 'users', uid, 'transactions');
@@ -41,6 +42,7 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
       data.source === 'import' || data.source === 'allocation' || data.source === 'opening'
         ? (data.source as TxSource)
         : 'web',
+    importKeys: Array.isArray(data.importKeys) ? data.importKeys.map(String) : undefined,
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };
@@ -255,4 +257,66 @@ export async function deleteTransaction(
     });
   }
   await batch.commit();
+}
+
+/**
+ * Mọi giao dịch có `occurredAt` trong [fromMs, toMs]. Một query theo một
+ * field - Firestore tự có index, không cần khai báo thêm.
+ */
+export async function listTransactionsBetween(
+  uid: string,
+  fromMs: number,
+  toMs: number,
+): Promise<Transaction[]> {
+  const snap = await getDocs(
+    query(txCol(uid), where('occurredAt', '>=', fromMs), where('occurredAt', '<=', toMs)),
+  );
+  return snap.docs.map((d) => toTx(d.id, d.data()));
+}
+
+/**
+ * Ghi cả lô từ ảnh MoMo trong MỘT batch: hoặc vào hết, hoặc không vào gì.
+ * Ghi dở một nửa rồi mất mạng thì lần thử lại sẽ trùng nửa đầu.
+ *
+ * Số dư quỹ cộng dồn theo bucket rồi mới ghi - một document chỉ nên bị
+ * update một lần trong batch.
+ */
+export async function addImportedTransactions(
+  uid: string,
+  drafts: ImportDraft[],
+  buckets: Map<string, Bucket>,
+): Promise<number> {
+  const now = Date.now();
+  const batch = writeBatch(db);
+  const fundDeltas: Record<string, number> = {};
+
+  for (const d of drafts) {
+    const bucket = buckets.get(d.bucketId);
+    if (!bucket) throw new Error(`[import] Unknown bucket: ${d.bucketId}`);
+    batch.set(doc(txCol(uid)), {
+      occurredAt: d.occurredAt,
+      cycle: cycleOf(new Date(d.occurredAt)),
+      bucketId: bucket.id,
+      bank: bucket.bank,
+      amountVnd: d.amountVnd,
+      direction: d.direction,
+      note: d.note,
+      source: 'import',
+      importKeys: d.importKeys,
+      createdAt: now,
+      updatedAt: now,
+    });
+    if (bucket.kind === 'fund') {
+      const signed = d.direction === 'in' ? d.amountVnd : -d.amountVnd;
+      fundDeltas[bucket.id] = (fundDeltas[bucket.id] ?? 0) + signed;
+    }
+  }
+
+  for (const [bucketId, delta] of Object.entries(fundDeltas)) {
+    if (delta === 0) continue;
+    batch.update(doc(bucketsCol(uid), bucketId), { balanceVnd: increment(delta), updatedAt: now });
+  }
+
+  await batch.commit();
+  return drafts.length;
 }

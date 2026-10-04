@@ -85,6 +85,12 @@ export interface Transaction {
   direction: TxDirection;
   note: string | null;
   source: TxSource;
+  /**
+   * Chỉ có ở giao dịch nhập từ ảnh MoMo: khoá chống trùng của từng dòng đã
+   * gộp vào đây ('2026-10-04 13:57 out 25000'). Không chứa tên người nhận.
+   * Xem lib/momo-import.ts.
+   */
+  importKeys?: string[];
   createdAt: number;
   updatedAt: number;
 }

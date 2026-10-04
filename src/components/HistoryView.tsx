@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 import TxEditSheet from '@/components/TxEditSheet';
@@ -63,6 +64,13 @@ export default function HistoryView() {
         <span className="ml-auto text-xs text-muted">
           {h.rows.length} · {formatVnd(h.total)}
         </span>
+
+        <Link
+          href="/import"
+          className="rounded-lg border border-line px-2 py-1.5 text-[11px] font-semibold"
+        >
+          MoMo
+        </Link>
       </header>
 
       {h.rows.length === 0 ? (

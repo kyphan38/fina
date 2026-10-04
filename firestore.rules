@@ -45,7 +45,9 @@ service cloud.firestore {
         // amountVnd luon duong; chieu nam o `direction`, khong nam o dau.
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
-        && d.source in ['web', 'import', 'allocation', 'opening'];
+        && d.source in ['web', 'import', 'allocation', 'opening']
+        // Khoa chong trung cua lan nhap anh MoMo - chi la chuoi, khong co ten.
+        && (!('importKeys' in d.keys()) || (d.importKeys is list && d.importKeys.size() <= 200));
     }
 
     function validCover(d) {

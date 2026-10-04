@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { adminDb } from '@/lib/firebase-admin';
+import { overLimit } from '@/lib/rate-limit';
 import { getSessionUser } from '@/lib/server-auth';
 import { sanitizeInsight } from '@/lib/insight-sanitize';
 import type { Digest } from '@/lib/digest';
@@ -29,24 +29,6 @@ function fail(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-/**
- * Giới hạn tần suất lưu ở Firestore, không phải trong bộ nhớ.
- *
- * Serverless mỗi request có thể rơi vào một instance khác, nên bộ đếm trong
- * RAM gần như không chặn được gì. Một document là đủ, và lời gọi này vốn hiếm.
- */
-async function overLimit(uid: string): Promise<boolean> {
-  const ref = adminDb.doc(`users/${uid}/meta/rateLimit`);
-  const now = Date.now();
-  const data = (await ref.get()).data() ?? {};
-  const hits: number[] = Array.isArray(data.insight) ? data.insight : [];
-  const recent = hits.filter((t) => now - t < WINDOW_MS);
-
-  if (recent.length >= MAX_CALLS) return true;
-  await ref.set({ insight: [...recent, now] }, { merge: true });
-  return false;
-}
-
 export async function POST(req: NextRequest) {
   // Kiểm session TRƯỚC mọi việc khác. API này gọi Gemini nên đáng để chờ
   // thêm một vòng kiểm tra thu hồi phiên.
@@ -56,7 +38,9 @@ export async function POST(req: NextRequest) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return fail('GEMINI_API_KEY is not set.', 503);
 
-  if (await overLimit(user.uid)) return fail('Too many requests. Try again shortly.', 429);
+  if (await overLimit(user.uid, 'insight', MAX_CALLS, WINDOW_MS)) {
+    return fail('Too many requests. Try again shortly.', 429);
+  }
 
   let digest: Digest;
   try {
