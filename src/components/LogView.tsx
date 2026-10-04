@@ -184,6 +184,9 @@ export default function LogView() {
     },
     onClear: () => setBuf(''),
     onFlip: () => setDirection((d) => (d === 'out' ? 'in' : 'out')),
+    // CoverSheet có numpad riêng, và nó nhận phím. Để cả hai cùng nghe thì
+    // số gõ cho phần bù cũng chui vào ô số tiền của Log.
+    enabled: !coverReq,
   });
 
   const { month } = cycleLabel(cycle);
@@ -318,7 +321,7 @@ export default function LogView() {
           className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"
         />
 
-        <Numpad onKey={onKey} onSave={save} canSave={canSave} ops />
+        <Numpad onKey={onKey} onSave={save} canSave={canSave} ops keyboard={false} />
 
         <p className="hidden pb-3 text-center text-[11px] text-faint min-[900px]:block">
           Type to enter · + − combine · arrows pick a bucket · Enter saves · Esc clears · f flips

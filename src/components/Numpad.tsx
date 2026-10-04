@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useEffectEvent } from 'react';
+
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'] as const;
 
 /**
@@ -15,6 +17,7 @@ export default function Numpad({
   canSave,
   saveLabel = 'Save',
   ops = false,
+  keyboard = true,
 }: {
   onKey: (key: string) => void;
   onSave: () => void;
@@ -22,7 +25,44 @@ export default function Numpad({
   saveLabel?: string;
   /** Hiện phím + và − để gộp nhiều khoản nhỏ trong một lần gõ. */
   ops?: boolean;
+  /**
+   * Nhận phím từ bàn phím thật trên Mac. Tắt ở màn Log - ở đó
+   * useLogKeyboard đã lo, và còn dùng thêm phím mũi tên để chọn bucket.
+   */
+  keyboard?: boolean;
 }) {
+  // useEffectEvent: luôn đọc onKey/canSave mới nhất mà không phải gỡ rồi gắn
+  // lại listener sau mỗi phím gõ.
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    // Đang gõ trong ô Note, ô ngày, hay ô chọn thì phím thuộc về ô đó.
+    const el = document.activeElement;
+    if (
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLTextAreaElement ||
+      el instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (/^[0-9]$/.test(e.key)) onKey(e.key);
+    else if (e.key === '.' || e.key === ',') onKey('.');
+    else if (e.key === 'Backspace') onKey('del');
+    else if (ops && (e.key === '+' || e.key === '-')) onKey(e.key);
+    else if (e.key === 'Enter') {
+      if (canSave) onSave();
+    } else return;
+    // Chặn cả Enter: nút numpad vừa bấm chuột vẫn đang giữ focus, để mặc định
+    // thì Enter "bấm" lại nút đó và gõ thêm một chữ số.
+    e.preventDefault();
+  });
+
+  useEffect(() => {
+    if (!keyboard) return;
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [keyboard]);
+
   return (
     <div className="grid grid-cols-3 gap-1.5">
       {KEYS.map((k) => (

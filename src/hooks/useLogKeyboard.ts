@@ -23,11 +23,15 @@ export function useLogKeyboard(args: {
   onClear: () => void;
   onFlip: () => void;
   columns?: number;
+  /** Tắt khi một sheet có numpad riêng đang mở, để phím không vào hai nơi. */
+  enabled?: boolean;
 }) {
   const { tiles, selectedId, onSelect, onKey, onSave, onClear, onFlip } = args;
+  const enabled = args.enabled ?? true;
   const columns = args.columns ?? 3;
 
   useEffect(() => {
+    if (!enabled) return;
     const handler = (e: KeyboardEvent) => {
       // Đang gõ trong ô Note thì bàn phím thuộc về ô đó.
       const el = document.activeElement;
@@ -67,5 +71,5 @@ export function useLogKeyboard(args: {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [tiles, selectedId, onSelect, onKey, onSave, onClear, onFlip, columns]);
+  }, [tiles, selectedId, onSelect, onKey, onSave, onClear, onFlip, columns, enabled]);
 }
