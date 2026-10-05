@@ -78,7 +78,7 @@ export default function CycleClose({
                 <span className="text-muted">
                   {formatVnd(used)} / {formatVnd(limit)}
                 </span>
-                <span className={`w-16 text-right ${diff < 0 ? 'text-over' : ''}`}>
+                <span className={`w-16 text-right ${diff < 0 ? 'font-medium text-over' : ''}`}>
                   {diff >= 0 ? '+' : '−'}
                   {formatVnd(Math.abs(diff))}
                 </span>
@@ -130,7 +130,7 @@ export default function CycleClose({
         </p>
       )}
 
-      {error && <p className="mt-3 text-sm text-over">{error}</p>}
+      {error && <p className="mt-3 text-sm font-medium text-over">{error}</p>}
 
       <button
         type="button"

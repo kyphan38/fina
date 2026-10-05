@@ -52,7 +52,7 @@ export default function SalaryGate() {
         >
           {busy ? 'Checking…' : 'Unlock'}
         </button>
-        {wrong && <p className="mt-2 text-center text-xs text-over">Nope.</p>}
+        {wrong && <p className="mt-2 text-center text-xs font-medium text-over">Nope.</p>}
       </form>
     </div>
   );

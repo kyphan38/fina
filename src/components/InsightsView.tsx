@@ -87,7 +87,7 @@ function BufferRow({ row, limitVnd }: { row: CycleRow | null; limitVnd: number }
           style={{ width: `${over ? 100 : pct}%`, background: over ? 'var(--over)' : 'var(--b6)' }}
         />
       </span>
-      <span className={`w-24 shrink-0 text-right ${over ? 'text-over' : 'text-muted'}`}>
+      <span className={`w-24 shrink-0 text-right ${over ? 'font-medium text-over' : 'text-muted'}`}>
         {formatVnd(used)} / {formatVnd(limitVnd)}
       </span>
     </li>

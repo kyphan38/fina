@@ -161,7 +161,7 @@ export default function GeneratorSheet({
           </div>
         )}
 
-        {error && <p className="mt-2 text-xs text-over">{error}</p>}
+        {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
         <button
           type="button"
           onClick={onClose}

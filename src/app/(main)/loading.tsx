@@ -6,8 +6,8 @@
  * layout đọc cookie, nên trước khi có file này, bấm tab nào cũng đứng hình chờ
  * server trả về.
  *
- * Dùng token bg-sunk của fina, không dùng màu cứng: nó tự đổi theo dark mode
- * qua prefers-color-scheme trong globals.css.
+ * Dùng token bg-sunk của fina, không dùng màu cứng: nó tự đổi theo theme
+ * trong globals.css.
  */
 export default function Loading() {
   return (

@@ -246,7 +246,7 @@ export default function CoverSheet({
           </>
         )}
 
-        {error && <p className="mt-3 text-xs text-over">{error}</p>}
+        {error && <p className="mt-3 text-xs font-medium text-over">{error}</p>}
 
         {!discarding && !editing && picked === null && (
           <button

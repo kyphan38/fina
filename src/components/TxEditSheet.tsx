@@ -103,7 +103,7 @@ export default function TxEditSheet({
           className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
         />
 
-        {error && <p className="mb-2 text-xs text-over">{error}</p>}
+        {error && <p className="mb-2 text-xs font-medium text-over">{error}</p>}
 
         <Numpad
           onKey={(k) => setBuf((cur) => pressKey(cur, k))}

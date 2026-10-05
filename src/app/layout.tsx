@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import { BG_DARK, BG_LIGHT, THEME_SCRIPT } from "@/lib/prefs";
 
 export const metadata: Metadata = {
   title: "fina",
@@ -20,14 +21,18 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3f3f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#131313" },
+    { media: "(prefers-color-scheme: light)", color: BG_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: BG_DARK },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full">
+    // data-theme do THEME_SCRIPT đặt trước khi React hydrate.
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <ServiceWorkerRegistrar />
         <AuthProvider>{children}</AuthProvider>

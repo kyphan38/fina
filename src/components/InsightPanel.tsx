@@ -93,7 +93,7 @@ export default function InsightPanel({ uid, signals }: { uid: string; signals: S
         </ul>
       )}
 
-      {error && <p className="mt-2 text-xs text-over">{error}</p>}
+      {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
 
       {result && result.droppedCount > 0 && (
         <p className="mt-2.5 text-[11px] text-faint">

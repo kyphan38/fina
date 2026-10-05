@@ -269,10 +269,10 @@ function BudgetRow({
     <li>
       <div className="flex items-baseline justify-between text-sm">
         <span>{bucket.name}</span>
-        <span className={over ? 'text-over' : 'text-muted'}>
+        <span className={over ? 'font-medium text-over' : 'text-muted'}>
           {formatVnd(used)}
           {limit !== undefined && ` / ${formatVnd(limit)}`}
-          {over && ` · −${formatVnd(used - limit)}`}
+          {over && ` · ${formatVnd(used - limit)} over`}
         </span>
       </div>
       <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
@@ -294,8 +294,10 @@ function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{bucket.name}</span>
         <span className="flex items-baseline gap-3">
-          <span className={bucket.balanceVnd < 0 ? 'text-over' : 'text-muted'}>
-            {formatVnd(bucket.balanceVnd)}
+          <span className={bucket.balanceVnd < 0 ? 'font-medium text-over' : 'text-muted'}>
+            {bucket.balanceVnd < 0
+              ? `${formatVnd(-bucket.balanceVnd)} over`
+              : formatVnd(bucket.balanceVnd)}
           </span>
           <button
             type="button"

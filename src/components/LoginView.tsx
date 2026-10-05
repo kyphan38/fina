@@ -31,7 +31,7 @@ export default function LoginView() {
       </button>
 
       {error && (
-        <p role="alert" className="max-w-xs text-center text-sm text-over">
+        <p role="alert" className="max-w-xs text-center text-sm font-medium text-over">
           {error}
         </p>
       )}

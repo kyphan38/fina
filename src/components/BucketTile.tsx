@@ -46,18 +46,18 @@ export default function BucketTile({
       </span>
       <span
         className={`block text-[11.5px] ${
-          selected ? 'text-bg' : over ? 'text-over' : 'text-muted'
+          selected ? 'text-bg' : over ? 'font-medium text-over' : 'text-muted'
         }`}
       >
-        {formatVnd(value)}
+        {over ? `${formatVnd(-value)} over` : formatVnd(value)}
       </span>
       <span className={`absolute inset-x-0 bottom-0 h-0.5 ${selected ? 'bg-white/20' : 'bg-sunk'}`}>
         <span
           className="block h-full"
           style={{
             width: `${over ? 100 : pct}%`,
-            // Vượt hạn mức thì màu cảnh báo thắng màu nhận dạng: lúc đó cái
-            // cần biết là "đã lố", không phải "đây là bucket nào".
+            // Vượt hạn mức thì mực đậm thắng màu nhận dạng: lúc đó cái cần
+            // biết là "đã lố", không phải "đây là bucket nào".
             background: selected
               ? 'var(--bg)'
               : over

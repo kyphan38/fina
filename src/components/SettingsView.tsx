@@ -8,6 +8,7 @@ import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
 import { fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
+import { themeStore, type Theme } from '@/lib/prefs';
 import PushCard from '@/components/PushCard';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import type { Bucket } from '@/types/fina';
@@ -24,6 +25,7 @@ export default function SettingsView({ email }: { email: string | null }) {
     startupStore.get,
     startupStore.getServer,
   );
+  const theme = useSyncExternalStore(themeStore.subscribe, themeStore.get, themeStore.getServer);
 
   useEffect(() => {
     if (!uid) return;
@@ -91,6 +93,24 @@ export default function SettingsView({ email }: { email: string | null }) {
         >
           Sign out
         </button>
+      </Card>
+
+      <Card title="Theme">
+        {/* Lựa chọn hiện tại là chữ đậm, còn lại là chữ mờ bấm được. */}
+        <div className="flex gap-4 text-sm" role="radiogroup" aria-label="Theme">
+          {(['system', 'light', 'dark'] as const satisfies readonly Theme[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="radio"
+              aria-checked={theme === t}
+              onClick={() => themeStore.set(t)}
+              className={theme === t ? 'font-medium text-ink' : 'text-faint'}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </Card>
 
       <Card title="Standard amounts">
@@ -228,7 +248,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           </button>
         </div>
         {stale !== null && stale >= 35 && (
-          <p className="mt-3 text-xs text-over">Last export was {stale} days ago.</p>
+          <p className="mt-3 text-xs font-medium text-over">Last export was {stale} days ago.</p>
         )}
         <p className="mt-3 text-xs text-faint">
           Restoring is at{' '}

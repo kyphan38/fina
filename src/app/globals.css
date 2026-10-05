@@ -3,59 +3,92 @@
 /* ============================================================
    fina - design tokens
    Tối giản: font hệ thống, không web font (nguyên tắc #13).
-   Bảng màu theo mockup đã duyệt 2026-09-02.
+   Chỉ đen, trắng, xám - giá trị chung của ws/app/DESIGN.md (2026-10-05).
+   Ngoại lệ duy nhất: sáu màu nhận dạng bucket (--b1 .. --b6).
+   Nghĩa nằm ở độ đậm và một chữ đi kèm, không bao giờ ở màu.
    ============================================================ */
 
 :root {
-  --bg: #f3f3f2;
+  --bg: #fafafa;
   --surface: #ffffff;
-  --surface-2: #fafaf9;
-  --sunk: #e9e9e7;
-  --ink: #1a1a19;
-  --muted: #55554f;
-  --faint: #7c7c74;
-  --line: #d3d3cd;
-  --over: #9b2c22;
-  /* Generator: tang va giam phai nhin ra ngay la hai chuyen khac nhau. */
-  --up: #9b5a12;
-  --down: #1f6b4a;
+  --surface-2: #f4f4f4;
+  --sunk: #ececec;
+  --ink: #171717;
+  --muted: #555555;
+  --faint: #8a8a8a;
+  /* Viền của fina vốn đậm (input, card), nên dùng bậc "line strong". */
+  --line: #d4d4d4;
+  --select: rgb(23 23 23 / 0.14);
+  /* Vượt hạn mức: mực đậm + font-medium + chữ "over" bên cạnh. */
+  --over: #171717;
+  /* Generator: tăng là mực, giảm là mờ; dấu + / − nói chiều. */
+  --up: #171717;
+  --down: #555555;
 
-  /* Mau nhan dang bucket. Sau hue, thu tu co dinh, da chay qua validator
-     mu mau o ca hai theme: CVD dE 9.1 sang / 8.4 toi (san 8), normal-vision
-     19.6 / 19.3 (san 15).
+  /* Màu nhận dạng bucket: ngoại lệ DUY NHẤT của luật "chỉ xám" (chủ app
+     chọn giữ, 2026-10-05). Sáu hue, thứ tự cố định, đã chạy qua validator
+     mù màu ở cả hai theme: CVD dE 9.1 sáng / 8.4 tối (sàn 8), normal-vision
+     19.6 / 19.3 (sàn 15).
 
-     Ba hue o che do sang duoi 3:1 tuong phan voi nen - dieu do CHI hop le
-     vi moi cho dung mau deu co ten bucket viet bang muc day tuong phan ngay
-     ben canh. Mau la trang tri, khong bao gio la nhan. */
+     Ba hue ở chế độ sáng dưới 3:1 tương phản với nền - điều đó CHỈ hợp lệ
+     vì mọi chỗ dùng màu đều có tên bucket viết bằng mực đủ tương phản ngay
+     bên cạnh. Màu là trang trí, không bao giờ là nhãn. */
   --b1: #2a78d6;
   --b2: #eb6834;
   --b3: #1baf7a;
   --b4: #eda100;
   --b5: #e87ba4;
   --b6: #008300;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131313;
-    --surface: #1c1c1b;
-    --surface-2: #222221;
-    --sunk: #0d0d0c;
-    --ink: #ededea;
-    --muted: #b2b2ab;
-    --faint: #8b8b83;
-    --line: #3b3b38;
-    --over: #d97a6e;
-    --up: #e0a45f;
-    --down: #63c197;
-    /* Cung sau hue, step lai cho nen toi - khong phai dao mau tu dong. */
+  :root:not([data-theme="light"]) {
+    --bg: #111111;
+    --surface: #1a1a1a;
+    --surface-2: #222222;
+    --sunk: #0a0a0a;
+    --ink: #e8e8e8;
+    --muted: #a3a3a3;
+    --faint: #7a7a7a;
+    --line: #3a3a3a;
+    --select: rgb(232 232 232 / 0.18);
+    --over: #e8e8e8;
+    --up: #e8e8e8;
+    --down: #a3a3a3;
+    /* Cùng sáu hue, step lại cho nền tối - không phải đảo màu tự động. */
     --b1: #3987e5;
     --b2: #d95926;
     --b3: #199e70;
     --b4: #c98500;
     --b5: #d55181;
     --b6: #008300;
+    color-scheme: dark;
   }
+}
+
+/* Chọn tay trong Settings: thắng cài đặt của máy. */
+:root[data-theme="dark"] {
+  --bg: #111111;
+  --surface: #1a1a1a;
+  --surface-2: #222222;
+  --sunk: #0a0a0a;
+  --ink: #e8e8e8;
+  --muted: #a3a3a3;
+  --faint: #7a7a7a;
+  --line: #3a3a3a;
+  --select: rgb(232 232 232 / 0.18);
+  --over: #e8e8e8;
+  --up: #e8e8e8;
+  --down: #a3a3a3;
+  /* Cùng sáu hue, step lại cho nền tối - không phải đảo màu tự động. */
+  --b1: #3987e5;
+  --b2: #d95926;
+  --b3: #199e70;
+  --b4: #c98500;
+  --b5: #d55181;
+  --b6: #008300;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -79,7 +112,7 @@
 }
 
 html {
-  color-scheme: light dark;
+  background: var(--bg);
   /* iOS: chặn nhảy layout khi bàn phím chữ bật lên */
   -webkit-text-size-adjust: 100%;
 }
@@ -99,8 +132,13 @@ button {
   touch-action: manipulation;
 }
 
+::selection {
+  background: var(--select);
+  color: inherit;
+}
+
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 1.5px solid var(--faint);
   outline-offset: 2px;
 }
 

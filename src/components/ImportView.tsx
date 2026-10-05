@@ -294,7 +294,7 @@ export default function ImportView() {
           >
             {reading ? 'Reading screenshots…' : 'Choose screenshots'}
           </button>
-          {error && <p className="mt-2 text-xs text-over">{error}</p>}
+          {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
           <p className="mt-4 text-[11px] text-faint">
             Screenshots are sent to Gemini to read the text, then thrown away. Names stay in the
             table until you save or discard it, and never go into your entries.
@@ -435,7 +435,7 @@ export default function ImportView() {
             ))}
           </ul>
         )}
-        {error && <p className="pb-2 text-xs text-over">{error}</p>}
+        {error && <p className="pb-2 text-xs font-medium text-over">{error}</p>}
         <div className="flex gap-2">
           <button
             type="button"
