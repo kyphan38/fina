@@ -503,7 +503,7 @@ function RowItem({
       style={{ borderLeftColor: bucketAccent(row.bucketId) }}
     >
       <div className="flex items-baseline gap-2">
-        <span className="min-w-0 flex-1 truncate text-[13px]">{row.title || '—'}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px]">{row.title || '·'}</span>
         <span className={`shrink-0 text-[13px] font-medium ${isIn ? 'text-muted' : ''}`}>
           {isIn ? '+' : ''}
           {formatVnd(row.amountVnd)}
