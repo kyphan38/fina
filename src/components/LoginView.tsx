@@ -6,11 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginView() {
   const router = useRouter();
-  const { user, loading, signingIn, error, signIn } = useAuth();
+  const { user, loading, signingIn, sessionReady, error, signIn } = useAuth();
 
+  // Chờ cookie server xong mới rời /login. Đi sớm hơn thì layout (main) chưa
+  // thấy session và đá ngược về đây.
   useEffect(() => {
-    if (!loading && user) router.replace('/log');
-  }, [loading, user, router]);
+    if (!loading && user && sessionReady) router.replace('/log');
+  }, [loading, user, sessionReady, router]);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6">

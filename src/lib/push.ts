@@ -4,6 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 
 import { app, db } from '@/lib/firebase-client';
+import { isStandalone } from '@/lib/standalone';
 import { registerServiceWorker } from '@/lib/sw';
 
 export type PushState =
@@ -18,14 +19,6 @@ export type PushState =
   | 'off'
   | 'on';
 
-/** iOS: đã Add to Home Screen chưa. */
-export function isStandalone(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true
-  );
-}
 
 /**
  * Ba khả năng "không bật được" là ba việc phải làm khác hẳn nhau. Gộp thành
