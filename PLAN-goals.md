@@ -159,10 +159,10 @@ sáng, tối và màn hình điện thoại.
 
 ## Phase G1 - Nền: field `goal` và chuyển tiền giữa quỹ
 
-**Code xong (2026-10-06)**, branch `goals/g1-move`. Unit test 158/158, build
-đạt. Đã thử trên trình duyệt: nút Move, chọn quỹ, chặn chuyển quá số dư,
-History không đổi. Còn thiếu: thử Save thật (cần deploy rules có `move`
-trước), rồi xoá lần chuyển thử trong History.
+**Xong (2026-10-06)**, branch `goals/g1-move`, đã merge và deploy cả rules.
+Unit test 158/158, build đạt. Đã thử trên dữ liệu thật: chuyển 11.000 từ
+Purchases sang Travel, History hiện một dòng, tổng chi không đổi, xoá cả hai
+nửa thì số dư về đúng. `recompute-balances` (dry-run): mọi số dư đều khớp.
 
 `createGoal` dời sang G2, là nơi đầu tiên dùng nó.
 
