@@ -21,6 +21,8 @@ export function isSpending(tx: Transaction): boolean {
   if (isOpening(tx)) return false;
   // Chia lương sang BIDV là chuyển tiền giữa hai hũ của chính mình.
   if (tx.source === 'allocation') return false;
+  // Chuyển giữa hai quỹ (Purchases sang Phone) chỉ là đổi ngăn.
+  if (tx.source === 'move') return false;
   // Đầu tư không phải tiêu.
   if (tx.bucketId === ETF_BUCKET) return false;
   return true;

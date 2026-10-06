@@ -38,10 +38,14 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
     // tiêu (thực ra là bị TRỪ, vì chúng có direction 'in'), và bảng Cash flow
     // hiện Out −6.685 trong khi thật ra là +3.815.
     source:
-      data.source === 'import' || data.source === 'allocation' || data.source === 'opening'
+      data.source === 'import' ||
+      data.source === 'allocation' ||
+      data.source === 'opening' ||
+      data.source === 'move'
         ? (data.source as TxSource)
         : 'web',
     importKeys: Array.isArray(data.importKeys) ? data.importKeys.map(String) : undefined,
+    moveId: typeof data.moveId === 'string' ? data.moveId : undefined,
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };
@@ -126,6 +130,69 @@ export async function addFundTopUp(
 }
 
 /**
+ * Chuyển tiền giữa hai quỹ của chính mình. Xem lib/moves.ts.
+ *
+ * Hai giao dịch và hai lần đổi số dư trong CÙNG một batch: chuyển nửa chừng
+ * là tiền biến mất khỏi quỹ nguồn mà không tới quỹ đích.
+ */
+export async function moveBetweenFunds(
+  uid: string,
+  from: Bucket,
+  to: Bucket,
+  amountVnd: number,
+  note: string | null,
+  occurredAt: number = Date.now(),
+): Promise<string> {
+  const moveId = doc(txCol(uid)).id;
+  const now = Date.now();
+  const batch = writeBatch(db);
+  const legs = [
+    { bucket: from, direction: 'out' as const, suffix: 'out' },
+    { bucket: to, direction: 'in' as const, suffix: 'in' },
+  ];
+
+  for (const leg of legs) {
+    batch.set(doc(txCol(uid), `${moveId}-${leg.suffix}`), {
+      occurredAt,
+      cycle: cycleOf(new Date(occurredAt)),
+      bucketId: leg.bucket.id,
+      bank: leg.bucket.bank,
+      amountVnd,
+      direction: leg.direction,
+      note: note && note.length > 0 ? note : null,
+      source: 'move',
+      moveId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    batch.update(doc(bucketsCol(uid), leg.bucket.id), {
+      balanceVnd: increment(leg.direction === 'in' ? amountVnd : -amountVnd),
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+  return moveId;
+}
+
+/**
+ * Xoá một lần chuyển: xoá cả hai nửa và trả số dư hai quỹ về như cũ, trong
+ * một batch. Không bao giờ xoá một nửa - tiền sẽ mất ở một đầu.
+ */
+export async function deleteMove(uid: string, legs: Transaction[]): Promise<void> {
+  const now = Date.now();
+  const batch = writeBatch(db);
+  for (const t of legs) {
+    batch.delete(doc(txCol(uid), t.id));
+    batch.update(doc(bucketsCol(uid), t.bucketId), {
+      balanceVnd: increment(t.direction === 'in' ? -t.amountVnd : t.amountVnd),
+      updatedAt: now,
+    });
+  }
+  await batch.commit();
+}
+
+/**
  * Nạp tiền vào ETF. Chỉ là một giao dịch `in` như mọi khoản được hoàn khác -
  * không còn ngoại lệ riêng cho ETF ở đâu nữa.
  */
@@ -151,6 +218,8 @@ export async function addEtfDeposit(
 export function spentByBucket(txs: Transaction[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const tx of txs) {
+    // Chuyển Purchases sang Phone không phải Purchases tiêu 1.500.
+    if (tx.source === 'move') continue;
     const signed = tx.direction === 'in' ? -tx.amountVnd : tx.amountVnd;
     out[tx.bucketId] = (out[tx.bucketId] ?? 0) + signed;
   }

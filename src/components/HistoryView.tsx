@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import TxEditSheet from '@/components/TxEditSheet';
+import { MoveDetailSheet } from '@/components/MoveSheet';
 import { useHistory } from '@/hooks/useHistory';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd } from '@/lib/money';
@@ -84,7 +85,14 @@ export default function HistoryView() {
             <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
               {txs.map((t) => {
                 const b = h.byId.get(t.bucketId);
-                const isIn = t.direction === 'in';
+                const pair = t.source === 'move' && t.moveId ? h.moves.get(t.moveId) : undefined;
+                // Một lần chuyển không phải tiền vào hay ra, nên không có dấu +.
+                const isIn = t.direction === 'in' && !pair;
+                const nameOf = (x?: Transaction | null) =>
+                  x ? (h.byId.get(x.bucketId)?.name ?? x.bucketId) : '?';
+                const note = pair
+                  ? `${nameOf(pair.from)} → ${nameOf(pair.to)}${t.note ? ` · ${t.note}` : ''}`
+                  : (t.note ?? '');
                 return (
                   <li key={t.id}>
                     <button
@@ -104,7 +112,7 @@ export default function HistoryView() {
                         })}
                       </span>
                       <span className="w-20 shrink-0 truncate text-[13px] min-[900px]:w-32">
-                        {b?.name ?? t.bucketId}
+                        {pair ? 'Move' : (b?.name ?? t.bucketId)}
                       </span>
                       <span
                         className={`shrink-0 text-[13px] font-medium ${isIn ? 'text-muted' : ''}`}
@@ -113,7 +121,7 @@ export default function HistoryView() {
                         {formatVnd(t.amountVnd)}
                       </span>
                       <span className="ml-auto truncate text-right text-[12px] text-muted">
-                        {t.note ?? ''}
+                        {note}
                       </span>
                     </button>
                   </li>
@@ -124,7 +132,18 @@ export default function HistoryView() {
         ))
       )}
 
-      {editing && h.uid && (
+      {editing && h.uid && editing.source === 'move' && editing.moveId && (
+        <MoveDetailSheet
+          uid={h.uid}
+          legs={[h.moves.get(editing.moveId)?.from, h.moves.get(editing.moveId)?.to].filter(
+            (x): x is Transaction => Boolean(x),
+          )}
+          byId={h.byId}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {editing && h.uid && editing.source !== 'move' && (
         <TxEditSheet
           uid={h.uid}
           tx={editing}

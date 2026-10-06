@@ -5,7 +5,7 @@ import { SEED_BUCKETS, type Bucket } from '@/types/fina';
 
 const K = 1000;
 const buckets: Bucket[] = SEED_BUCKETS.map((s) => ({
-  ...s, balanceVnd: 0, active: true, createdAt: 0, updatedAt: 0,
+  ...s, balanceVnd: 0, active: true, goal: null, createdAt: 0, updatedAt: 0,
 }));
 
 const cycle = (id: string, over: Partial<CycleFacts> = {}): CycleFacts => ({

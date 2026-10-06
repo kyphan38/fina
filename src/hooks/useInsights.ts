@@ -64,7 +64,7 @@ export function useInsights() {
   const liveByBucket = useMemo(() => {
     const byBucket: Record<string, number> = {};
     for (const t of liveTxs) {
-      if (t.source === 'allocation' || t.bucketId === 'etf') continue;
+      if (t.source === 'allocation' || t.source === 'move' || t.bucketId === 'etf') continue;
       const signed = t.direction === 'in' ? -t.amountVnd : t.amountVnd;
       byBucket[t.bucketId] = (byBucket[t.bucketId] ?? 0) + signed;
     }
@@ -110,7 +110,13 @@ export function useInsights() {
       cycles: facts,
       buckets,
       amounts: liveTxs
-        .filter((t) => t.source !== 'allocation' && t.bucketId !== 'etf' && t.direction === 'out')
+        .filter(
+          (t) =>
+            t.source !== 'allocation' &&
+            t.source !== 'move' &&
+            t.bucketId !== 'etf' &&
+            t.direction === 'out',
+        )
         .map((t) => ({ bucketId: t.bucketId, amountVnd: t.amountVnd })),
       day,
       totalDays: total,

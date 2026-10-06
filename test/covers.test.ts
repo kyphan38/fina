@@ -6,6 +6,7 @@ import { SEED_BUCKETS, type Bucket, type Cover } from '@/types/fina';
 
 const buckets: Bucket[] = SEED_BUCKETS.map((s) => ({
   ...s,
+  goal: null,
   balanceVnd: s.kind === 'fund' ? 5_000_000 : 0,
   active: true,
   createdAt: 0,

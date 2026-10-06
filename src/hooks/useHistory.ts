@@ -10,6 +10,7 @@ import { cycleOf } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { watchCycleTransactions } from '@/lib/transactions';
 import { netSpending } from '@/lib/spending';
+import { collapseMoves, pairMoves } from '@/lib/moves';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export function useHistory() {
@@ -29,8 +30,8 @@ export function useHistory() {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [bucketFilter, setBucketFilter] = useState<string | null>(null);
-  // Khoản chia lương vào quỹ ngày 25 không phải thứ bạn muốn lướt qua mỗi
-  // ngày. Ẩn mặc định, bật lên khi cần đối chiếu.
+  // Khoản chia lương vào quỹ ngày 25 và các lần chuyển giữa hai quỹ không
+  // phải thứ bạn muốn lướt qua mỗi ngày. Ẩn mặc định, bật lên khi cần đối chiếu.
   const [showAllocations, setShowAllocations] = useState(false);
 
   const selected = cycle ?? currentCycle;
@@ -61,16 +62,30 @@ export function useHistory() {
 
   const byId = useMemo(() => new Map(buckets.map((b) => [b.id, b])), [buckets]);
 
+  const moves = useMemo(() => pairMoves(txs), [txs]);
+
+  // Một lần chuyển là hai giao dịch nhưng chỉ hiện (và đếm) một dòng.
+  const collapsed = useMemo(() => collapseMoves(txs), [txs]);
+
   const allocationCount = useMemo(
-    () => txs.filter((t) => t.source === 'allocation').length,
-    [txs],
+    () => collapsed.filter((t) => t.source === 'allocation' || t.source === 'move').length,
+    [collapsed],
   );
 
   const rows = useMemo(() => {
-    let filtered = showAllocations ? txs : txs.filter((t) => t.source !== 'allocation');
-    if (bucketFilter) filtered = filtered.filter((t) => t.bucketId === bucketFilter);
+    let filtered = showAllocations
+      ? collapsed
+      : collapsed.filter((t) => t.source !== 'allocation' && t.source !== 'move');
+    if (bucketFilter) {
+      filtered = filtered.filter((t) => {
+        if (t.bucketId === bucketFilter) return true;
+        // Lọc theo quỹ nguồn cũng phải thấy lần chuyển, dù dòng hiện là nửa đích.
+        const pair = t.moveId ? moves.get(t.moveId) : undefined;
+        return pair?.from?.bucketId === bucketFilter;
+      });
+    }
     return [...filtered].sort((a, b) => b.occurredAt - a.occurredAt);
-  }, [txs, bucketFilter, showAllocations]);
+  }, [collapsed, moves, bucketFilter, showAllocations]);
 
   /**
    * Tổng ròng của những khoản THẬT SỰ là chi tiêu.
@@ -92,6 +107,7 @@ export function useHistory() {
     showAllocations,
     setShowAllocations,
     allocationCount,
+    moves,
     rows,
     total,
   };

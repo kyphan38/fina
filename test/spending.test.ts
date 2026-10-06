@@ -77,3 +77,8 @@ test('số dư có sẵn từ trước không tính là chi tiêu', () => {
   ];
   assert.equal(netSpending(rows), 0);
 });
+
+test('isSpending - chuyển giữa hai quỹ không phải chi tiêu', () => {
+  assert.equal(isSpending(tx({ bucketId: 'purchases', source: 'move', direction: 'out' })), false);
+  assert.equal(isSpending(tx({ bucketId: 'travel', source: 'move', direction: 'in' })), false);
+});

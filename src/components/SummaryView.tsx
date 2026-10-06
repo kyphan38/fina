@@ -5,6 +5,7 @@ import { useState } from 'react';
 import CycleClose from '@/components/CycleClose';
 import GeneratorSheet from '@/components/GeneratorSheet';
 import AmountSheet from '@/components/AmountSheet';
+import MoveSheet from '@/components/MoveSheet';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
@@ -15,7 +16,7 @@ import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
   const s = useSummary();
-  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf'>('none');
+  const [sheet, setSheet] = useState<'none' | 'generator' | 'etf' | 'move'>('none');
   const [topUp, setTopUp] = useState<Bucket | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -143,7 +144,18 @@ export default function SummaryView() {
         />
       </Block>
 
-      <Block title="BIDV - Funds">
+      <Block
+        title="BIDV - Funds"
+        action={
+          <button
+            type="button"
+            onClick={() => setSheet('move')}
+            className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
+          >
+            Move
+          </button>
+        }
+      >
         <ul className="flex flex-col gap-2">
           {s.funds.map((b) => (
             <FundRow key={b.id} bucket={b} onTopUp={() => setTopUp(b)} />
@@ -230,6 +242,10 @@ export default function SummaryView() {
             setTopUp(null);
           }}
         />
+      )}
+
+      {sheet === 'move' && s.uid && (
+        <MoveSheet uid={s.uid} buckets={s.buckets} onClose={() => setSheet('none')} />
       )}
 
       {sheet === 'etf' && (

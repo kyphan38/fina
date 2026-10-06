@@ -19,6 +19,17 @@ service cloud.firestore {
       return v is int && v >= 0;
     }
 
+    // Goal: quy de danh cho mot mon lon (PLAN-goals.md). Gia va thang mua
+    // co the chua biet (null).
+    function validGoal(g) {
+      return g is map
+        && g.keys().hasOnly(['targetVnd', 'targetMonth', 'status'])
+        && (!('targetVnd' in g.keys()) || g.targetVnd == null || (isVnd(g.targetVnd) && g.targetVnd > 0))
+        && (!('targetMonth' in g.keys()) || g.targetMonth == null
+            || (g.targetMonth is string && g.targetMonth.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')))
+        && g.status in ['saving', 'later', 'done'];
+    }
+
     function validBucket(d) {
       return d.keys().hasAll(['name', 'kind', 'bank', 'standardVnd', 'order', 'active'])
         && d.name is string
@@ -32,7 +43,9 @@ service cloud.firestore {
         && d.order is int
         && d.active is bool
         // balanceVnd chỉ có ở fund, và có thể âm khi tiêu lố
-        && (!('balanceVnd' in d.keys()) || d.balanceVnd is int);
+        && (!('balanceVnd' in d.keys()) || d.balanceVnd is int)
+        // Goal chi co o quy (fund).
+        && (!('goal' in d.keys()) || d.goal == null || (d.kind == 'fund' && validGoal(d.goal)));
     }
 
     function validTransaction(d) {
@@ -46,7 +59,10 @@ service cloud.firestore {
         // amountVnd luon duong; chieu nam o `direction`, khong nam o dau.
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
-        && d.source in ['web', 'import', 'allocation', 'opening']
+        && d.source in ['web', 'import', 'allocation', 'opening', 'move']
+        // Chuyen giua hai quy: hai giao dich cung moveId, nen move phai co no.
+        && (d.source != 'move' || ('moveId' in d.keys() && d.moveId is string))
+        && (!('moveId' in d.keys()) || d.moveId is string)
         // Khoa chong trung cua lan nhap anh MoMo - chi la chuoi, khong co ten.
         && (!('importKeys' in d.keys()) || (d.importKeys is list && d.importKeys.size() <= 200));
     }

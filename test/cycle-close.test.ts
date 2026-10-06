@@ -6,6 +6,7 @@ import { SEED_BUCKETS, type Bucket } from '@/types/fina';
 
 const buckets: Bucket[] = SEED_BUCKETS.map((s) => ({
   ...s,
+  goal: null,
   balanceVnd: 0,
   active: true,
   createdAt: 0,

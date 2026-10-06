@@ -159,13 +159,17 @@ sáng, tối và màn hình điện thoại.
 
 ## Phase G1 - Nền: field `goal` và chuyển tiền giữa quỹ
 
-Branch `goals/g1-move`.
+**Code xong (2026-10-06)**, branch `goals/g1-move`. Unit test 158/158, build
+đạt. Đã thử trên trình duyệt: nút Move, chọn quỹ, chặn chuyển quá số dư,
+History không đổi. Còn thiếu: thử Save thật (cần deploy rules có `move`
+trước), rồi xoá lần chuyển thử trong History.
+
+`createGoal` dời sang G2, là nơi đầu tiên dùng nó.
 
 1. `src/types/fina.ts`: thêm `Goal`, `GoalStatus`, `Bucket.goal`, `TxSource`
    thêm `'move'`, `Transaction.moveId?`.
 2. `src/lib/buckets.ts`: `toBucket` đọc `goal`. `updateBucket` cho sửa thêm
-   `goal` (`hint` đã có từ G0). Thêm `createGoal(uid, { name, targetVnd, targetMonth,
-   standardVnd })`.
+   `goal` (`hint` đã có từ G0).
 3. `firestore.rules`:
    - `validBucket`: `goal` là null hoặc map đúng kiểu (`targetVnd` là int hoặc
      null, `targetMonth` đúng dạng `YYYY-MM` hoặc null, `status` trong 3 giá trị).
@@ -189,15 +193,18 @@ test, xem số dư, History, Insights.
 
 Branch `goals/g2-create`.
 
-1. Settings: mục **Goals** mới.
+1. `src/lib/buckets.ts`: `createGoal(uid, { name, targetVnd, targetMonth,
+   standardVnd })` tạo bucket `goal-<slug>`, `kind: 'fund'`, `bank: 'BIDV'`,
+   số dư 0.
+2. Settings: mục **Goals** mới.
    - Danh sách goal: tên, giá mục tiêu, tháng mua, tiền mỗi tháng, trạng thái.
    - Nút **New goal**. Sửa tại chỗ như mức chuẩn hiện nay.
    - Mũi tên lên / xuống để đổi thứ tự ưu tiên.
    - Ô **Goals per month** (mặc định 3.500k) và dòng tổng: "Saving goals use
      3.429 of 3.500".
-2. `Purchases`: đổi hint thành "Clothes, shoes, dog food, small home items" và
+3. `Purchases`: đổi hint thành "Clothes, shoes, dog food, small home items" và
    mức chuẩn 3.000k thành 500k. Owner tự làm trong Settings bằng UI của G0.
-3. Sau khi deploy G1 + G2, **làm việc chia tiền trong app** (để lại dấu vết
+4. Sau khi deploy G1 + G2, **làm việc chia tiền trong app** (để lại dấu vết
    trong History):
    1. Tạo goal **Phone**: giá 15.000k, tháng 2027-04, tiền mỗi tháng 1.929k.
    2. Tạo goal **Vehicle**: giá và tháng để trống, tiền mỗi tháng 1.500k.

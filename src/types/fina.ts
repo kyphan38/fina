@@ -13,6 +13,22 @@ export const REMINDER_HOUR = 22;
 export const REMINDER_QUIET_DAYS = 2;
 
 export type BucketKind = 'budget' | 'fund';
+
+/**
+ * Trạng thái của một goal (quỹ để dành cho một món lớn, xem PLAN-goals.md).
+ *  - saving: đang để dành, được chia tiền ngày 25
+ *  - later:  chỉ ghi lại ý định, chưa chia tiền
+ *  - done:   đã mua xong
+ */
+export type GoalStatus = 'saving' | 'later' | 'done';
+
+export interface Goal {
+  /** Giá mục tiêu. null = chưa biết giá. */
+  targetVnd: number | null;
+  /** Tháng muốn mua, '2027-04'. null = chưa định ngày. */
+  targetMonth: string | null;
+  status: GoalStatus;
+}
 export type Bank = 'VCB' | 'BIDV' | 'VPS';
 
 /** Firestore: users/{uid}/buckets/{bucketId} */
@@ -46,6 +62,12 @@ export interface Bucket {
    * theo cục - so với nhịp đều sẽ báo động giả liên tục cho tới khi bị bỏ qua.
    */
   evenlySpent: boolean;
+  /**
+   * Chỉ có ở quỹ goal. Quỹ thường là null. Goal vẫn là một fund BIDV bình
+   * thường - số dư, chia lương, History đều dùng chung - field này chỉ thêm
+   * giá mục tiêu và tháng muốn mua.
+   */
+  goal: Goal | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -59,7 +81,11 @@ export interface Bucket {
  * In/Out/Invested, nếu không chu kỳ chứa nó sẽ hiện `Invested 177.714` với
  * `In 0` và `Left` âm.
  */
-export type TxSource = 'web' | 'import' | 'allocation' | 'opening';
+/*
+ * `move` là chuyển tiền giữa hai quỹ của chính mình (Purchases sang Phone).
+ * Cũng như `allocation`, nó không phải chi tiêu.
+ */
+export type TxSource = 'web' | 'import' | 'allocation' | 'opening' | 'move';
 
 /**
  * Chiều của tiền.
@@ -91,6 +117,12 @@ export interface Transaction {
    * Xem lib/momo-import.ts.
    */
   importKeys?: string[];
+  /**
+   * Chỉ có ở `source: 'move'`: chuyển tiền giữa hai quỹ của chính mình. Một
+   * lần chuyển là HAI giao dịch (`out` ở quỹ nguồn, `in` ở quỹ đích) cùng
+   * `moveId`. Xem lib/moves.ts.
+   */
+  moveId?: string;
   createdAt: number;
   updatedAt: number;
 }

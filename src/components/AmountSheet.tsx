@@ -20,6 +20,8 @@ export default function AmountSheet({
   title,
   confirmLabel,
   withDate = false,
+  errorFor,
+  children,
   onConfirm,
   onCancel,
 }: {
@@ -27,6 +29,10 @@ export default function AmountSheet({
   confirmLabel: string;
   /** Nạp bù cho hôm trước là chuyện thường, nên ETF cần chọn ngày. */
   withDate?: boolean;
+  /** Lý do chưa cho lưu với số đang gõ (hiện ngay trên bàn phím), hoặc null. */
+  errorFor?: (amountVnd: number | null) => string | null;
+  /** Ô chọn thêm, nằm trên ô ghi chú - ví dụ hai quỹ của một lần chuyển. */
+  children?: React.ReactNode;
   onConfirm: (
     amountVnd: number,
     note: string | null,
@@ -40,6 +46,7 @@ export default function AmountSheet({
   const [busy, setBusy] = useState(false);
 
   const amountVnd = toVnd(buf);
+  const error = errorFor?.(amountVnd) ?? null;
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
@@ -61,15 +68,18 @@ export default function AmountSheet({
           />
         )}
 
+        {children}
+
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
           className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
         />
+        {error && <p className="mb-1.5 text-xs font-medium text-over">{error}</p>}
         <Numpad
           onKey={(k) => setBuf((cur) => pressKey(cur, k))}
-          canSave={amountVnd !== null && !busy}
+          canSave={amountVnd !== null && !busy && !error}
           saveLabel={confirmLabel}
           onSave={async () => {
             if (amountVnd === null) return;

@@ -5,7 +5,7 @@ import type { Bucket, Cover, Transaction } from '@/types/fina';
 
 const bucket = (over: Partial<Bucket>): Bucket => ({
   id: 'food', name: 'Food', kind: 'budget', bank: 'VCB', standardVnd: 0, hint: null,
-  balanceVnd: 0, order: 10, active: true, evenlySpent: false, createdAt: 0, updatedAt: 0,
+  balanceVnd: 0, order: 10, active: true, evenlySpent: false, goal: null, createdAt: 0, updatedAt: 0,
   ...over,
 });
 

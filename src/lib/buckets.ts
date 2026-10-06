@@ -11,9 +11,19 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase-client';
-import { SEED_BUCKETS, type Bucket } from '@/types/fina';
+import { SEED_BUCKETS, type Bucket, type Goal } from '@/types/fina';
 
 export const bucketsCol = (uid: string) => collection(db, 'users', uid, 'buckets');
+
+function toGoal(raw: unknown): Goal | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const g = raw as Record<string, unknown>;
+  return {
+    targetVnd: typeof g.targetVnd === 'number' ? g.targetVnd : null,
+    targetMonth: typeof g.targetMonth === 'string' ? g.targetMonth : null,
+    status: g.status === 'later' || g.status === 'done' ? g.status : 'saving',
+  };
+}
 
 function toBucket(id: string, data: Record<string, unknown>): Bucket {
   return {
@@ -27,6 +37,7 @@ function toBucket(id: string, data: Record<string, unknown>): Bucket {
     order: Number(data.order ?? 0),
     active: data.active !== false,
     evenlySpent: data.evenlySpent === true,
+    goal: toGoal(data.goal),
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };
@@ -72,7 +83,7 @@ export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
 export async function updateBucket(
   uid: string,
   bucketId: string,
-  patch: Partial<Pick<Bucket, 'name' | 'standardVnd' | 'hint' | 'order' | 'active'>>,
+  patch: Partial<Pick<Bucket, 'name' | 'standardVnd' | 'hint' | 'order' | 'active' | 'goal'>>,
 ): Promise<void> {
   await updateDoc(doc(bucketsCol(uid), bucketId), { ...patch, updatedAt: Date.now() });
 }
