@@ -247,11 +247,8 @@ node --import ./scripts/register.mjs --env-file=.env.local scripts/<name>.mjs --
 | Script | What it does |
 |---|---|
 | `apply-standards.mjs` | Push `SEED_BUCKETS` onto existing buckets |
-| `import-numbers.mjs` | Import a `Budget.numbers` CSV export. Stops on any row no rule covers |
 | `recompute-balances.mjs` | Rebuild fund balances from records and report drift |
-| `backfill-cycle-totals.mjs` | Snapshot totals onto cycles closed before snapshots existed |
 | `make-icons.mjs` | Generate PWA icons from `public/branding/fina-icon.svg` |
-| `seed-testdata.mjs` | **Wipes and rewrites test data.** Needs `--i-know-this-wipes-everything` |
 
 All of them are dry-run by default; `--commit` writes.
 

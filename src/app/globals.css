@@ -2,10 +2,10 @@
 
 /* ============================================================
    fina - design tokens
-   Tối giản: font hệ thống, không web font (nguyên tắc #13).
-   Chỉ đen, trắng, xám - giá trị chung của ws/app/DESIGN.md (2026-10-05).
-   Ngoại lệ duy nhất: sáu màu nhận dạng bucket (--b1 .. --b6).
-   Nghĩa nằm ở độ đậm và một chữ đi kèm, không bao giờ ở màu.
+   Minimal: system font, no web font (rule #13).
+   Black, white and gray only - shared values from ws/app/DESIGN.md (2026-10-05).
+   Only exception: six bucket identity colors (--b1 .. --b6).
+   Meaning lives in weight and a word next to it, never in color.
    ============================================================ */
 
 :root {
@@ -16,23 +16,23 @@
   --ink: #171717;
   --muted: #555555;
   --faint: #8a8a8a;
-  /* Viền của fina vốn đậm (input, card), nên dùng bậc "line strong". */
+  /* fina's borders are strong (inputs, cards), so use the "line strong" step. */
   --line: #d4d4d4;
   --select: rgb(23 23 23 / 0.14);
-  /* Vượt hạn mức: mực đậm + font-medium + chữ "over" bên cạnh. */
+  /* Over limit: strong ink + font-medium + the word "over" next to it. */
   --over: #171717;
-  /* Generator: tăng là mực, giảm là mờ; dấu + / − nói chiều. */
+  /* Generator: up is ink, down is faint; the + / − sign gives the direction. */
   --up: #171717;
   --down: #555555;
 
-  /* Màu nhận dạng bucket: ngoại lệ DUY NHẤT của luật "chỉ xám" (chủ app
-     chọn giữ, 2026-10-05). Sáu hue, thứ tự cố định, đã chạy qua validator
-     mù màu ở cả hai theme: CVD dE 9.1 sáng / 8.4 tối (sàn 8), normal-vision
-     19.6 / 19.3 (sàn 15).
+  /* Bucket identity colors: the ONLY exception to "gray only" (owner's
+     choice, 2026-10-05). Six hues, fixed order, checked with a color-blind
+     validator in both themes: CVD dE 9.1 light / 8.4 dark (floor 8),
+     normal vision 19.6 / 19.3 (floor 15).
 
-     Ba hue ở chế độ sáng dưới 3:1 tương phản với nền - điều đó CHỈ hợp lệ
-     vì mọi chỗ dùng màu đều có tên bucket viết bằng mực đủ tương phản ngay
-     bên cạnh. Màu là trang trí, không bao giờ là nhãn. */
+     Three light-mode hues are under 3:1 contrast with the background - that
+     is ONLY fine because every use has the bucket name in high-contrast ink
+     right next to it. Color is decoration, never a label. */
   --b1: #2a78d6;
   --b2: #eb6834;
   --b3: #1baf7a;
@@ -56,7 +56,7 @@
     --over: #e8e8e8;
     --up: #e8e8e8;
     --down: #a3a3a3;
-    /* Cùng sáu hue, step lại cho nền tối - không phải đảo màu tự động. */
+    /* Same six hues, re-stepped for a dark background - not an automatic invert. */
     --b1: #3987e5;
     --b2: #d95926;
     --b3: #199e70;
@@ -67,7 +67,7 @@
   }
 }
 
-/* Chọn tay trong Settings: thắng cài đặt của máy. */
+/* A manual choice in Settings beats the device setting. */
 :root[data-theme="dark"] {
   --bg: #111111;
   --surface: #1a1a1a;
@@ -81,7 +81,7 @@
   --over: #e8e8e8;
   --up: #e8e8e8;
   --down: #a3a3a3;
-  /* Cùng sáu hue, step lại cho nền tối - không phải đảo màu tự động. */
+  /* Same six hues, re-stepped for a dark background - not an automatic invert. */
   --b1: #3987e5;
   --b2: #d95926;
   --b3: #199e70;
@@ -113,7 +113,7 @@
 
 html {
   background: var(--bg);
-  /* iOS: chặn nhảy layout khi bàn phím chữ bật lên */
+  /* iOS: stop layout jumps when the keyboard opens */
   -webkit-text-size-adjust: 100%;
 }
 
@@ -122,11 +122,11 @@ body {
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Mọi con số trong app đều xếp cột được */
+  /* Every number in the app lines up in columns */
   font-variant-numeric: tabular-nums;
 }
 
-/* Numpad và các nút bấm nhanh: không cho iOS bôi xanh khi chạm liên tục */
+/* Numpad and quick buttons: no iOS blue highlight on repeated taps */
 button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;

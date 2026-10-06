@@ -33,16 +33,16 @@ import { listTransactionsBetween } from '@/lib/transactions';
 import type { Bucket } from '@/types/fina';
 
 const MAX_IMAGES = 5;
-/** Đủ nét để đọc chữ, mà mỗi ảnh chỉ còn vài trăm KB. */
+/** Sharp enough to read text, yet each image is only a few hundred KB. */
 const MAX_WIDTH = 900;
-/** Giao dịch nhập tay có thể lệch vài giờ so với giờ MoMo. */
+/** A hand-entered transaction may be a few hours off the MoMo time. */
 const LOOKUP_MARGIN_MS = 3 * 60 * 60_000;
 
 const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
 const timeOf = (ms: number) =>
   new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-/** Thu nhỏ ảnh ở client. Ảnh gốc iPhone 2-3 MB, gửi 5 cái là chậm và tốn. */
+/** Shrink images on the client. An iPhone original is 2-3 MB; sending 5 is slow and costly. */
 async function shrink(file: File): Promise<{ mimeType: string; data: string }> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, MAX_WIDTH / bmp.width);
@@ -55,7 +55,7 @@ async function shrink(file: File): Promise<{ mimeType: string; data: string }> {
   return { mimeType: 'image/jpeg', data: url.slice(url.indexOf(',') + 1) };
 }
 
-/** yyyy-mm-ddThh:mm cho <input type="datetime-local"> theo giờ máy. */
+/** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
 function toLocalInput(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -65,17 +65,17 @@ function toLocalInput(ms: number): string {
 const codeOf = (err: unknown) => (err as { code?: string })?.code ?? 'unknown';
 
 /**
- * Bảng duyệt sống trong Firestore (lib/import-draft.ts), không trong state
- * của component: upload trên điện thoại thì laptop thấy ngay, và ngược lại.
- * Component chỉ giữ những gì thuộc về riêng máy này - đang đọc ảnh, đang
- * lưu, lỗi.
+ * The review table lives in Firestore (lib/import-draft.ts), not component
+ * state: upload on the phone and the laptop sees it at once, and back. The
+ * component only keeps what belongs to this device - reading images,
+ * saving, errors.
  */
 export default function ImportView() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
   const [buckets, setBuckets] = useState<Bucket[]>([]);
-  // undefined = đang tải lần đầu, null = không có bảng nào dở.
+  // undefined = first load, null = no unfinished table.
   const [draft, setDraft] = useState<ImportDraftDoc | null | undefined>(undefined);
   const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,7 +84,7 @@ export default function ImportView() {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  // Bảng biến mất vì CHÍNH máy này Save/Discard thì không cần báo gì.
+  // The table vanished because THIS device saved/discarded it: no message needed.
   const closingHere = useRef(false);
   const hadDraft = useRef(false);
 
@@ -106,8 +106,8 @@ export default function ImportView() {
     });
   }, [uid]);
 
-  // ETF chỉ nhận tiền vào lúc chia lương - không bao giờ là đích của một
-  // khoản chi trên MoMo. Cùng lý do với lưới Log.
+  // ETF only receives money when salary is split - never the target of a
+  // MoMo expense. Same reason as the Log grid.
   const choices = useMemo(
     () => buckets.filter((b) => b.active && b.id !== 'etf'),
     [buckets],
@@ -179,8 +179,8 @@ export default function ImportView() {
     }
   };
 
-  // Mọi thao tác ghi thẳng vào Firestore. Listener trả về ngay bản ghi
-  // tạm ở máy này, nên màn hình không phải đợi mạng.
+  // Every action writes straight to Firestore. The listener returns this
+  // device's pending write at once, so the screen does not wait for the network.
   const run = (fn: () => Promise<void>) => {
     fn().catch((err) => setError(`Could not update (${codeOf(err)}).`));
   };
@@ -281,9 +281,8 @@ export default function ImportView() {
         <div className="pt-6">
           {notice && <p className="mb-3 text-xs text-up">{notice}</p>}
           <p className="text-sm text-muted">
-            Pick up to {MAX_IMAGES} screenshots of the MoMo history (tab{' '}
-            <span className="font-medium text-ink">Giao dịch</span>). Overlap between them is fine.
-            The table shows up on all your devices.
+            Up to {MAX_IMAGES} MoMo screenshots (
+            <span className="font-medium text-ink">Giao dịch</span> tab). Overlap is fine.
           </p>
           {filePicker}
           <button
@@ -296,8 +295,7 @@ export default function ImportView() {
           </button>
           {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
           <p className="mt-4 text-[11px] text-faint">
-            Screenshots are sent to Gemini to read the text, then thrown away. Names stay in the
-            table until you save or discard it, and never go into your entries.
+            Screenshots go to Gemini, then get deleted. Names never reach your entries.
           </p>
         </div>
       </div>
@@ -508,8 +506,8 @@ function RowItem({
           {isIn ? '+' : ''}
           {formatVnd(row.amountVnd)}
         </span>
-        {/* Có chuột thì chỉ hiện khi rê vào. Điện thoại không có hover nên
-            luôn hiện, chỉ mờ đi cho đỡ rối. */}
+        {/* With a mouse, only shown on hover. Phones have no hover, so it is
+            always shown, just faint to reduce clutter. */}
         <button
           type="button"
           onClick={onRemove}
@@ -541,9 +539,10 @@ function RowItem({
 }
 
 /**
- * Ô note gõ ở máy này, chỉ ghi lên Firestore khi ngừng gõ nửa giây hoặc rời
- * ô. Ghi mỗi phím thì mỗi chữ là một lượt ghi, và bản từ máy kia có thể đè
- * lên chữ đang gõ dở. Không đang gõ thì luôn hiện bản mới nhất từ Firestore.
+ * Note field typed on this device; written to Firestore only after half a
+ * second of no typing, or on blur. Writing every key costs a write per
+ * letter, and the other device's copy could overwrite half-typed text.
+ * When not typing, always shows the latest version from Firestore.
  */
 function NoteInput({ value, onCommit }: { value: string; onCommit: (note: string) => void }) {
   const [text, setText] = useState(value);
@@ -584,7 +583,7 @@ function NoteInput({ value, onCommit }: { value: string; onCommit: (note: string
   );
 }
 
-/** Thêm tay một dòng MoMo bị sót (bị cắt ở mép ảnh, hoặc chưa chụp). */
+/** Add a missed MoMo row by hand (cut off at an image edge, or not captured). */
 function AddRow({
   defaultBucket,
   choices,
@@ -673,7 +672,7 @@ function AddRow({
           onClick={() => {
             const key = importKey(occurredAt, 'out', amountVnd!);
             onAdd({
-              // Ngẫu nhiên: hai máy cùng thêm tay một lúc không được trùng id.
+              // Random: two devices adding by hand at once must not share an id.
               id: `manual-${crypto.randomUUID()}`,
               key,
               occurredAt,

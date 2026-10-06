@@ -1,14 +1,14 @@
 // ============================================================
-// fina - Số liệu cho widget iPhone (Scriptable)
+// fina - Numbers for the iPhone widget (Scriptable)
 //
-// Hàm thuần, không đụng Firestore: route /api/widget đọc dữ liệu rồi đưa
-// vào đây. Con số PHẢI khớp với màn hình Summary - widget nói "còn 4.550"
-// mà app nói "còn 4.300" thì cả hai đều mất tin tưởng.
+// Pure function, no Firestore: the /api/widget route reads the data and
+// passes it in. The numbers MUST match the Summary screen - a widget saying
+// "4.550 left" while the app says "4.300 left" loses trust in both.
 //
-//   left  = tổng limits của chu kỳ - tổng đã tiêu ròng của các hũ budget
-//   used  (từng hũ) = đã tiêu + phần đã rút đi bù hũ khác  (giống BudgetRow)
+//   left  = sum of the cycle's limits - net spent of the budget buckets
+//   used  (per bucket) = spent + amount drawn to cover others  (like BudgetRow)
 //
-// Lương không bao giờ đi qua đây.
+// Salary never passes through here.
 // ============================================================
 
 import { cycleOf, cycleProgress } from '@/lib/cycle';
@@ -17,7 +17,7 @@ import type { Bucket, Cover, Transaction } from '@/types/fina';
 export interface WidgetBucket {
   name: string;
   usedVnd: number;
-  /** null khi chu kỳ chưa có hạn mức cho hũ này. */
+  /** null when the cycle has no limit for this bucket. */
   limitVnd: number | null;
 }
 
@@ -28,18 +28,18 @@ export interface WidgetData {
   limitVnd: number;
   spentVnd: number;
   leftVnd: number;
-  /** Còn lại chia đều cho các ngày còn lại, tính cả hôm nay. Âm thì về 0. */
+  /** What is left, spread over the remaining days including today. Negative becomes 0. */
   perDayVnd: number;
   buckets: WidgetBucket[];
 }
 
 /**
- * Giờ Việt Nam dưới dạng Date "giờ địa phương".
+ * Vietnam time as a "local time" Date.
  *
- * Server Vercel chạy UTC, còn cycleOf/cycleProgress đọc getDate() theo giờ
- * máy. Dựng lại Date từ các phần của giờ VN thì hai hàm đó cho đúng kết quả
- * dù máy chạy ở múi giờ nào. Sáng 01:00 ngày 25 giờ VN vẫn là 18:00 ngày 24
- * giờ UTC - không làm bước này thì widget mở chu kỳ mới trễ 7 tiếng.
+ * Vercel servers run in UTC, while cycleOf/cycleProgress read getDate() in
+ * device time. Rebuilding a Date from Vietnam time parts makes both correct
+ * on any timezone. 01:00 on the 25th in Vietnam is still 18:00 on the 24th
+ * UTC - without this, the widget opens the new cycle 7 hours late.
  */
 export function vnWallClock(now: Date): Date {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -97,7 +97,7 @@ export function widgetData(args: {
   };
 }
 
-/** Giống coveredByBucket trong covers.ts, nhưng file đó kéo theo Firebase client. */
+/** Like coveredByBucket in covers.ts, but that file pulls in the Firebase client. */
 export function coveredOf(covers: Cover[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const c of covers) {

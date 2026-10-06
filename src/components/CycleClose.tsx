@@ -15,10 +15,10 @@ const TARGETS: { id: SurplusTarget; label: string }[] = [
 ];
 
 /**
- * Màn hình đóng sổ. Hiện khi chu kỳ đã hết hạn mà chưa chốt.
+ * Close-the-books screen. Shows when a cycle has ended but is not closed.
  *
- * Chu kỳ mới chưa mở cho tới khi bấm Close - một chút ma sát cố ý, để việc
- * tiêu lố không trôi qua trong im lặng như hồi còn dùng Numbers.
+ * The new cycle does not open until Close is tapped - deliberate friction,
+ * so overspending does not slip by silently like it did in Numbers.
  */
 export default function CycleClose({
   uid,
@@ -35,9 +35,9 @@ export default function CycleClose({
   monthly: Bucket[];
   spent: Record<string, number>;
   covered: Record<string, number>;
-  /** Đã cộng lại phần bù lấy từ BIDV - tính ở useSummary. */
+  /** Already includes the cover taken from BIDV - computed in useSummary. */
   surplusVnd: number;
-  /** Chụp lại vào document chu kỳ, để Trend khỏi đọc lại giao dịch. */
+  /** Snapshot into the cycle document, so Trend does not reread transactions. */
   snapshot: { byBucket: Record<string, number> };
   pendingCount: number;
 }) {
@@ -116,17 +116,15 @@ export default function CycleClose({
       ) : (
         surplus < 0 && (
           <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-            Still {formatVnd(-surplus)} short after the covers. The money already left
-            VCB - nothing moves on its own.
+            Still {formatVnd(-surplus)} short after covers.
           </p>
         )
       )}
 
       {blocked && (
         <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm">
-          {pendingCount} cover{pendingCount > 1 ? 's' : ''} still waiting on a bank
-          transfer. This is the last place overspending can slip past, so finish those
-          first.
+          {pendingCount} cover{pendingCount > 1 ? 's' : ''} wait on a bank transfer. Finish
+          them first.
         </p>
       )}
 

@@ -1,12 +1,12 @@
 // ============================================================
-// fina functions - Giờ Việt Nam
+// fina functions - Vietnam time
 //
-// Function chạy theo UTC trên máy chủ Google. Mọi so sánh về "22:00" hay
-// "hôm nay" phải quy về Asia/Ho_Chi_Minh, không được tin đồng hồ máy chủ.
+// Functions run in UTC on Google's servers. Every check about "22:00" or
+// "today" must use Asia/Ho_Chi_Minh, never the server clock.
 //
-// functions/ deploy riêng và KHÔNG import được code trong src/ của app.
-// Đây là bản sao duy nhất, và test/functions-time.test.ts đối chiếu nó với
-// Intl giờ này qua giờ khác - đổi một bên mà quên bên kia thì test đỏ.
+// functions/ deploys separately and CANNOT import the app's src/ code.
+// This is the only copy, and test/functions-time.test.ts checks it against
+// Intl hour by hour - change one side and forget the other, the test fails.
 // ============================================================
 
 export const TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -31,7 +31,7 @@ export function vnParts(date: Date): VnParts {
   }).formatToParts(date);
 
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
-  // en-GB trả 24:00 cho nửa đêm ở một số bản ICU; quy về 0.
+  // en-GB returns 24:00 for midnight in some ICU versions; map it to 0.
   const hour = get('hour') % 24;
 
   return {
@@ -43,24 +43,24 @@ export function vnParts(date: Date): VnParts {
   };
 }
 
-/** '2026-09-02' theo giờ Việt Nam. Dùng làm khoá chống gửi trùng. */
+/** '2026-09-02' in Vietnam time. Used as the duplicate-send key. */
 export function dayKey(date: Date): string {
   const p = vnParts(date);
   return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }
 
 /**
- * Đã tới giờ nhắc trong khung chạy hiện tại chưa.
+ * Whether the reminder time falls in the current run's window.
  *
- * Job chạy mỗi `windowMinutes` phút, nên "đúng 22:00" gần như không bao giờ
- * rơi trúng. Bắt cả khung [22:00, 22:00 + window).
+ * The job runs every `windowMinutes` minutes, so "exactly 22:00" almost never
+ * hits. Catch the whole window [22:00, 22:00 + window).
  */
 export function isReminderWindow(date: Date, hour: number, windowMinutes: number): boolean {
   const p = vnParts(date);
   return p.hour === hour && p.minute < windowMinutes;
 }
 
-/** Số ngày trọn vẹn giữa hai mốc. */
+/** Whole days between two timestamps. */
 export function daysBetween(fromMs: number, toMs: number): number {
   return Math.floor((toMs - fromMs) / 86_400_000);
 }

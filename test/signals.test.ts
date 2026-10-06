@@ -21,7 +21,7 @@ const base = (food: number[], current: number) => ({
   buckets, amounts: [], day: 9, totalDays: 30,
 });
 
-test('trung vị và độ lệch tính trên các chu kỳ ĐÃ ĐÓNG', () => {
+test('median and gap are computed over CLOSED cycles', () => {
   const s = computeSignals(base([1_000, 2_000, 3_000], 4_000));
   const food = s.buckets.find((b) => b.bucketId === 'food')!;
   assert.equal(food.medianVnd, 2_000 * K);
@@ -30,50 +30,50 @@ test('trung vị và độ lệch tính trên các chu kỳ ĐÃ ĐÓNG', () => 
   assert.equal(s.closedCount, 3);
 });
 
-test('tăng liên tiếp 3 chu kỳ mới gọi là xu hướng', () => {
+test('only 3 rising cycles in a row count as a trend', () => {
   assert.equal(computeSignals(base([1_000, 2_000, 3_000], 4_000)).buckets.find((b) => b.bucketId === 'food')!.rising, true);
-  // Chững lại ở chu kỳ cuối thì không phải
+  // Flattening in the last cycle is not
   assert.equal(computeSignals(base([1_000, 2_000, 3_000], 3_000)).buckets.find((b) => b.bucketId === 'food')!.rising, false);
-  // Lên xuống thất thường cũng không phải
+  // Up and down at random is not either
   assert.equal(computeSignals(base([1_000, 5_000, 2_000], 4_000)).buckets.find((b) => b.bucketId === 'food')!.rising, false);
 });
 
-test('đếm số chu kỳ vượt hạn mức, kèm mẫu số', () => {
+test('counts cycles over the limit, with the denominator', () => {
   const s = computeSignals(base([3_500, 2_000, 3_900], 100));
   const food = s.buckets.find((b) => b.bucketId === 'food')!;
   assert.equal(food.overCount, 2);
   assert.equal(food.overOf, 3);
 });
 
-test('nhịp CHỈ áp cho bucket tiêu đều', () => {
+test('pace ONLY applies to evenly spent buckets', () => {
   const s = computeSignals(base([1_000], 1_500));
   const ids = s.pace.map((p) => p.bucketId).sort();
   assert.deepEqual(ids, ['food', 'utilities']);
-  // Beauty và Purchases tiêu theo cục - không có mặt ở đây
+  // Beauty and Purchases are spent in lumps - not here
   assert.ok(!ids.includes('beauty'));
 });
 
-test('nhịp so ngày đã trôi với phần hạn mức đã tiêu', () => {
+test('pace compares days passed with the share of the limit spent', () => {
   const s = computeSignals(base([1_000], 1_500));
   const food = s.pace.find((p) => p.bucketId === 'food')!;
-  assert.equal(food.elapsedPct, 30); // ngày 9 / 30
+  assert.equal(food.elapsedPct, 30); // day 9 / 30
   assert.equal(food.spentPct, 50); // 1.500 / 3.000
 });
 
-test('khoản lạc loài: lớn hơn 3 lần trung vị của chính bucket đó', () => {
+test('outlier: more than 3 times the bucket\'s own median', () => {
   const args = base([500, 500, 500], 2_000);
   const s = computeSignals({
     ...args,
     amounts: [
-      { bucketId: 'food', amountVnd: 1_600 * K }, // > 3x trung vị 500
-      { bucketId: 'food', amountVnd: 400 * K },   // bình thường
+      { bucketId: 'food', amountVnd: 1_600 * K }, // > 3x the median 500
+      { bucketId: 'food', amountVnd: 400 * K },   // normal
     ],
   });
   assert.equal(s.outliers.length, 1);
   assert.equal(s.outliers[0].amountVnd, 1_600 * K);
 });
 
-test('quỹ im lặng 3 chu kỳ và còn tiền thì mới nhắc', () => {
+test('a fund quiet for 3 cycles and still holding money gets a mention', () => {
   const withMoney = buckets.map((b) => (b.id === 'travel' ? { ...b, balanceVnd: 6_400 * K } : b));
   const cycles = ['2026-06', '2026-07', '2026-08'].map((id) => cycle(id));
   const s = computeSignals({
@@ -84,7 +84,7 @@ test('quỹ im lặng 3 chu kỳ và còn tiền thì mới nhắc', () => {
   assert.ok(travel);
   assert.ok(travel.idleCycles >= 3);
 
-  // Quỹ rỗng thì im lặng cũng chẳng có gì để nói
+  // An empty fund that is quiet has nothing to say
   const empty = computeSignals({
     cycles: [...cycles, cycle('2026-09', { closed: false })],
     buckets, amounts: [], day: 9, totalDays: 30,
@@ -92,7 +92,7 @@ test('quỹ im lặng 3 chu kỳ và còn tiền thì mới nhắc', () => {
   assert.equal(empty.idleFunds.length, 0);
 });
 
-test('quỹ âm luôn được nêu, không cần chờ đủ chu kỳ', () => {
+test('a negative fund is always mentioned, no need to wait for cycles', () => {
   const neg = buckets.map((b) => (b.id === 'travel' ? { ...b, balanceVnd: -500 * K } : b));
   const s = computeSignals({
     cycles: [cycle('2026-09', { closed: false })],
@@ -101,12 +101,12 @@ test('quỹ âm luôn được nêu, không cần chờ đủ chu kỳ', () => {
   assert.deepEqual(s.negativeFunds.map((x) => x.bucketId), ['travel']);
 });
 
-test('canAnalyze chặn dưới 3 chu kỳ đã đóng', () => {
+test('canAnalyze blocks under 3 closed cycles', () => {
   assert.equal(canAnalyze(computeSignals(base([1_000, 2_000], 1_000))), false);
   assert.equal(canAnalyze(computeSignals(base([1_000, 2_000, 3_000], 1_000))), true);
 });
 
-test('không có lịch sử thì không bịa ra độ lệch', () => {
+test('no history means no made-up gap', () => {
   const s = computeSignals({
     cycles: [cycle('2026-09', { closed: false, byBucket: { food: 500 * K } })],
     buckets, amounts: [], day: 1, totalDays: 30,

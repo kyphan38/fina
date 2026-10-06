@@ -15,12 +15,12 @@ const DEFAULT_QUIET_DAYS = 2;
 const REGION = 'asia-southeast1';
 
 /**
- * Nhắc khi im lặng quá lâu.
+ * Reminder after a long silence.
  *
- * Điều kiện KHÔNG phải "chưa log hôm nay" mà là "N ngày liên tiếp không có
- * giao dịch nào". Trên dữ liệu thật, chỉ 27% số ngày có log - nhắc mỗi ngày
- * sẽ kêu ~266 lần/năm, phần lớn vào những ngày người dùng thật sự không
- * tiêu gì, và sẽ bị tắt trong hai tuần.
+ * The condition is NOT "nothing logged today" but "N days in a row with no
+ * transaction". In real data only 27% of days have a log - a daily reminder
+ * would fire ~266 times a year, mostly on days with truly no spending, and
+ * would be switched off within two weeks.
  */
 export const pushReminders = onSchedule(
   { schedule: `every ${EVERY_MINUTES} minutes`, timeZone: 'UTC', region: REGION },
@@ -41,7 +41,7 @@ export const pushReminders = onSchedule(
       const token = fcm?.token;
       if (!token) continue;
 
-      // Một loại nhắc, một lần mỗi ngày.
+      // One kind of reminder, once a day.
       const today = dayKey(now);
       const logRef = userRef.collection('meta').doc('pushLog');
       const log = (await logRef.get()).data() ?? {};
@@ -58,12 +58,12 @@ export const pushReminders = onSchedule(
       if (quiet < quietDays) continue;
 
       try {
-        // Data-only. Kèm `notification` nữa thì iOS hiện HAI thông báo.
+        // Data-only. With `notification` too, iOS shows TWO notifications.
         await getMessaging().send({
           token,
           data: {
-            // iOS đã hiện tên app ở dòng đầu. Đặt title là 'fina' nữa thì ra
-            // "fina / from fina / 2 days...", thừa hai dòng.
+            // iOS already shows the app name on the first line. A 'fina' title would
+            // give "fina / from fina / 2 days...", two extra lines.
             title: `${quiet} days since your last entry.`,
             body: '',
             tag: 'fina-quiet',
@@ -73,14 +73,14 @@ export const pushReminders = onSchedule(
         });
         await logRef.set({ [`quiet:${today}`]: Date.now() }, { merge: true });
       } catch (err) {
-        // Chỉ ghi tên lỗi. Không bao giờ log số tiền hay ghi chú ở production.
+        // Log the error name only. Never log amounts or notes in production.
         logger.error('push failed', { uid, error: (err as Error).name });
       }
     }
   },
 );
 
-/** Dọn pushLog cũ, giữ khoảng 30 ngày. */
+/** Cleans old pushLog entries, keeping about 30 days. */
 export const trimPushLog = onSchedule(
   { schedule: 'every 24 hours', timeZone: 'UTC', region: REGION },
   async () => {

@@ -7,7 +7,7 @@ const row = (month: string, amountVnd: number): Salary => ({
   month, amountVnd, note: null, updatedAt: 0,
 });
 
-test('byYear - cộng theo năm, năm mới đứng trước', () => {
+test('byYear - sums per year, newest year first', () => {
   const out = byYear([
     row('2027-01', 40_000_000),
     row('2026-12', 39_000_000),
@@ -19,27 +19,27 @@ test('byYear - cộng theo năm, năm mới đứng trước', () => {
   ]);
 });
 
-test('byYear - đếm SỐ THÁNG ĐÃ GHI, không phải 12', () => {
-  // Ghi 3 tháng thì tổng năm là tổng của 3 tháng đó. Suy ra cả năm là bịa.
+test('byYear - counts MONTHS RECORDED, not 12', () => {
+  // 3 recorded months means the year total is those 3. Extrapolating the year is made up.
   const out = byYear([row('2026-06', 10_000_000), row('2026-07', 10_000_000)]);
   assert.equal(out[0].months, 2);
 });
 
-test('average - chia cho số tháng đã ghi, không chia cho 12', () => {
+test('average - divides by months recorded, not by 12', () => {
   assert.equal(average([row('2026-06', 30_000_000), row('2026-07', 40_000_000)]), 35_000_000);
 });
 
-test('average - chưa ghi gì thì là 0, không phải NaN', () => {
+test('average - nothing recorded is 0, not NaN', () => {
   assert.equal(average([]), 0);
 });
 
-test('byYear - chưa ghi gì thì không có năm nào', () => {
+test('byYear - nothing recorded means no years', () => {
   assert.deepEqual(byYear([]), []);
 });
 
-test('monthOf - dùng tháng dương lịch, KHÔNG phải chu kỳ cắt ngày 25', () => {
-  // Ngày lĩnh lương là ca dễ sai nhất: cycleOf('2026-09-25') đã là '2026-10'.
-  // Lương tháng 9 phải nằm ở tháng 9.
+test('monthOf - uses the calendar month, NOT the cycle that turns on the 25th', () => {
+  // Payday is the easiest case to get wrong: cycleOf('2026-09-25') is already '2026-10'.
+  // September's salary must sit in September.
   assert.equal(monthOf(new Date('2026-09-25T12:00:00')), '2026-09');
   assert.equal(monthOf(new Date('2026-09-30T23:00:00')), '2026-09');
   assert.equal(monthOf(new Date('2026-09-01T00:00:00')), '2026-09');

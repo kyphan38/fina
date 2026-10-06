@@ -20,7 +20,7 @@ const cover = (over: Partial<Cover> = {}): Cover => ({
   ...over,
 });
 
-test('coverOptions - Buffer đứng đầu, ETF không bao giờ là nguồn', () => {
+test('coverOptions - Buffer comes first, ETF is never a source', () => {
   const opts = coverOptions({
     buckets, toBucketId: 'tech', bufferLimitVnd: 1_000_000, bufferUsedVnd: 190_000,
     neededVnd: 790_000,
@@ -29,7 +29,7 @@ test('coverOptions - Buffer đứng đầu, ETF không bao giờ là nguồn', (
   assert.ok(!opts.some((o) => o.bucket.id === 'etf'));
 });
 
-test('coverOptions - không tự bù cho chính mình', () => {
+test('coverOptions - never covers itself', () => {
   const opts = coverOptions({
     buckets, toBucketId: 'travel', bufferLimitVnd: 1_000_000, bufferUsedVnd: 0,
     neededVnd: 100_000,
@@ -37,7 +37,7 @@ test('coverOptions - không tự bù cho chính mình', () => {
   assert.ok(!opts.some((o) => o.bucket.id === 'travel'));
 });
 
-test('coverOptions - Buffer không đủ thì vẫn hiện, chỉ đánh dấu không đủ', () => {
+test('coverOptions - a Buffer without enough still shows, only marked short', () => {
   const opts = coverOptions({
     buckets, toBucketId: 'tech', bufferLimitVnd: 1_000_000, bufferUsedVnd: 800_000,
     neededVnd: 790_000,
@@ -45,11 +45,11 @@ test('coverOptions - Buffer không đủ thì vẫn hiện, chỉ đánh dấu k
   const buffer = opts.find((o) => o.bucket.id === 'buffer')!;
   assert.equal(buffer.availableVnd, 200_000);
   assert.equal(buffer.enough, false);
-  // Vẫn nằm trong danh sách - ẩn đi thì không ai hiểu vì sao nó biến mất.
+  // Still in the list - hiding it leaves nobody knowing why it vanished.
   assert.ok(opts.length > 1);
 });
 
-test('coverOptions - quỹ âm thì phần dùng được là 0, không phải số âm', () => {
+test('coverOptions - a negative fund has 0 usable, not a negative amount', () => {
   const negative = buckets.map((b) => (b.id === 'travel' ? { ...b, balanceVnd: -300_000 } : b));
   const opts = coverOptions({
     buckets: negative, toBucketId: 'tech', bufferLimitVnd: 0, bufferUsedVnd: 0,
@@ -58,20 +58,20 @@ test('coverOptions - quỹ âm thì phần dùng được là 0, không phải s
   assert.equal(opts.find((o) => o.bucket.id === 'travel')!.availableVnd, 0);
 });
 
-test('coveredByBucket - chỉ tính lần bù đã xong', () => {
+test('coveredByBucket - only counts completed covers', () => {
   const covers = [
     cover({ id: 'a', amountVnd: 300_000 }),
     cover({ id: 'b', amountVnd: 500_000, status: 'pending', fromBucketId: 'reserve' }),
     cover({ id: 'c', amountVnd: 200_000 }),
   ];
-  // Bên cho tính dương, bên nhận tính âm. Lần bù còn pending không tính.
+  // The giver counts positive, the receiver negative. Pending covers do not count.
   assert.deepEqual(coveredByBucket(covers), { buffer: 500_000, tech: -500_000 });
 });
 
-test('coveredByBucket - bên NHẬN được trừ, không chỉ bên cho', () => {
-  // Ca thật: Social hụt 500, chuyển 505 từ Purchases sang. Chỉ ghi bên cho
-  // thì Social vẫn đứng ở -500 dù tiền đã nằm trong ví.
-  //   limit 1.000, spent 1.500 -> đã dùng = 1.500 - 505 = 995 -> còn 5.
+test('coveredByBucket - the RECEIVER is credited, not only the giver', () => {
+  // Real case: Social short 500, 505 moved from Purchases. Recording only the
+  // giver leaves Social at -500 even though the money is in the wallet.
+  //   limit 1.000, spent 1.500 -> used = 1.500 - 505 = 995 -> 5 left.
   const net = coveredByBucket([
     cover({ fromBucketId: 'purchases', toBucketId: 'social', amountVnd: 505_000 }),
   ]);
@@ -83,27 +83,27 @@ test('coveredByBucket - bên NHẬN được trừ, không chỉ bên cho', () =
   assert.equal(limit - (spent + net.social), 5_000);
 });
 
-test('coveredByBucket - bù trong cùng nhóm VCB thì tổng không đổi', () => {
-  // Buffer bù cho Tech: Buffer dùng nhiều hơn, Tech dùng ít đi, cộng lại là 0.
+test('coveredByBucket - a cover inside the VCB group keeps the total', () => {
+  // Buffer covers Tech: Buffer uses more, Tech uses less, the sum is 0.
   const net = coveredByBucket([
     cover({ fromBucketId: 'buffer', toBucketId: 'tech', amountVnd: 190_000 }),
   ]);
   assert.equal(Object.values(net).reduce((a, b) => a + b, 0), 0);
 });
 
-test('coveredFromOutside - chỉ đếm tiền từ BIDV chảy vào', () => {
+test('coveredFromOutside - only counts money flowing in from BIDV', () => {
   const covers = [
     cover({ id: 'a', fromBucketId: 'buffer', amountVnd: 300_000 }),
     cover({ id: 'b', fromBucketId: 'reserve', amountVnd: 500_000, needsTransfer: true }),
     cover({ id: 'c', fromBucketId: 'travel', amountVnd: 120_000, needsTransfer: true, status: 'pending' }),
   ];
-  // Buffer ở VCB nên không tính; travel còn pending nên chưa tính.
+  // Buffer is in VCB, so it does not count; travel is still pending, so not yet.
   assert.equal(coveredFromOutside(covers, buckets), 500_000);
 });
 
-test('coverBalanceDeltas - quỹ bù cho quỹ: một đầu trừ, một đầu CỘNG', () => {
-  // Health 0, tiêu 250 -> giao dịch gốc đã đẩy Health xuống -250. Lấy 250 từ
-  // Purchases phải đưa Health về 0, không phải để nó nằm âm mãi.
+test('coverBalanceDeltas - fund covers fund: one end subtracts, one end ADDS', () => {
+  // Health 0, spends 250 -> the original transaction put Health at -250. Taking
+  // 250 from Purchases must bring Health back to 0, not leave it negative forever.
   const deltas = coverBalanceDeltas({
     fromBucketId: 'purchases', fromKind: 'fund',
     toBucketId: 'healthFund', toKind: 'fund',
@@ -112,8 +112,8 @@ test('coverBalanceDeltas - quỹ bù cho quỹ: một đầu trừ, một đầu
   assert.deepEqual(deltas, { purchases: -250_000, healthFund: 250_000 });
 });
 
-test('coverBalanceDeltas - bù cho hũ VCB chỉ trừ quỹ nguồn', () => {
-  // Bucket dạng budget không có số dư: phần vượt của Tech đọc ở limit − spent.
+test('coverBalanceDeltas - covering a VCB bucket only charges the source fund', () => {
+  // Budget buckets have no balance: Tech's overage reads from limit − spent.
   const deltas = coverBalanceDeltas({
     fromBucketId: 'reserve', fromKind: 'fund',
     toBucketId: 'tech', toKind: 'budget',
@@ -122,7 +122,7 @@ test('coverBalanceDeltas - bù cho hũ VCB chỉ trừ quỹ nguồn', () => {
   assert.deepEqual(deltas, { reserve: -190_000 });
 });
 
-test('coverBalanceDeltas - Buffer bù cho quỹ: chỉ cộng cho quỹ đích', () => {
+test('coverBalanceDeltas - Buffer covers a fund: only the target fund gains', () => {
   const deltas = coverBalanceDeltas({
     fromBucketId: 'buffer', fromKind: 'budget',
     toBucketId: 'healthFund', toKind: 'fund',
@@ -131,7 +131,7 @@ test('coverBalanceDeltas - Buffer bù cho quỹ: chỉ cộng cho quỹ đích',
   assert.deepEqual(deltas, { healthFund: 250_000 });
 });
 
-test('coverBalanceDeltas - Buffer bù cho hũ VCB: không đụng số dư nào', () => {
+test('coverBalanceDeltas - Buffer covers a VCB bucket: no balance changes', () => {
   const deltas = coverBalanceDeltas({
     fromBucketId: 'buffer', fromKind: 'budget',
     toBucketId: 'tech', toKind: 'budget',
@@ -140,8 +140,8 @@ test('coverBalanceDeltas - Buffer bù cho hũ VCB: không đụng số dư nào'
   assert.deepEqual(deltas, {});
 });
 
-test('coverBalanceDeltas - tổng của mọi delta luôn bằng 0 khi cả hai đầu là quỹ', () => {
-  // Bù là DI CHUYỂN tiền giữa hai quỹ, không phải tiêu thêm: tổng quỹ không đổi.
+test('coverBalanceDeltas - all deltas sum to 0 when both ends are funds', () => {
+  // A cover MOVES money between two funds, it is not extra spending: the fund total stays.
   const deltas = coverBalanceDeltas({
     fromBucketId: 'travel', fromKind: 'fund',
     toBucketId: 'reserve', toKind: 'fund',
@@ -150,16 +150,16 @@ test('coverBalanceDeltas - tổng của mọi delta luôn bằng 0 khi cả hai 
   assert.equal(Object.values(deltas).reduce((a, b) => a + b, 0), 0);
 });
 
-test('coveredFromOutside - quỹ BIDV bù cho quỹ BIDV không đi qua VCB nên không tính', () => {
+test('coveredFromOutside - BIDV fund to BIDV fund never passes VCB, so it does not count', () => {
   const covers = [
-    // Purchases sang Health: cả hai đều ở BIDV, VCB không thấy đồng nào.
+    // Purchases to Health: both in BIDV, VCB sees nothing.
     cover({ id: 'a', fromBucketId: 'purchases', toBucketId: 'healthFund', amountVnd: 250_000 }),
     cover({ id: 'b', fromBucketId: 'reserve', toBucketId: 'tech', amountVnd: 500_000 }),
   ];
   assert.equal(coveredFromOutside(covers, buckets), 500_000);
 });
 
-test('surplus - bù từ Buffer không đổi tổng, bù từ BIDV thì có', () => {
+test('surplus - a cover from Buffer keeps the total, one from BIDV changes it', () => {
   const limits = { food: 3_000_000, tech: 800_000 };
   const spent = { food: 2_640_000, tech: 990_000 };
   const base = computeSurplus(limits, spent); // 360.000 − 190.000 = 170.000

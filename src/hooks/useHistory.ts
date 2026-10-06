@@ -52,7 +52,7 @@ export function useHistory() {
     void listCycles(uid).then((cs) => {
       if (cancelled) return;
       const ids = cs.map((c) => c.id);
-      // Chu kỳ hiện tại có thể chưa có document (chưa mở Summary lần nào).
+      // The current cycle may have no document yet (Summary never opened).
       setCycleIds(ids.includes(currentCycle) ? ids : [currentCycle, ...ids]);
     });
     return () => {
@@ -88,10 +88,10 @@ export function useHistory() {
   }, [collapsed, moves, bucketFilter, showAllocations]);
 
   /**
-   * Tổng ròng của những khoản THẬT SỰ là chi tiêu.
+   * Net total of what is REALLY spending.
    *
-   * Dùng chung một luật với bảng Cash flow ở Summary - hai chỗ tính chi tiêu
-   * theo hai cách là hai chỗ sẽ lệch nhau.
+   * Same rule as the Cash flow table in Summary - two places computing
+   * spending two ways would drift apart.
    */
   const total = useMemo(() => netSpending(rows), [rows]);
 

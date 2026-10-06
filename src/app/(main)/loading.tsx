@@ -1,13 +1,13 @@
 /**
- * Khung chờ dùng chung cho mọi trang trong (main).
+ * Shared loading frame for every page in (main).
  *
- * Không phải để cho đẹp. Docs Next 16 (guides/prefetching.md) nói rõ: route động
- * chỉ được <Link> prefetch khi có loading boundary. Mọi route ở đây đều động vì
- * layout đọc cookie, nên trước khi có file này, bấm tab nào cũng đứng hình chờ
- * server trả về.
+ * Not for looks. Next 16 docs (guides/prefetching.md): a dynamic route is only
+ * prefetched by <Link> when it has a loading boundary. Every route here is
+ * dynamic because the layout reads a cookie, so before this file every tab
+ * tap froze while waiting for the server.
  *
- * Dùng token bg-sunk của fina, không dùng màu cứng: nó tự đổi theo theme
- * trong globals.css.
+ * Uses fina's bg-sunk token, not a hardcoded color: it follows the theme in
+ * globals.css.
  */
 export default function Loading() {
   return (

@@ -13,7 +13,7 @@ export interface StoredInsight {
 
 const col = (uid: string) => collection(db, 'users', uid, 'insights');
 
-/** Cùng dữ liệu, cùng chu kỳ → không gọi API lần nữa. */
+/** Same data, same cycle → no repeat API call. */
 export async function readInsight(
   uid: string,
   cycle: string,

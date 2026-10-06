@@ -1,8 +1,8 @@
 // ============================================================
-// fina - Gói chỉ số thành JSON nhỏ để gửi model
+// fina - Pack the stats into small JSON for the model
 //
-// Giao dịch thô KHÔNG BAO GIỜ rời máy. Không gửi ghi chú, không gửi tên
-// khoản chi, không gửi ngày. Chỉ những con số mà `signals.ts` đã tính.
+// Raw transactions NEVER leave the device. No notes, no expense names, no
+// dates. Only numbers that `signals.ts` has already computed.
 // ============================================================
 
 import { formatVnd } from '@/lib/money';
@@ -27,7 +27,7 @@ export interface Digest {
   negativeFunds: { name: string; balance: number }[];
 }
 
-/** Số tiền gửi model theo NGHÌN, đúng đơn vị người dùng đọc trên màn hình. */
+/** Amounts go to the model in THOUSANDS, the unit the user reads on screen. */
 const k = (v: number) => Math.round(v / 1000);
 
 export function buildDigest(s: Signals): Digest {
@@ -52,8 +52,8 @@ export function buildDigest(s: Signals): Digest {
 }
 
 /**
- * Mọi con số model được phép nhắc tới, ở cả dạng thô lẫn dạng đã định dạng.
- * Câu nào chứa số ngoài tập này là câu model tự nghĩ ra.
+ * Every number the model may mention, raw and formatted.
+ * A sentence with a number outside this set is one the model made up.
  */
 export function allowedNumbers(d: Digest): Set<string> {
   const out = new Set<string>();
@@ -78,7 +78,7 @@ export function allowedNumbers(d: Digest): Set<string> {
   return out;
 }
 
-/** Cùng dữ liệu thì cùng hash - không gọi lại API. */
+/** Same data, same hash - no repeat API call. */
 export function digestHash(d: Digest): string {
   const json = JSON.stringify(d);
   let h = 0;

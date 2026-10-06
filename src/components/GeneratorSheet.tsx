@@ -11,10 +11,10 @@ import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
 
 /**
- * Generator - công cụ ĐỘC LẬP. Nó không bao giờ tự đồng bộ ngược vào
- * `limits` của chu kỳ đang chạy; `limits` đã đóng băng lúc chu kỳ mở.
+ * Generator - an INDEPENDENT tool. It never syncs back into the running
+ * cycle's `limits`; `limits` were frozen when the cycle opened.
  *
- * Các nhóm là số tiền cố định, ETF ăn phần dư. Phần trăm là kết quả tính ra.
+ * Groups are fixed amounts, ETF takes the rest. Percentages are derived.
  */
 export default function GeneratorSheet({
   uid,
@@ -31,14 +31,14 @@ export default function GeneratorSheet({
   goalsBudgetVnd: number;
   onClose: () => void;
 }) {
-  // Bắt đầu rỗng, không điền sẵn. Số đem chia là phần dư còn lại cộng khoản
-  // vừa nhận - chỉ người dùng mới biết, app không theo dõi dòng tiền nữa.
+  // Starts empty, nothing prefilled. The amount to split is the leftover plus
+  // what just came in - only the user knows it; the app no longer tracks cash flow.
   const [buf, setBuf] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Số sửa tay chỉ sống trong lần mở này. Tháng sau mở lại Generator là quay
-  // về chuẩn - đó là ý nghĩa của "điều chỉnh ngắn hạn".
+  // Manual edits live only for this opening. Next month the Generator starts
+  // from the standard again - that is what "short-term adjustment" means.
   const [edits, setEdits] = useState<Record<string, string>>({});
 
   const divide = toVnd(buf) ?? 0;
@@ -60,7 +60,7 @@ export default function GeneratorSheet({
       const limits: Record<string, number> = {};
       for (const a of r.monthly) limits[a.bucket.id] = a.amountVnd;
 
-      // ETF không nằm trong đây: người dùng tự ghi lúc thật sự chuyển sang VPS.
+      // ETF is not here: the user logs it when the money actually moves to VPS.
       const fundAllocations: Record<string, number> = {};
       for (const a of [...r.funds, ...r.goals]) fundAllocations[a.bucket.id] = a.amountVnd;
 
@@ -120,7 +120,7 @@ export default function GeneratorSheet({
             {r.etfVnd < 0
               ? `The amount is ${formatVnd(-r.etfVnd)} short of the allocations.`
               : 'Whatever is left after the fixed amounts.'}
-            {edited && ' Edits here apply to this cycle only - Settings is untouched.'}
+            {edited && ' Edits apply to this cycle only.'}
           </p>
         </section>
 

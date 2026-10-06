@@ -8,20 +8,20 @@ import { coveredOf, vnWallClock, widgetData } from '@/lib/widget';
 import type { Bucket, Cover, Transaction } from '@/types/fina';
 
 // ============================================================
-// GET /api/widget - số liệu cho widget Scriptable trên iPhone.
+// GET /api/widget - numbers for the Scriptable widget on iPhone.
 //
-// Widget không có cookie phiên, nên cổng ở đây là một token riêng
-// (WIDGET_TOKEN) gửi qua header Authorization. Token chỉ mở được đúng
-// endpoint này, và endpoint chỉ ĐỌC: lộ token thì người khác thấy được số
-// chi tiêu, không sửa được gì, không thấy lương. Đổi token trên Vercel là
-// thu hồi ngay.
+// The widget has no session cookie, so the gate here is a separate token
+// (WIDGET_TOKEN) in the Authorization header. It only opens this endpoint,
+// and the endpoint only READS: a leaked token shows spending numbers, but
+// cannot change anything and never shows salary. Changing the token on
+// Vercel revokes it at once.
 // ============================================================
 
 function fail(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-/** So sánh hằng thời gian. Băm trước để hai bên luôn cùng độ dài. */
+/** Constant-time compare. Hash first so both sides always have the same length. */
 function sameToken(a: string, b: string): boolean {
   const ha = createHash('sha256').update(a).digest();
   const hb = createHash('sha256').update(b).digest();
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const got = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (!got || !sameToken(got, expected)) return fail('Unauthorized.', 401);
 
-  // App chỉ có một người dùng: chủ của ALLOWED_USER_EMAIL.
+  // The app has one user: the owner of ALLOWED_USER_EMAIL.
   const email = process.env.ALLOWED_USER_EMAIL;
   if (!email) return fail('ALLOWED_USER_EMAIL is not set.', 503);
 

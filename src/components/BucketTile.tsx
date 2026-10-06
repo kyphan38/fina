@@ -5,8 +5,8 @@ import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
 
 /**
- * Ô bucket. Hiện số CÒN LẠI (budget) hoặc SỐ DƯ (fund), kèm vạch tiến độ
- * ở đáy - đọc được tình hình ngay lúc đang log, không phải mở báo cáo.
+ * Bucket tile. Shows what is LEFT (budget) or the BALANCE (fund), with a
+ * progress bar at the bottom - readable while logging, no report needed.
  */
 export default function BucketTile({
   bucket,
@@ -18,9 +18,9 @@ export default function BucketTile({
 }: {
   bucket: Bucket;
   spentVnd: number;
-  /** Phần đã rút khỏi bucket này để bù cho bucket khác (Buffer là chính). */
+  /** Amount taken from this bucket to cover another (mostly Buffer). */
   coveredVnd?: number;
-  /** Hạn mức đã đóng băng của chu kỳ. Bỏ trống thì lấy baseline. */
+  /** The cycle's frozen limit. Empty = use the baseline. */
   limitVnd?: number;
   selected: boolean;
   onSelect: () => void;
@@ -56,8 +56,8 @@ export default function BucketTile({
           className="block h-full"
           style={{
             width: `${over ? 100 : pct}%`,
-            // Vượt hạn mức thì mực đậm thắng màu nhận dạng: lúc đó cái cần
-            // biết là "đã lố", không phải "đây là bucket nào".
+            // Over the limit, strong ink beats the identity color: what matters
+            // then is "over", not "which bucket".
             background: selected
               ? 'var(--bg)'
               : over

@@ -1,16 +1,16 @@
 // ============================================================
-// fina - Widget iPhone cho app Scriptable
+// fina - iPhone widget for the Scriptable app
 //
-// Cài đặt:
-//  1. Cài Scriptable (App Store, miễn phí).
-//  2. Tạo script mới, dán toàn bộ file này vào, đặt tên "fina".
-//  3. Bấm ▶ chạy một lần trong app: nhập WIDGET_TOKEN. Token lưu trong
-//     Keychain của iPhone, không nằm trong script.
-//  4. Ra màn hình chính / màn hình khóa → thêm widget Scriptable →
-//     chọn script "fina".
+// Setup:
+//  1. Install Scriptable (App Store, free).
+//  2. Create a new script, paste this whole file, name it "fina".
+//  3. Tap ▶ once in the app: enter WIDGET_TOKEN. The token lives in the
+//     iPhone Keychain, not in the script.
+//  4. On the Home Screen / Lock Screen → add a Scriptable widget →
+//     pick the "fina" script.
 //
-// Hỗ trợ: nhỏ, vừa, màn hình khóa (chữ nhật và tròn).
-// Đổi token: chạy script trong app, chọn "Đổi token".
+// Sizes: small, medium, Lock Screen (rectangular and circular).
+// Change the token: run the script in the app, pick "Change token".
 // ============================================================
 
 const API = 'https://fina.kyphan38.com/api/widget';
@@ -24,9 +24,9 @@ const muted = Color.dynamic(new Color('#6b6b6b'), new Color('#9a9a9a'));
 const track = Color.dynamic(new Color('#e3e3e1'), new Color('#3a3a3a'));
 const bg = Color.dynamic(new Color('#ffffff'), new Color('#1c1c1e'));
 
-// ---------- dữ liệu ----------
+// ---------- data ----------
 
-/** 4_550_000 -> '4.550' (đơn vị nghìn, giống app). */
+/** 4_550_000 -> '4.550' (in thousands, like the app). */
 function k(vnd) {
   const n = Math.round(vnd / 1000);
   const s = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -36,10 +36,10 @@ function k(vnd) {
 async function askToken() {
   const a = new Alert();
   a.title = 'fina widget';
-  a.message = 'Dán WIDGET_TOKEN';
+  a.message = 'Paste WIDGET_TOKEN';
   a.addSecureTextField('token', '');
-  a.addAction('Lưu');
-  a.addCancelAction('Huỷ');
+  a.addAction('Save');
+  a.addCancelAction('Cancel');
   if ((await a.present()) === -1) return null;
   const t = a.textFieldValue(0).trim();
   if (!t) return null;
@@ -59,13 +59,13 @@ async function load(token) {
     fm.writeString(path, JSON.stringify(data));
     return { data, stale: false };
   } catch (e) {
-    // Mất mạng thì hiện số lần trước, đánh dấu là cũ - còn hơn ô trống.
+    // Offline: show the last numbers, marked old - better than an empty tile.
     if (fm.fileExists(path)) return { data: JSON.parse(fm.readString(path)), stale: true };
     return { error: String(e.message || e) };
   }
 }
 
-// ---------- vẽ ----------
+// ---------- drawing ----------
 
 function bar(width, ratio, height = 6) {
   const dc = new DrawContext();
@@ -110,7 +110,7 @@ function ring(size, ratio, line = 5) {
     dc.setLineWidth(line);
     dc.strokePath();
   };
-  // Màn hình khóa tự tô một màu, nên phần nền dùng màu mờ hơn.
+  // The Lock Screen tints everything one color, so the track uses a fainter one.
   arc(0, 1, new Color('#ffffff', 0.25));
   const r = Math.max(0, Math.min(1, ratio));
   if (r > 0) arc(0, r, Color.white());
@@ -126,7 +126,7 @@ function text(stack, s, size, color = ink, weight = 'regular') {
 }
 
 function header(stack, d, stale) {
-  text(stack, `fina · ngày ${d.day}/${d.totalDays}${stale ? ' · cũ' : ''}`, 11, muted);
+  text(stack, `fina · day ${d.day}/${d.totalDays}${stale ? ' · old' : ''}`, 11, muted);
 }
 
 function leftRatio(d) {
@@ -136,14 +136,14 @@ function leftRatio(d) {
 function small(w, d, stale) {
   header(w, d, stale);
   w.addSpacer();
-  text(w, 'Còn lại', 11, muted);
+  text(w, 'Left', 11, muted);
   const big = text(w, k(d.leftVnd), 30, ink, 'bold');
   big.minimumScaleFactor = 0.6;
-  text(w, `/ ${k(d.limitVnd)} nghìn`, 11, muted);
+  text(w, `/ ${k(d.limitVnd)}k`, 11, muted);
   w.addSpacer();
   w.addImage(bar(126, d.limitVnd > 0 ? d.spentVnd / d.limitVnd : 0)).imageSize = new Size(126, 6);
   w.addSpacer(6);
-  text(w, `~${k(d.perDayVnd)} / ngày còn lại`, 11, muted);
+  text(w, `~${k(d.perDayVnd)} / day left`, 11, muted);
 }
 
 function medium(w, d, stale) {
@@ -155,12 +155,12 @@ function medium(w, d, stale) {
   left.size = new Size(104, 0);
   header(left, d, stale);
   left.addSpacer();
-  text(left, 'Còn lại', 11, muted);
+  text(left, 'Left', 11, muted);
   const big = text(left, k(d.leftVnd), 26, ink, 'bold');
   big.minimumScaleFactor = 0.6;
-  text(left, `Đã tiêu ${k(d.spentVnd)}`, 11, muted);
+  text(left, `Spent ${k(d.spentVnd)}`, 11, muted);
   left.addSpacer();
-  text(left, `~${k(d.perDayVnd)} / ngày`, 11, muted);
+  text(left, `~${k(d.perDayVnd)} / day`, 11, muted);
 
   row.addSpacer(14);
 
@@ -202,7 +202,7 @@ function lockRect(w, d) {
   col.layoutVertically();
   const big = text(col, k(d.leftVnd), 18, Color.white(), 'bold');
   big.minimumScaleFactor = 0.6;
-  text(col, `còn lại · ~${k(d.perDayVnd)}/ngày`, 11, Color.white());
+  text(col, `left · ~${k(d.perDayVnd)}/day`, 11, Color.white());
 }
 
 function lockCircle(w, d) {
@@ -222,7 +222,7 @@ function message(w, s) {
   t.textColor = ink;
 }
 
-// ---------- chạy ----------
+// ---------- run ----------
 
 async function build(family) {
   const w = new ListWidget();
@@ -236,13 +236,13 @@ async function build(family) {
 
   const token = Keychain.contains(KEY) ? Keychain.get(KEY) : null;
   if (!token) {
-    message(w, 'Mở Scriptable và chạy script "fina" để nhập token.');
+    message(w, 'Open Scriptable and run the "fina" script to enter the token.');
     return w;
   }
 
   const res = await load(token);
   if (res.error) {
-    message(w, lock ? 'fina: lỗi' : `Không tải được.\n${res.error}`);
+    message(w, lock ? 'fina: error' : `Could not load.\n${res.error}`);
     return w;
   }
 
@@ -250,7 +250,7 @@ async function build(family) {
   if (family === 'medium' || family === 'large') medium(w, d, res.stale);
   else if (family === 'accessoryRectangular') lockRect(w, d);
   else if (family === 'accessoryCircular') lockCircle(w, d);
-  else if (family === 'accessoryInline') text(w, `fina ${k(d.leftVnd)} còn lại`, 12, Color.white());
+  else if (family === 'accessoryInline') text(w, `fina ${k(d.leftVnd)} left`, 12, Color.white());
   else small(w, d, res.stale);
   return w;
 }
@@ -258,14 +258,14 @@ async function build(family) {
 if (config.runsInWidget) {
   Script.setWidget(await build(config.widgetFamily));
 } else {
-  // Chạy trong app: lần đầu hỏi token, sau đó cho xem thử từng cỡ.
+  // Run in the app: ask for the token the first time, then preview each size.
   if (!Keychain.contains(KEY)) await askToken();
   const a = new Alert();
   a.title = 'fina widget';
-  a.addAction('Xem cỡ nhỏ');
-  a.addAction('Xem cỡ vừa');
-  a.addAction('Đổi token');
-  a.addCancelAction('Đóng');
+  a.addAction('Preview small');
+  a.addAction('Preview medium');
+  a.addAction('Change token');
+  a.addCancelAction('Close');
   const pick = await a.present();
   if (pick === 0) await (await build('small')).presentSmall();
   if (pick === 1) await (await build('medium')).presentMedium();

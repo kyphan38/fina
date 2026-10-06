@@ -1,22 +1,23 @@
 // ============================================================
-// fina - Đo tốc độ mở app
+// fina - Measuring app start speed
 //
-// Mốc phải đạt (roadmap nguyên tắc #12): từ chạm icon tới lúc gõ được số
-//   <= 1,5s khi app còn trong RAM
-//   <= 2,5s khi iOS đã kill app
+// Target (roadmap rule #12): from icon tap to being able to type a number
+//   <= 1.5s while the app is still in RAM
+//   <= 2.5s after iOS killed the app
 //
-// Hai lần trước đo sai, ghi lại để khỏi lặp:
+// The first two attempts measured wrong, noted here so it does not happen again:
 //
-//  1. Bản đầu đo ở lần chạm phím đầu tiên -> ra 28 giây, gần như toàn bộ là
-//     thời gian người dùng nhìn quanh.
-//  2. Bản thứ hai đo tới lúc numpad vẽ xong, nhưng vẫn ra 82s và 17s xen với
-//     1.02s. Vì iOS ĐÁNH THỨC PWA đang treo mà không tạo navigation mới:
-//     navigationStart vẫn là lần mở gốc, còn performance.now() đếm cả thời
-//     gian máy nằm trong túi.
+//  1. The first version measured at the first key tap -> 28 seconds, almost
+//     all of it the user looking around.
+//  2. The second measured until the numpad painted, but still gave 82s and
+//     17s mixed with 1.02s. Because iOS WAKES a suspended PWA without a new
+//     navigation: navigationStart is still the original open, and
+//     performance.now() counts the time the phone sat in a pocket.
 //
-// Nên bây giờ chỉ ghi mẫu nào mà trang LIÊN TỤC HIỂN THỊ từ lúc điều hướng
-// tới lúc numpad vẽ xong. Trang từng bị ẩn giữa chừng thì bỏ mẫu, và nói rõ
-// là đã bỏ bao nhiêu - im lặng vứt đi thì con số trông đẹp mà không thật.
+// So now a sample counts only if the page stayed VISIBLE THE WHOLE TIME from
+// navigation to numpad paint. If it was hidden at any point the sample is
+// dropped, and the count of dropped samples is shown - silently dropping them
+// makes the number look good but not true.
 // ============================================================
 
 const KEY = 'fina.startup';
@@ -24,9 +25,9 @@ const SKIPPED_KEY = 'fina.startupSkipped';
 const KEEP = 8;
 
 export interface StartupSample {
-  /** ms từ lúc bắt đầu điều hướng tới lúc numpad vẽ xong. */
+  /** ms from navigation start to numpad paint. */
   ms: number;
-  /** false = phục vụ từ cache (app còn ấm). true = tải thật qua mạng. */
+  /** false = served from cache (warm app). true = a real network load. */
   network: boolean;
   at: number;
 }
@@ -36,7 +37,7 @@ let cache: StartupSample[] | null = null;
 const EMPTY: StartupSample[] = [];
 const listeners = new Set<() => void>();
 
-// Trang có bị ẩn lúc nào trong lượt tải này không.
+// Whether the page was ever hidden during this load.
 let everHidden = typeof document !== 'undefined' && document.visibilityState !== 'visible';
 
 if (typeof document !== 'undefined') {
@@ -54,13 +55,12 @@ function bumpSkipped() {
   }
 }
 
-/** Gọi ngay sau khi khung nhập đã vẽ xong lần đầu. An toàn khi gọi nhiều lần. */
+/** Call right after the entry frame first paints. Safe to call many times. */
 export function markReady(): void {
   if (recorded) return;
   recorded = true;
 
-  // Hai khung hình: khung đầu là lúc trình duyệt bố trí, khung sau là lúc
-  // pixel thật sự lên màn hình.
+  // Two frames: the first is layout, the second is pixels actually on screen.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try {
@@ -84,7 +84,7 @@ export function markReady(): void {
         cache = next;
         listeners.forEach((fn) => fn());
       } catch {
-        // Không đo được thì thôi - đây là công cụ chẩn đoán, không phải tính năng.
+        // Cannot measure, never mind - this is a diagnostic tool, not a feature.
       }
     });
   });

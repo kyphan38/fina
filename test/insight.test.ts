@@ -21,21 +21,21 @@ const signals = computeSignals({
 });
 const digest = buildDigest(signals);
 
-test('digest gửi tiền theo NGHÌN, không gửi ghi chú hay ngày', () => {
+test('digest sends money in THOUSANDS, never notes or dates', () => {
   const food = digest.buckets.find((b) => b.name === 'Food')!;
   assert.equal(food.spent, 1_890);
   assert.equal(food.limit, 3_000);
   const json = JSON.stringify(digest);
-  assert.ok(!/note|occurredAt|bucketId/.test(json), 'digest lộ trường không được gửi');
+  assert.ok(!/note|occurredAt|bucketId/.test(json), 'digest leaks a field it must not send');
 });
 
-test('digestHash: cùng dữ liệu cùng hash, khác dữ liệu khác hash', () => {
+test('digestHash: same data same hash, different data different hash', () => {
   assert.equal(digestHash(digest), digestHash(buildDigest(signals)));
   const other: Digest = { ...digest, day: 10 };
   assert.notEqual(digestHash(digest), digestHash(other));
 });
 
-test('giữ câu chỉ nhắc số có trong digest', () => {
+test('keeps sentences that only mention numbers in the digest', () => {
   const r = sanitizeInsight(
     ['Food is at 1.890 of 3.000 on day 9 of 30.'],
     digest,
@@ -44,19 +44,19 @@ test('giữ câu chỉ nhắc số có trong digest', () => {
   assert.equal(r.dropped.length, 0);
 });
 
-test('vứt câu có con số model tự nghĩ ra', () => {
+test('drops sentences with numbers the model made up', () => {
   const r = sanitizeInsight(['Food is at 4.567 of 3.000.'], digest);
   assert.equal(r.kept.length, 0);
   assert.match(r.dropped[0].reason, /not in digest/);
 });
 
-test('vứt suy luận nhân quả', () => {
+test('drops causal claims', () => {
   const r = sanitizeInsight(['Food rose because you ate out more.'], digest);
   assert.equal(r.kept.length, 0);
   assert.equal(r.dropped[0].reason, 'causal claim');
 });
 
-test('vứt phán xét', () => {
+test('drops judgment', () => {
   for (const line of [
     'You should cut back on Food.',
     'That is too much for one cycle.',
@@ -68,31 +68,31 @@ test('vứt phán xét', () => {
   }
 });
 
-test('vứt mọi thứ dính tới lời khuyên đầu tư', () => {
+test('drops anything near investment advice', () => {
   const r = sanitizeInsight(['Consider putting more into your portfolio.'], digest);
   assert.equal(r.kept.length, 0);
   assert.equal(r.dropped[0].reason, 'investment advice');
 });
 
-test('vứt ngôn ngữ y khoa', () => {
+test('drops medical language', () => {
   const r = sanitizeInsight(['This pattern suggests burnout.'], digest);
   assert.equal(r.kept.length, 0);
   assert.equal(r.dropped[0].reason, 'medical language');
 });
 
-test('viết số kiểu nào cũng khớp, miễn giá trị có thật', () => {
+test('any number format matches, as long as the value is real', () => {
   for (const line of ['Food at 1.890.', 'Food at 1,890.', 'Food at 1890.']) {
     assert.equal(sanitizeInsight([line], digest).kept.length, 1, line);
   }
 });
 
-test('vứt hết là kết quả hợp lệ, không phải lỗi', () => {
+test('dropping everything is a valid result, not an error', () => {
   const r = sanitizeInsight(['You should spend less.', 'It rose because of travel.'], digest);
   assert.deepEqual(r.kept, []);
   assert.equal(r.dropped.length, 2);
 });
 
-test('allowedNumbers gồm cả phần trăm và tỉ số vượt hạn mức', () => {
+test('allowedNumbers includes percentages and over-limit ratios', () => {
   const a = allowedNumbers(digest);
   const food = digest.buckets.find((b) => b.name === 'Food')!;
   assert.ok(a.has(String(food.spent)));

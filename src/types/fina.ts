@@ -1,10 +1,10 @@
 // ============================================================
-// fina - Mô hình dữ liệu
+// fina - Data model
 //
-// Quy tắc bất biến (roadmap/ROADMAP.md):
-//  - Tiền LUÔN là số nguyên VND. UI nhập/hiện theo nghìn.
-//  - Chỉ hai loại hũ: budget (reset mỗi chu kỳ) và fund (cộng dồn).
-//  - Chu kỳ cắt ngày 25.
+// Invariants (roadmap/ROADMAP.md):
+//  - Money is ALWAYS integer VND. The UI types/shows thousands.
+//  - Only two bucket kinds: budget (resets each cycle) and fund (accumulates).
+//  - The cycle turns on the 25th.
 // ============================================================
 
 export const CYCLE_START_DAY = 25;
@@ -38,28 +38,28 @@ export interface Bucket {
   kind: BucketKind;
   bank: Bank;
   /**
-   * Mức chuẩn. Hiếm khi đổi. Dùng cho hai việc:
-   *  - mặc định khi MỞ chu kỳ mới
-   *  - điền sẵn Generator
-   * Không bao giờ tự chảy sang chu kỳ đang chạy.
+   * The standard amount. Rarely changes. Used for two things:
+   *  - the default when a new cycle OPENS
+   *  - prefilling the Generator
+   * Never flows into the running cycle by itself.
    */
   standardVnd: number;
-  /** Bucket này gồm những gì. Hiện khi chọn, tự ẩn khi bắt đầu gõ số. */
+  /** What this bucket covers. Shown when selected, hidden once typing starts. */
   hint: string | null;
   /**
-   * Chỉ dùng với kind='fund'. Denormalize để khỏi cộng lại toàn bộ lịch sử
-   * mỗi lần mở app. Có thể âm khi tiêu lố. Dựng lại được bằng
+   * Only for kind='fund'. Denormalized so the app does not re-add all history
+   * on each open. Can go negative on overspend. Rebuildable with
    * scripts/recompute-balances.mjs.
    */
   balanceVnd: number;
-  /** Thứ tự trên lưới. Cố định - không tự sắp theo tần suất. */
+  /** Order in the grid. Fixed - never auto-sorted by frequency. */
   order: number;
   active: boolean;
   /**
-   * Tiêu rải đều trong tháng hay tiêu theo cục.
+   * Spent evenly through the month, or in lumps.
    *
-   * Chỉ bucket "đều" mới so được với nhịp tuyến tính. Health và Purchases đến
-   * theo cục - so với nhịp đều sẽ báo động giả liên tục cho tới khi bị bỏ qua.
+   * Only "even" buckets compare with a linear pace. Health and Purchases come
+   * in lumps - against an even pace they raise false alarms until ignored.
    */
   evenlySpent: boolean;
   /**
@@ -72,13 +72,13 @@ export interface Bucket {
 }
 
 /**
- * `allocation` là khoản chia lương vào quỹ ngày 25 - chuyển tiền giữa hai hũ
- * của chính mình, không phải chi tiêu.
+ * `allocation` is the salary split into funds on the 25th - moving money
+ * between two of your own buckets, not spending.
  *
- * `opening` là số dư quỹ có sẵn trước khi app bắt đầu. Nó là TRẠNG THÁI BAN
- * ĐẦU, không phải dòng tiền của chu kỳ nào - phải nằm ngoài mọi phép tính
- * In/Out/Invested, nếu không chu kỳ chứa nó sẽ hiện `Invested 177.714` với
- * `In 0` và `Left` âm.
+ * `opening` is a fund balance that existed before the app. It is the STARTING
+ * STATE, not any cycle's cash flow - it must stay out of every In/Out/Invested
+ * sum, or the cycle containing it shows `Invested 177.714` with `In 0` and a
+ * negative `Left`.
  */
 /*
  * `move` moves money between two of your funds (Purchases to Phone). Like
@@ -87,12 +87,12 @@ export interface Bucket {
 export type TxSource = 'web' | 'import' | 'allocation' | 'opening' | 'move';
 
 /**
- * Chiều của tiền.
+ * Direction of the money.
  *
- * `out` là mặc định - hầu hết giao dịch là tiền đi ra.
- * `in` dùng cho hai chuyện: được hoàn lại (ứng tiền đi picnic rồi bạn bè trả
- * lại), và nạp ETF. Trước đây ETF bị hard-code theo id ở tx-edit.ts; có
- * field này thì cái ngoại lệ đó biến mất.
+ * `out` is the default - most transactions are money going out.
+ * `in` is for two things: refunds (you paid for a picnic and friends paid you
+ * back), and ETF top-ups. ETF used to be hardcoded by id in tx-edit.ts; this
+ * field removes that exception.
  */
 export type TxDirection = 'out' | 'in';
 
@@ -100,20 +100,20 @@ export type TxDirection = 'out' | 'in';
 export interface Transaction {
   id: string;
   occurredAt: number;
-  /** '2026-09' - field query chính. */
+  /** '2026-09' - the main query field. */
   cycle: string;
   bucketId: string;
-  /** CHÉP từ bucket lúc lưu. Bucket đổi ngân hàng thì lịch sử vẫn đúng. */
+  /** COPIED from the bucket on save. If the bucket changes bank, history stays right. */
   bank: Bank;
-  /** Số nguyên VND, LUÔN DƯƠNG. Chiều nằm ở `direction`, không nằm ở dấu. */
+  /** Integer VND, ALWAYS POSITIVE. Direction lives in `direction`, not the sign. */
   amountVnd: number;
   direction: TxDirection;
   note: string | null;
   source: TxSource;
   /**
-   * Chỉ có ở giao dịch nhập từ ảnh MoMo: khoá chống trùng của từng dòng đã
-   * gộp vào đây ('2026-10-04 13:57 out 25000'). Không chứa tên người nhận.
-   * Xem lib/momo-import.ts.
+   * Only on transactions imported from MoMo screenshots: the dedup key of each
+   * row merged into it ('2026-10-04 13:57 out 25000'). Never holds a payee name.
+   * See lib/momo-import.ts.
    */
   importKeys?: string[];
   /**
@@ -128,21 +128,20 @@ export interface Transaction {
 export type CycleStatus = 'open' | 'closed';
 export type SurplusTarget = 'etf' | 'reserve' | 'hold';
 
-/** Firestore: users/{uid}/cycles/{cycleId} - id là '2026-09' */
+/** Firestore: users/{uid}/cycles/{cycleId} - id is '2026-09' */
 export interface Cycle {
   id: string;
   startAt: number;
   endAt: number;
-  /** Đóng băng lúc mở chu kỳ. Sửa baseline không đụng chu kỳ đang chạy. */
+  /** Frozen when the cycle opens. Editing the baseline never touches the running cycle. */
   limits: Record<string, number>;
   status: CycleStatus;
   closedAt: number | null;
   surplusVnd: number | null;
   surplusTo: SurplusTarget | null;
   /**
-   * Chụp lại lúc đóng sổ: chi tiêu ròng theo từng bucket. Có nó thì Insights
-   * vẽ được xu hướng 6 chu kỳ mà chỉ đọc 6 document, không phải vài nghìn
-   * giao dịch.
+   * Snapshot at closing: net spending per bucket. With it, Insights draws a
+   * 6-cycle trend by reading 6 documents, not thousands of transactions.
    */
   closedTotals: { byBucket: Record<string, number> } | null;
 }
@@ -150,17 +149,17 @@ export interface Cycle {
 /**
  * Firestore: users/{uid}/salary/{cycleId}
  *
- * Collection RIÊNG, không nằm trong `transactions` hay chu kỳ: lương là con
- * số cần che, và để nó lẫn vào dữ liệu chi tiêu thì mọi màn hình đều có nguy
- * cơ vô tình hiện nó ra.
+ * A SEPARATE collection, not in `transactions` or cycles: salary is a number
+ * to hide, and mixing it into spending data puts every screen at risk of
+ * showing it by accident.
  */
 export interface Salary {
   /**
-   * '2026-09' - cũng chính là id document, và là THÁNG DƯƠNG LỊCH, KHÔNG
-   * phải chu kỳ cắt ngày 25 của phần chi tiêu.
+   * '2026-09' - also the document id, and a CALENDAR MONTH, NOT the
+   * spending cycle that turns on the 25th.
    *
-   * Lương nhận ngày 25/09 là lương tháng 9. Dùng `cycleOf` ở đây thì đúng
-   * ngày lĩnh lương nó nhảy sang '2026-10' và mọi tháng bị ghi lệch một ô.
+   * Salary received on 25/09 is September's salary. With `cycleOf` it would
+   * jump to '2026-10' on payday and every month would land one slot off.
    */
   month: string;
   amountVnd: number;
@@ -177,14 +176,14 @@ export interface Cover {
   cycle: string;
   toBucketId: string;
   fromBucketId: string;
-  /** Tên hiển thị chụp lại lúc tạo, để dải nhắc gọi đúng tên hai đầu mà
-   *  không phải nghe thêm một listener bucket nào. Bản ghi cũ không có thì
-   *  rơi về id. */
+  /** Display names captured at creation, so the reminder strip names both
+   *  ends without another bucket listener. Old records without them fall
+   *  back to the id. */
   toName: string;
   fromName: string;
-  /** Chỉ phần vượt, không phải cả giao dịch. */
+  /** Only the overage, not the whole transaction. */
   amountVnd: number;
-  /** true khi hai đầu khác ngân hàng - cần chuyển khoản thật. */
+  /** true when the two ends are in different banks - a real transfer is needed. */
   needsTransfer: boolean;
   status: CoverStatus;
   createdAt: number;
@@ -210,10 +209,10 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 // ------------------------------------------------------------
-// Bộ hũ khởi tạo
+// Starting buckets
 //
-// Baseline lấy từ trung bình 5 chu kỳ thật (Apr-Aug 2026) trong
-// Budget.numbers, làm tròn lên. Xem roadmap/ROADMAP.md.
+// Baselines from the average of 5 real cycles (Apr-Aug 2026) in
+// Budget.numbers, rounded up. See roadmap/ROADMAP.md.
 // ------------------------------------------------------------
 
 export type SeedBucket = Pick<
@@ -221,11 +220,11 @@ export type SeedBucket = Pick<
   'id' | 'name' | 'kind' | 'bank' | 'standardVnd' | 'hint' | 'order' | 'evenlySpent'
 >;
 
-// Viết thẳng số nguyên, KHÔNG nhân với số thực: 4.1 * 1_000_000 trong JS ra
-// 4099999.9999999995, và Firestore rules chặn baselineVnd không phải int.
-// Chính money.ts đã cảnh báo chuyện này - nó cũng đúng với dữ liệu seed.
+// Write integers directly, NEVER multiply by floats: in JS 4.1 * 1_000_000 is
+// 4099999.9999999995, and Firestore rules reject a non-int baselineVnd.
+// money.ts warns about this too - it applies to seed data as well.
 export const SEED_BUCKETS: SeedBucket[] = [
-  // --- VCB, reset mỗi chu kỳ. Thứ tự theo SỐ LẦN LOG, không theo số tiền. ---
+  // --- VCB, reset each cycle. Ordered by HOW OFTEN logged, not by amount. ---
   {
     id: 'food', name: 'Food', kind: 'budget', bank: 'VCB',
     standardVnd: 3_000_000, order: 10, evenlySpent: true,
@@ -257,9 +256,9 @@ export const SEED_BUCKETS: SeedBucket[] = [
     hint: 'Odds and ends, and the cushion when a bucket runs over',
   },
 
-  // --- BIDV, cộng dồn ---
+  // --- BIDV, accumulating ---
   {
-    // id giữ nguyên 'healthFund' để lịch sử không đứt, chỉ đổi tên hiển thị.
+    // The id stays 'healthFund' so history is unbroken; only the display name changed.
     id: 'healthFund', name: 'Health', kind: 'fund', bank: 'BIDV',
     standardVnd: 3_000_000, order: 70, evenlySpent: false,
     hint: 'Scar treatment, laser, acne clinic, consultations',
@@ -286,7 +285,7 @@ export const SEED_BUCKETS: SeedBucket[] = [
   },
 
   // --- VPS ---
-  // Phần dư sau khi phân bổ, nên baseline = 0.
+  // What is left after allocation, so the baseline = 0.
   {
     id: 'etf', name: 'ETF', kind: 'fund', bank: 'VPS',
     standardVnd: 0, order: 120, evenlySpent: false,

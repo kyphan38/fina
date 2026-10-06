@@ -28,36 +28,36 @@ const tx = (over: Partial<Transaction>): Transaction => ({
   createdAt: 0, updatedAt: 0, ...over,
 });
 
-test('parseWhen - năm lấy theo hôm nay', () => {
+test('parseWhen - the year comes from today', () => {
   assert.equal(parseWhen('04/10', '13:57', NOW), new Date(2026, 9, 4, 13, 57).getTime());
 });
 
-test('parseWhen - ngày ở tương lai thì lùi một năm', () => {
+test('parseWhen - a future date steps back a year', () => {
   const jan = new Date(2027, 0, 3, 9, 0);
   assert.equal(parseWhen('28/12', '20:00', jan), new Date(2026, 11, 28, 20, 0).getTime());
 });
 
-test('parseWhen - chữ đọc sai thì trả null, không đoán', () => {
+test('parseWhen - a misread returns null, no guessing', () => {
   assert.equal(parseWhen('31/02', '10:00', NOW), null);
   assert.equal(parseWhen('4-10', '10:00', NOW), null);
   assert.equal(parseWhen('04/10', '25:00', NOW), null);
 });
 
-test('flagOf - tiền về tài khoản mình và tiền vào', () => {
+test('flagOf - money to your own account and money in', () => {
   assert.equal(flagOf('Hoàn tiền về Vietcombank', -80_000), 'self');
   assert.equal(flagOf('Rút tiền về VCB', -100_000), 'self');
   assert.equal(flagOf('Nhận tiền từ A', 50_000), 'income');
   assert.equal(flagOf('Thanh toán cho LE THANH NHO (Vietcombank)', -38_000), null);
-  // Nạp tiền điện thoại là chi tiêu thật
+  // Phone top-up ("Nạp tiền điện thoại") is real spending
   assert.equal(flagOf('Nạp tiền điện thoại Viettel', -50_000), null);
 });
 
-test('mergeScreenshots - dòng chồng giữa hai ảnh chỉ tính một lần', () => {
+test('mergeScreenshots - a row overlapping two images counts once', () => {
   const a = [
     raw('Chuyển đến NGUYEN THI LANG (MBBank)', -25_000, '13:57', '04/10'),
     raw('Thanh toán cho LE THANH NHO (Vietcombank)', -38_000, '12:08', '03/10'),
   ];
-  // Ảnh sau cắt tên khác đi, nhưng vẫn là cùng một dòng
+  // The next image truncates the name differently, but it is the same row
   const b = [
     raw('Thanh toán cho LE THANH NHO (Vietcom…', -38_000, '12:08', '03/10'),
     raw('Thanh toán cho NGUYEN THI LANG (MBBank)', -30_000, '09:09', '03/10'),
@@ -65,12 +65,12 @@ test('mergeScreenshots - dòng chồng giữa hai ảnh chỉ tính một lần'
   const r = mergeScreenshots([a, b], NOW);
   assert.equal(r.rows.length, 3);
   assert.equal(r.overlapCount, 1);
-  // Mới nhất trước, như MoMo
+  // Newest first, like MoMo
   assert.deepEqual(r.rows.map((x) => x.amountVnd), [25_000, 38_000, 30_000]);
   assert.ok(r.rows.every((x) => x.bucketId === 'food' && x.direction === 'out'));
 });
 
-test('mergeScreenshots - hai dòng giống hệt TRONG một ảnh là hai giao dịch thật', () => {
+test('mergeScreenshots - two identical rows INSIDE one image are two real transactions', () => {
   const a = [raw('X', -15_000, '08:10', '02/10'), raw('X', -15_000, '08:10', '02/10')];
   const b = [raw('X', -15_000, '08:10', '02/10')];
   const r = mergeScreenshots([a, b], NOW);
@@ -79,13 +79,13 @@ test('mergeScreenshots - hai dòng giống hệt TRONG một ảnh là hai giao 
   assert.equal(r.overlapCount, 1);
 });
 
-test('mergeScreenshots - dòng không đọc được bị đếm và bỏ', () => {
+test('mergeScreenshots - unreadable rows are counted and dropped', () => {
   const r = mergeScreenshots([[raw('X', -15_000, '??', '02/10')]], NOW);
   assert.equal(r.rows.length, 0);
   assert.equal(r.unreadable, 1);
 });
 
-test('checkAgainstExisting - đã import trước thì tách ra', () => {
+test('checkAgainstExisting - already imported rows are split off', () => {
   const { rows } = mergeScreenshots(
     [[raw('A', -25_000, '13:57', '04/10'), raw('B', -30_000, '09:09', '03/10')]],
     NOW,
@@ -100,7 +100,7 @@ test('checkAgainstExisting - đã import trước thì tách ra', () => {
   assert.deepEqual(r.kept.map((x) => x.title), ['B']);
 });
 
-test('checkAgainstExisting - giống giao dịch nhập tay thì giữ, chỉ gắn nhãn, mỗi cái một lần', () => {
+test('checkAgainstExisting - like a hand-entered transaction: kept, only labeled, once each', () => {
   const { rows } = mergeScreenshots(
     [[raw('A', -35_000, '12:00', '04/10'), raw('B', -35_000, '11:50', '04/10')]],
     NOW,
@@ -114,7 +114,7 @@ test('checkAgainstExisting - giống giao dịch nhập tay thì giữ, chỉ g�
   assert.equal(r.kept[1].flag, null);
 });
 
-test('checkAgainstExisting - lệch quá 3 giờ thì không coi là giống', () => {
+test('checkAgainstExisting - more than 3 hours apart is not alike', () => {
   const { rows } = mergeScreenshots([[raw('A', -35_000, '08:00', '04/10')]], NOW);
   const manual = tx({ amountVnd: 35_000, occurredAt: new Date(2026, 9, 4, 12, 0).getTime() });
   assert.equal(checkAgainstExisting(rows, [manual]).kept[0].flag, null);
@@ -126,7 +126,7 @@ const row = (over: Partial<ImportRow>): ImportRow => ({
   flag: null, lookalike: null, ...over,
 });
 
-test('buildDrafts - gộp theo mục, dòng có note giữ riêng', () => {
+test('buildDrafts - groups by bucket, rows with a note stay separate', () => {
   const rows = [
     row({ key: 'a', amountVnd: 25_000 }),
     row({ key: 'b', amountVnd: 38_000, occurredAt: new Date(2026, 9, 4, 9, 0).getTime() }),
@@ -143,7 +143,7 @@ test('buildDrafts - gộp theo mục, dòng có note giữ riêng', () => {
   assert.ok(d.some((x) => x.bucketId === 'social' && x.note === null));
 });
 
-test('buildDrafts - gộp tách theo chu kỳ (ngày 24 và 25)', () => {
+test('buildDrafts - groups split by cycle (the 24th and 25th)', () => {
   const rows = [
     row({ key: 'a', occurredAt: new Date(2026, 9, 24, 20, 0).getTime() }),
     row({ key: 'b', occurredAt: new Date(2026, 9, 25, 8, 0).getTime() }),
@@ -151,12 +151,12 @@ test('buildDrafts - gộp tách theo chu kỳ (ngày 24 và 25)', () => {
   assert.equal(buildDrafts(rows, true).length, 2);
 });
 
-test('buildDrafts - tiền vào không gộp chung với tiền ra', () => {
+test('buildDrafts - money in is never grouped with money out', () => {
   const rows = [row({ key: 'a' }), row({ key: 'b', direction: 'in' })];
   assert.equal(buildDrafts(rows, true).length, 2);
 });
 
-test('buildDrafts - tách từng dòng giữ đủ note', () => {
+test('buildDrafts - split rows keep their full note', () => {
   const rows = [row({ key: 'a' }), row({ key: 'b', note: ' trà ' })];
   const d = buildDrafts(rows, false);
   assert.equal(d.length, 2);
@@ -164,19 +164,19 @@ test('buildDrafts - tách từng dòng giữ đủ note', () => {
   assert.ok(d.some((x) => x.note === null));
 });
 
-test('parseAmountText - chữ tiền MoMo ra số có dấu', () => {
+test('parseAmountText - MoMo amount text to a signed number', () => {
   assert.equal(parseAmountText('-330.000đ'), -330_000);
   assert.equal(parseAmountText('-11.200đ'), -11_200);
   assert.equal(parseAmountText('+1.200.000đ'), 1_200_000);
   assert.equal(parseAmountText('\u2212 25.000 ₫'), -25_000);
-  // Không có dấu: MoMo luôn in '+' cho tiền vào, nên đây là tiền ra
+  // No sign: MoMo always prints '+' for money in, so this is money out
   assert.equal(parseAmountText('50.000đ'), -50_000);
   assert.equal(parseAmountText('-25.5đ'), null);
   assert.equal(parseAmountText('-0đ'), null);
   assert.equal(parseAmountText('abc'), null);
 });
 
-test('sanitizeRows - bỏ dòng sai hình dạng', () => {
+test('sanitizeRows - drops badly shaped rows', () => {
   const out = sanitizeRows({
     rows: [
       { title: 'ok', amount: '-25.000đ', time: '13:57', date: '04/10' },
@@ -190,13 +190,13 @@ test('sanitizeRows - bỏ dòng sai hình dạng', () => {
   assert.deepEqual(sanitizeRows('nonsense'), []);
 });
 
-test('appendRows - upload thêm ảnh: dòng đã có trong bảng không lặp lại', () => {
+test('appendRows - more images: rows already in the table do not repeat', () => {
   const first = mergeScreenshots([[raw('A', -25_000, '13:57', '04/10'), raw('B', -35_000, '21:14', '03/10')]], NOW).rows;
   const more = mergeScreenshots([[raw('B', -35_000, '21:14', '03/10'), raw('C', -15_000, '08:10', '02/10')]], NOW).rows;
   assert.deepEqual(appendRows(first, more).map((r) => r.title), ['C']);
 });
 
-test('appendRows - khoá có thêm bản thứ hai thì thêm, với id mới không trùng', () => {
+test('appendRows - a key with a second copy is added, with a new unique id', () => {
   const first = mergeScreenshots([[raw('X', -15_000, '08:10', '02/10')]], NOW).rows;
   const more = mergeScreenshots([[raw('X', -15_000, '08:10', '02/10'), raw('X', -15_000, '08:10', '02/10')]], NOW).rows;
   const added = appendRows(first, more);

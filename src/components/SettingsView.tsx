@@ -42,8 +42,8 @@ export default function SettingsView({ email }: { email: string | null }) {
       const result = await seedBuckets(uid);
       setMsg(result === 'seeded' ? 'Buckets created.' : 'Buckets already exist - nothing changed.');
     } catch (err) {
-      // Hiện nguyên mã lỗi Firestore. 'permission-denied' nghĩa là rules từ
-      // chối dữ liệu, không phải mất mạng - hai chuyện cần sửa khác hẳn nhau.
+      // Show the raw Firestore error code. 'permission-denied' means the rules
+      // rejected the data, not a network problem - two very different fixes.
       const code = (err as { code?: string })?.code ?? 'unknown';
       setMsg(`Could not write buckets (${code}).`);
     } finally {
@@ -78,8 +78,8 @@ export default function SettingsView({ email }: { email: string | null }) {
   const saveStandard = async (bucket: Bucket, raw: string) => {
     if (!uid) return;
     const trimmed = raw.trim();
-    // 0 là giá trị hợp lệ cho standard (ETF), nhưng toVnd() từ chối số 0 vì
-    // nó dùng cho số tiền giao dịch. Xử lý riêng ở đây.
+    // 0 is a valid standard (ETF), but toVnd() rejects 0 because it is meant
+    // for transaction amounts. Handled separately here.
     const vnd = trimmed === '0' || trimmed === '' ? 0 : toVnd(trimmed);
     if (vnd === null || vnd === bucket.standardVnd) return;
     await updateBucket(uid, bucket.id, { standardVnd: vnd });
@@ -99,7 +99,7 @@ export default function SettingsView({ email }: { email: string | null }) {
       </Card>
 
       <Card title="Theme">
-        {/* Lựa chọn hiện tại là chữ đậm, còn lại là chữ mờ bấm được. */}
+        {/* The current choice is bold, the others are faint and clickable. */}
         <div className="flex gap-4 text-sm" role="radiogroup" aria-label="Theme">
           {(['system', 'light', 'dark'] as const satisfies readonly Theme[]).map((t) => (
             <button
@@ -118,17 +118,13 @@ export default function SettingsView({ email }: { email: string | null }) {
 
       <Card title="Standard amounts">
         <p className="mb-3 text-sm text-muted">
-          Your normal amounts. They open each new cycle and fill in the Generator, and
-          they should hardly ever change. To adjust one month only, edit it in the
-          Generator or use <span className="font-medium text-ink">Edit limits</span> on
-          Summary.
+          Defaults for each new cycle. For one month only, use Generator.
         </p>
 
         {buckets.length === 0 ? (
           <>
             <p className="mb-3 text-sm text-muted">
-              No buckets yet. This writes the twelve starting buckets. Running it again
-              changes nothing.
+              No buckets yet. Creates the 12 starting ones.
             </p>
             <button
               type="button"
@@ -141,7 +137,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           </>
         ) : (
           <>
-          <p className="mb-2 text-[11px] text-faint">Tap a name to see or edit what belongs in it.</p>
+          <p className="mb-2 text-[11px] text-faint">Tap a name to edit.</p>
           <ul className="flex flex-col divide-y divide-line">
             {/* Goals have their own card below. */}
             {buckets.filter((b) => !isGoal(b)).map((b) => (
@@ -167,8 +163,8 @@ export default function SettingsView({ email }: { email: string | null }) {
                   />
                 </div>
 
-                {/* Bong bóng chỉa lên đúng cái tên vừa bấm. Chỉ hiện khi hỏi,
-                    nên không chiếm chỗ của 11 dòng còn lại. */}
+                {/* The bubble points up at the name just tapped. Only shown when
+                    asked, so it takes no room from the other 11 rows. */}
                 {openHint === b.id && uid && <HintBubble uid={uid} bucket={b} />}
               </li>
             ))}
@@ -208,10 +204,7 @@ export default function SettingsView({ email }: { email: string | null }) {
               ))}
             </ul>
             <p className="mt-2 text-xs text-faint">
-              Measured to the frame the keypad is painted, and only while the app stayed
-              visible the whole time. Waking a suspended app is not a page load, so those
-              runs are dropped{skipped > 0 ? ` - ${skipped} so far` : ''}. Target: 1.50s
-              warm, 2.50s after iOS kills the app.
+              Target: 1.50s warm, 2.50s cold.{skipped > 0 ? ` ${skipped} runs dropped.` : ''}
             </p>
             <button
               type="button"
@@ -228,7 +221,7 @@ export default function SettingsView({ email }: { email: string | null }) {
 
       <Card title="Backup">
         <p className="mb-3 text-sm text-muted">
-          Firestore does not back this up for you. Export is the whole safety net.
+          Export is your only backup.
         </p>
         <div className="flex gap-2">
           <button
@@ -252,19 +245,16 @@ export default function SettingsView({ email }: { email: string | null }) {
           <p className="mt-3 text-xs font-medium text-over">Last export was {stale} days ago.</p>
         )}
         <p className="mt-3 text-xs text-faint">
-          Restoring is at{' '}
           <Link href="/settings/restore" className="underline">
-            /settings/restore
+            Restore
           </Link>
-          . It only adds what is missing - it never overwrites or deletes.
         </p>
       </Card>
 
-      {/* Không có tab riêng ở thanh dưới và không nói nó chứa gì: ai cầm
-          điện thoại lúc app đang mở sẵn cũng không thấy chữ "salary" ở đâu.
-          Trang đó tự khoá bằng mật khẩu. */}
+      {/* No tab in the bottom bar and no hint of what it holds: someone holding
+          the phone while the app is open never sees the word "salary".
+          That page locks itself with a password. */}
       <p className="text-xs text-muted">
-        Stage 4. Reminders and AI insights arrive later.{' '}
         <Link href="/salary" className="text-faint underline">
           More
         </Link>

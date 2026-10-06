@@ -29,15 +29,15 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
     bucketId: String(data.bucketId ?? ''),
     bank: (data.bank as Transaction['bank']) ?? 'VCB',
     amountVnd: Number(data.amountVnd ?? 0),
-    // Bản ghi cũ chưa có `direction`. ETF vốn là tiền đi vào, còn lại đi ra.
+    // Old records have no `direction`. ETF was always money in, the rest money out.
     direction:
       data.direction === 'in' || (data.direction == null && data.bucketId === 'etf')
         ? 'in'
         : 'out',
     note: (data.note as string | null) ?? null,
-    // Quên 'allocation' ở đây làm mọi khoản chia lương vào quỹ bị tính là chi
-    // tiêu (thực ra là bị TRỪ, vì chúng có direction 'in'), và bảng Cash flow
-    // hiện Out −6.685 trong khi thật ra là +3.815.
+    // Forgetting 'allocation' here counts every salary split into funds as
+    // spending (actually SUBTRACTS it, since they have direction 'in'), and the
+    // Cash flow table shows Out −6.685 when it is really +3.815.
     source:
       data.source === 'import' ||
       data.source === 'allocation' ||
@@ -53,8 +53,8 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
 }
 
 /**
- * MỘT query cho cả chu kỳ, không phải một query mỗi bucket.
- * Firestore free tier có 50k lượt đọc/ngày; rò listener là cách nhanh nhất đốt hết.
+ * ONE query for the whole cycle, not one per bucket.
+ * Firestore's free tier has 50k reads/day; a leaked listener is the fastest way to burn them.
  */
 export function watchCycleTransactions(
   uid: string,
@@ -68,11 +68,11 @@ export function watchCycleTransactions(
 }
 
 /**
- * Ghi một giao dịch. Với bucket dạng fund thì trừ luôn balanceVnd trong
- * CÙNG một batch - hai lệnh ghi rời sẽ có lúc lệch nhau.
+ * Writes a transaction. For a fund bucket, balanceVnd is reduced in the SAME
+ * batch - two separate writes would sometimes disagree.
  *
- * Trả về id sinh ở client và mốc thời gian đã dùng, nên component không phải
- * tự gọi Date.now() trong lúc render (React 19 cấm).
+ * Returns the client-generated id and the timestamp used, so components do
+ * not call Date.now() during render (React 19 forbids it).
  */
 export async function addTransaction(
   uid: string,
@@ -91,8 +91,8 @@ export async function addTransaction(
     occurredAt,
     cycle: cycleOf(new Date(occurredAt)),
     bucketId: bucket.id,
-    // Chép ngân hàng vào record. Bucket đổi ngân hàng sau này thì lịch sử
-    // cũ vẫn nói đúng chuyện đã xảy ra.
+    // Copy the bank onto the record. If the bucket changes bank later, old
+    // history still tells what really happened.
     bank: bucket.bank,
     amountVnd,
     direction,
@@ -114,11 +114,11 @@ export async function addTransaction(
 }
 
 /**
- * Nạp tay vào một quỹ giữa chu kỳ - ví dụ khoản thưởng để dành mua xe.
+ * Manual mid-cycle top-up of a fund - e.g. a bonus saved for a car.
  *
- * Mang `source: 'allocation'` như khoản chia lương ngày 25, vì nó cũng là
- * chuyển tiền VCB sang BIDV chứ không phải chi tiêu. Id sinh ngẫu nhiên nên
- * `applyCyclePlan` không đụng tới nó khi chạy lại.
+ * Carries `source: 'allocation'` like the salary split on the 25th, since it
+ * is also a VCB to BIDV move, not spending. The id is random, so
+ * `applyCyclePlan` does not touch it on rerun.
  */
 export async function addFundTopUp(
   uid: string,
@@ -207,8 +207,8 @@ export async function deleteMove(uid: string, legs: Transaction[]): Promise<void
 }
 
 /**
- * Nạp tiền vào ETF. Chỉ là một giao dịch `in` như mọi khoản được hoàn khác -
- * không còn ngoại lệ riêng cho ETF ở đâu nữa.
+ * Tops up ETF. Just an `in` transaction like any refund - no special case
+ * for ETF anywhere anymore.
  */
 export async function addEtfDeposit(
   uid: string,
@@ -221,13 +221,13 @@ export async function addEtfDeposit(
 }
 
 /**
- * Tổng đã tiêu RÒNG theo từng bucket: chi trừ đi phần được hoàn.
+ * NET spent per bucket: spending minus refunds.
  *
- * Ứng 1.500 tiền picnic rồi bạn bè trả lại 1.000 thì phần bạn thật sự tiêu
- * là 500 - đó mới là con số hạn mức cần so.
+ * Paying 1.500 for a picnic and getting 1.000 back means you really spent
+ * 500 - that is the number to compare with the limit.
  *
- * Tính ở client, KHÔNG denormalize: Stage 4 cho sửa giao dịch, một tổng lưu
- * sẵn sẽ lệch ngay lần sửa đầu tiên.
+ * Computed on the client, NOT denormalized: Stage 4 allows editing
+ * transactions, and a stored total would drift on the first edit.
  */
 export function spentByBucket(txs: Transaction[]): Record<string, number> {
   const out: Record<string, number> = {};
@@ -240,7 +240,7 @@ export function spentByBucket(txs: Transaction[]): Record<string, number> {
   return out;
 }
 
-/** Danh sách giao dịch của một chu kỳ, mới nhất trước. Một query. */
+/** A cycle's transactions, newest first. One query. */
 export async function listCycleTransactions(
   uid: string,
   cycle: string,
@@ -261,12 +261,13 @@ export interface TxPatch {
 }
 
 /**
- * Sửa một giao dịch. Ghi bản mới và mọi chỉnh số dư quỹ trong CÙNG một batch -
- * hai lệnh ghi rời sẽ có lúc số dư không khớp với lịch sử.
+ * Edits a transaction. Writes the new version and every fund balance change
+ * in the SAME batch - separate writes would sometimes leave balances out of
+ * step with history.
  *
- * `occurredAt` đi qua mốc ngày 25 thì `cycle` được tính lại. Chỉ đổi một
- * field; tổng của cả hai chu kỳ tự đúng vì `spent` được cộng ở client theo
- * từng chu kỳ.
+ * If `occurredAt` crosses the 25th, `cycle` is recomputed. Only one field
+ * changes; both cycles' totals stay right because `spent` is summed on the
+ * client per cycle.
  */
 export async function updateTransaction(
   uid: string,
@@ -312,8 +313,8 @@ export async function updateTransaction(
 }
 
 /**
- * Xoá hẳn. Khác với bucket (chỉ tắt `active`) - một khoản chi ghi nhầm
- * không có giá trị lịch sử nào, giữ lại chỉ làm mọi tổng sai.
+ * Hard delete. Unlike buckets (only `active` turned off) - a mistyped expense
+ * has no history value, keeping it only makes every total wrong.
  */
 export async function deleteTransaction(
   uid: string,
@@ -342,8 +343,8 @@ export async function deleteTransaction(
 }
 
 /**
- * Mọi giao dịch có `occurredAt` trong [fromMs, toMs]. Một query theo một
- * field - Firestore tự có index, không cần khai báo thêm.
+ * Every transaction with `occurredAt` in [fromMs, toMs]. One single-field
+ * query - Firestore indexes it automatically, nothing to declare.
  */
 export async function listTransactionsBetween(
   uid: string,

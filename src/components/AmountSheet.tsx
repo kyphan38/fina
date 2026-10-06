@@ -6,10 +6,10 @@ import Numpad from '@/components/Numpad';
 import { pressKey, toVnd } from '@/lib/money';
 
 /**
- * Sheet nhập một số tiền, dùng chung numpad với màn hình Log.
- * Cùng một cách gõ ở mọi nơi trong app - không có chỗ nào bắt dùng bàn phím iOS.
+ * Sheet for entering one amount, with the same numpad as the Log screen.
+ * One way of typing everywhere in the app - never the iOS keyboard.
  */
-/** yyyy-mm-ddThh:mm cho <input type="datetime-local"> theo giờ máy. */
+/** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
 function toLocalInput(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -27,7 +27,7 @@ export default function AmountSheet({
 }: {
   title: string;
   confirmLabel: string;
-  /** Nạp bù cho hôm trước là chuyện thường, nên ETF cần chọn ngày. */
+  /** Topping up for an earlier day is normal, so ETF needs a date picker. */
   withDate?: boolean;
   /** Why the typed amount cannot be saved yet, shown above the keypad, or null. */
   errorFor?: (amountVnd: number | null) => string | null;

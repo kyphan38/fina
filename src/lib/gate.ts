@@ -1,21 +1,21 @@
 // ============================================================
-// fina - Khoá màn hình Salary
+// fina - Salary screen lock
 //
-// Đây là MÀN CHẮN, không phải bảo mật. Nó chặn người cầm điện thoại đang mở
-// sẵn app, và chỉ vậy thôi. Ai có tài khoản Google của bạn vẫn đọc được số
-// lương thẳng từ Firestore, không cần đi qua màn này. Muốn chặn được cả
-// trường hợp đó thì phải mã hoá dữ liệu bằng khoá không nằm trong app.
+// This is a SCREEN GUARD, not security. It stops someone holding the phone
+// with the app open, and nothing more. Anyone with your Google account can
+// still read salary straight from Firestore without this screen. Stopping
+// that too would need data encrypted with a key that is not in the app.
 //
-// Mật khẩu KHÔNG nằm trong mã nguồn: chỉ có salt và chuỗi băm PBKDF2. Đọc
-// được repo cũng không đọc ra được mật khẩu, chỉ có thể thử từng cái một -
-// và 310.000 vòng lặp làm mỗi lần thử đắt hẳn lên.
+// The password is NOT in the source: only a salt and a PBKDF2 hash. Reading
+// the repo does not reveal the password, only allows guessing one by one -
+// and 310,000 iterations make each guess much more expensive.
 // ============================================================
 
 const SALT_HEX = '172594abc49406d53d8a4d437589de7f';
 const ITERATIONS = 310_000;
 const EXPECTED_HEX = 'b26beb93bccb8e9e9b35993a092491d9b754923800da3b95789234ebb02474a3';
 
-/** Mở khoá sống trong TAB này thôi. Đóng tab là khoá lại. */
+/** The unlock lives in THIS tab only. Closing the tab locks it. */
 const SESSION_KEY = 'fina.salary.unlocked';
 
 function toHex(buf: ArrayBuffer): string {
@@ -30,9 +30,9 @@ function fromHex(hex: string): ArrayBuffer {
 }
 
 /**
- * So sánh trong thời gian KHÔNG phụ thuộc nội dung. `===` trên chuỗi thoát ra
- * ngay ký tự đầu khác nhau; ở đây chuyện đó gần như vô hại, nhưng viết đúng
- * một lần thì không phải nhớ ngoại lệ.
+ * Compares in time that does NOT depend on content. `===` on strings exits at
+ * the first different character; here that is nearly harmless, but doing it
+ * right once means no exception to remember.
  */
 function equal(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -59,12 +59,12 @@ export async function checkPassword(input: string): Promise<boolean> {
 }
 
 /**
- * Trạng thái mở khoá viết dạng external store, giống `prefs.ts`: đọc
- * sessionStorage trong useEffect thì server render một đằng client một nẻo,
- * và React 19 cấm setState thẳng trong effect.
+ * Unlock state as an external store, like `prefs.ts`: reading sessionStorage
+ * in useEffect renders differently on server and client, and React 19
+ * forbids setState directly in an effect.
  *
- * `getServer` luôn trả KHOÁ. Server không biết gì về phiên của trình duyệt,
- * và đoán sai theo hướng "đang mở" là chớp một cái hiện ra bảng lương.
+ * `getServer` always returns LOCKED. The server knows nothing of the browser
+ * session, and guessing "open" by mistake flashes the salary table.
  */
 type Listener = () => void;
 
@@ -77,7 +77,7 @@ function makeGateStore() {
     try {
       cache = sessionStorage.getItem(SESSION_KEY) === '1';
     } catch {
-      // Safari chặn storage ở chế độ riêng tư. Coi như đang khoá.
+      // Safari blocks storage in private mode. Treat as locked.
       cache = false;
     }
     return cache;
@@ -89,7 +89,7 @@ function makeGateStore() {
       if (next) sessionStorage.setItem(SESSION_KEY, '1');
       else sessionStorage.removeItem(SESSION_KEY);
     } catch {
-      // Không nhớ được thì mỗi lần vào lại phải gõ - vẫn dùng được.
+      // If it cannot be remembered, retype each time - still usable.
     }
     listeners.forEach((fn) => fn());
   };

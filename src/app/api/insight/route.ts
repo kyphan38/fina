@@ -10,8 +10,8 @@ const WINDOW_MS = 5 * 60_000;
 const MAX_CALLS = 10;
 
 /**
- * Model chỉ được diễn đạt lại những con số đã có sẵn. Nó không được tính,
- * không được đoán nguyên nhân, không được khuyên.
+ * The model may only reword numbers that already exist. It must not
+ * calculate, guess causes or give advice.
  */
 const SYSTEM = `You describe a personal budget in plain, flat sentences.
 
@@ -30,8 +30,8 @@ function fail(message: string, status: number) {
 }
 
 export async function POST(req: NextRequest) {
-  // Kiểm session TRƯỚC mọi việc khác. API này gọi Gemini nên đáng để chờ
-  // thêm một vòng kiểm tra thu hồi phiên.
+  // Check the session BEFORE anything else. This API calls Gemini, so an
+  // extra revocation check is worth the wait.
   const user = await getSessionUser({ checkRevoked: true });
   if (!user) return fail('Unauthorized.', 401);
 
@@ -68,12 +68,12 @@ export async function POST(req: NextRequest) {
     const body = await res.json();
     text = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   } catch (err) {
-    // Chỉ ghi tên lỗi. Digest không bao giờ được log ở production.
+    // Log the error name only. The digest is never logged in production.
     console.error('[insight] model call failed:', (err as Error).message);
     return fail('Could not reach the model.', 502);
   }
 
-  // Lọc ở SERVER: bản thô của model không bao giờ tới được client.
+  // Filter on the SERVER: the model's raw output never reaches the client.
   const { kept, dropped } = sanitizeInsight(text.split('\n'), digest);
   return NextResponse.json({ lines: kept, droppedCount: dropped.length });
 }

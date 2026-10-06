@@ -40,11 +40,11 @@ export interface CoverOption {
 }
 
 /**
- * Các nguồn có thể bù. MỘT nguồn cho mỗi lần bù - không chia 200 chỗ này
- * 590 chỗ kia; chia nhỏ làm sổ sách rối mà chẳng được gì.
+ * Possible cover sources. ONE source per cover - no 200 from here and 590
+ * from there; splitting clutters the books for nothing.
  *
- * Nguồn không đủ vẫn hiện nhưng bị làm mờ. Ẩn đi thì người dùng không hiểu
- * vì sao nó biến mất.
+ * Sources without enough money still show, but faded. Hiding them leaves the
+ * user wondering why they vanished.
  */
 export function coverOptions(args: {
   buckets: Bucket[];
@@ -57,7 +57,7 @@ export function coverOptions(args: {
 
   for (const b of args.buckets) {
     if (!b.active) continue;
-    // Không tự bù cho chính mình, và ETF là đích đến chứ không phải ví.
+    // Never cover itself, and ETF is a destination, not a wallet.
     if (b.id === args.toBucketId || b.id === 'etf') continue;
 
     if (b.id === 'buffer') {
@@ -71,24 +71,24 @@ export function coverOptions(args: {
     }
   }
 
-  // Buffer trước, rồi quỹ theo thứ tự hiển thị.
+  // Buffer first, then funds in display order.
   return out.sort((a, c) =>
     a.bucket.id === 'buffer' ? -1 : c.bucket.id === 'buffer' ? 1 : a.bucket.order - c.bucket.order,
   );
 }
 
 /**
- * Ảnh hưởng RÒNG của các lần bù ĐÃ xong lên từng bucket: tiền rút ra tính
- * dương, tiền nhận vào tính âm. Mọi màn hình đọc nó theo cùng một công thức
- * `đã dùng = spent + covered`.
+ * NET effect of COMPLETED covers on each bucket: money taken out counts
+ * positive, money received counts negative. Every screen reads it with the
+ * same formula `used = spent + covered`.
  *
- * HAI ĐẦU, không phải một. Chỉ cộng cho bên cho là tiền chỉ biết đi mà không
- * biết đến: chuyển 505 từ Purchases sang Social xong, Social vẫn đứng ở -500
- * y như lúc chưa chuyển, trong khi tiền đã nằm trong ví rồi.
+ * BOTH ends, not one. Counting only the giver means money leaves but never
+ * arrives: after moving 505 from Purchases to Social, Social would still sit
+ * at -500 as if nothing moved, while the money is already in the wallet.
  *
- * Bucket dạng fund KHÔNG được dùng bảng này: số dư của chúng đã được
- * `coverBalanceDeltas` cộng/trừ thẳng rồi, đọc thêm ở đây là đếm hai lần.
- * Hôm nay chỉ các hũ budget đọc nó (Log, Summary, bước đóng sổ).
+ * Fund buckets must NOT use this table: `coverBalanceDeltas` already adds to
+ * or subtracts from their balance, so reading it here counts twice.
+ * Today only budget buckets read it (Log, Summary, closing).
  */
 export function coveredByBucket(covers: Cover[]): Record<string, number> {
   const out: Record<string, number> = {};
@@ -109,13 +109,13 @@ export function coveredByBucket(covers: Cover[]): Record<string, number> {
 }
 
 /**
- * Phần bù chảy TỪ BIDV VÀO VCB. Chỉ những khoản này mới làm đổi tổng của
- * chu kỳ, vì `computeSurplus` chỉ đọc các hũ VCB.
+ * Cover money flowing FROM BIDV INTO VCB. Only these change the cycle total,
+ * because `computeSurplus` only reads VCB buckets.
  *
- * Hai đầu, không phải một. Bù từ Buffer nằm sẵn trong VCB nên chỉ là di
- * chuyển nội bộ. Bù từ quỹ BIDV này sang quỹ BIDV kia cũng vậy - nó không
- * hề đi qua VCB, tính vào đây là bịa ra một khoản dư không tồn tại rồi đem
- * nạp vào ETF lúc đóng sổ.
+ * Both ends, not one. A cover from Buffer is already inside VCB, so it is an
+ * internal move. A cover from one BIDV fund to another is too - it never
+ * passes through VCB; counting it here would invent a surplus and then put
+ * it into ETF at closing.
  */
 export function coveredFromOutside(covers: Cover[], buckets: Bucket[]): number {
   const bankOf = new Map(buckets.map((b) => [b.id, b.bank]));
@@ -130,15 +130,15 @@ export function coveredFromOutside(covers: Cover[], buckets: Bucket[]): number {
 }
 
 /**
- * Số dư quỹ phải cộng thêm bao nhiêu khi một lần bù HOÀN TẤT.
+ * How much to add to fund balances when a cover COMPLETES.
  *
- * Hai đầu, không phải một. Nguồn là quỹ thì tiền rời nó thật nên phải trừ.
- * Đích là quỹ thì tiền chảy VÀO nó nên phải cộng - giao dịch gốc đã trừ quỹ
- * đích ngay lúc ghi rồi, quên cộng lại thì MỘT khoản chi bị trừ ở CẢ HAI quỹ
- * và mỗi lần bù âm thầm ăn mất đúng số tiền đó.
+ * Both ends, not one. A fund source really loses the money, so subtract.
+ * A fund target receives money, so add - the original transaction already
+ * took it from the target fund when logged; forget to add it back and ONE
+ * expense is taken from BOTH funds, and every cover silently eats that amount.
  *
- * Bucket dạng budget (Buffer và các hũ VCB) không có số dư nên không bao giờ
- * xuất hiện ở đây: phần đã dùng của chúng là spent + covered.
+ * Budget buckets (Buffer and the VCB buckets) have no balance, so they never
+ * show up here: their used amount is spent + covered.
  */
 export function coverBalanceDeltas(args: {
   fromBucketId: string;
@@ -163,8 +163,8 @@ export function coverBalanceDeltas(args: {
 }
 
 /**
- * Kind của hai đầu một lần bù. Cover chỉ lưu id, mà kind mới là thứ quyết
- * định số dư nào bị đụng - đọc thẳng từ bucket thay vì đoán theo id.
+ * The kind of each end of a cover. A cover stores only ids, but the kind
+ * decides which balance changes - read it from the bucket, do not guess by id.
  */
 async function kindsOf(
   uid: string,
@@ -197,20 +197,20 @@ export function watchPendingCovers(uid: string, cb: (covers: Cover[]) => void): 
 }
 
 /**
- * Tạo một lần bù.
+ * Creates a cover.
  *
- * Cần chuyển khoản hay không là do HAI ĐẦU khác ngân hàng, không phải do
- * nguồn nằm ở đâu. Purchases sang Health đều ở BIDV: không có đồng nào rời
- * ngân hàng, chỉ là đổi tên hũ - bắt người dùng chuyển khoản (và chuyển sang
- * VCB!) là sai chỗ nhận. Ngược lại Buffer ở VCB bù cho một quỹ BIDV thì tiền
- * phải đi thật, dù nguồn nằm ở VCB.
+ * Whether a transfer is needed depends on the TWO ENDS being in different
+ * banks, not on where the source is. Purchases to Health are both BIDV: no
+ * money leaves the bank, it is just a relabel - asking for a transfer (to
+ * VCB!) names the wrong receiver. But Buffer in VCB covering a BIDV fund
+ * means the money must really move, even though the source is in VCB.
  *
- * Khác ngân hàng → `pending`, và số dư CHƯA đổi. Nó chỉ đổi sau khi người
- * dùng xác nhận đã chuyển khoản thật, để con số trong app luôn khớp với tiền
- * đã thật sự di chuyển.
+ * Different banks → `pending`, and balances do NOT change yet. They change
+ * only after the user confirms the real transfer, so the app's numbers always
+ * match money that actually moved.
  *
- * Ghi trước khi người dùng rời app: iOS hay kill PWA lúc chuyển sang app
- * ngân hàng, và câu hỏi phải sống sót qua một lần khởi động lại.
+ * Written before the user leaves the app: iOS often kills the PWA when
+ * switching to the bank app, and the question must survive a restart.
  */
 export async function createCover(
   uid: string,
@@ -236,9 +236,9 @@ export async function createCover(
 
   const batch = writeBatch(db);
   batch.set(ref, data);
-  // Xong ngay (cùng ngân hàng) thì số dư phải đổi trong CÙNG batch. Bù từ
-  // Buffer không trừ đâu cả - Buffer là bucket dạng budget - nhưng quỹ ĐÍCH
-  // vẫn phải được cộng lại phần vừa bị giao dịch gốc trừ đi.
+  // Done at once (same bank) means balances change in the SAME batch. A cover
+  // from Buffer subtracts nowhere - Buffer is a budget bucket - but the TARGET
+  // fund must still get back what the original transaction took.
   if (!needsTransfer) {
     const deltas = coverBalanceDeltas({
       fromBucketId: args.from.id,
@@ -260,8 +260,8 @@ export async function createCover(
 }
 
 /**
- * Người dùng xác nhận đã chuyển khoản. Chỉ tới đây số dư mới đổi - và đổi ở
- * CẢ HAI đầu, vì tiền vừa rời quỹ nguồn thì cũng vừa vào quỹ đích.
+ * The user confirms the transfer. Only now do balances change - at BOTH
+ * ends, since money leaving the source fund just entered the target fund.
  */
 export async function confirmCover(uid: string, cover: Cover): Promise<void> {
   const { fromKind, toKind } = await kindsOf(uid, cover);
@@ -286,16 +286,16 @@ export async function confirmCover(uid: string, cover: Cover): Promise<void> {
 }
 
 /**
- * Bỏ một lần bù. Giao dịch gốc không đụng tới.
+ * Drops a cover. The original transaction is untouched.
  *
- * Cover đã xong và lấy từ quỹ thì phải TRẢ LẠI số dư - nếu không, huỷ một
- * cover sẽ âm thầm ăn mất tiền của quỹ. Hay dùng khi khoản chi được hoàn lại
- * sau đó và việc bù không còn cần nữa.
+ * A completed cover taken from a fund must GIVE BACK the balance - otherwise
+ * cancelling a cover silently eats the fund's money. Often used when the
+ * expense is refunded later and the cover is no longer needed.
  */
 export async function cancelCover(uid: string, cover: Cover): Promise<void> {
   const ref = doc(coversCol(uid), cover.id);
 
-  // Còn pending thì chưa có số dư nào đổi - tiền thật cũng chưa di chuyển.
+  // Still pending means no balance changed - the real money has not moved either.
   if (cover.status !== 'done') {
     await deleteDoc(ref);
     return;
@@ -313,7 +313,7 @@ export async function cancelCover(uid: string, cover: Cover): Promise<void> {
   const now = Date.now();
   const batch = writeBatch(db);
   batch.delete(ref);
-  // Trả lại ĐÚNG những gì lúc bù đã lấy đi, ở cả hai đầu.
+  // Give back EXACTLY what the cover took, at both ends.
   for (const [bucketId, delta] of Object.entries(deltas)) {
     batch.update(doc(bucketsCol(uid), bucketId), {
       balanceVnd: increment(-delta),

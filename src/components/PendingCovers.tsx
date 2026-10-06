@@ -8,12 +8,12 @@ import { formatVnd } from '@/lib/money';
 import type { Cover } from '@/types/fina';
 
 /**
- * Dải nhắc chạy trên mọi tab, và là chỗ bắt lúc người dùng quay lại app sau
- * khi chuyển khoản.
+ * Reminder strip on every tab, and the place that catches the user coming
+ * back after a bank transfer.
  *
- * Bắt bằng CẢ visibilitychange lẫn lúc khởi động: iOS thường kill PWA khi
- * chuyển sang app ngân hàng, nên nhiều lần "quay lại" thật ra là một lần
- * khởi động mới, và visibilitychange không bao giờ bắn.
+ * Caught on BOTH visibilitychange and startup: iOS often kills the PWA when
+ * switching to the bank app, so many "returns" are really a fresh start, and
+ * visibilitychange never fires.
  */
 export default function PendingCovers() {
   const { user } = useAuth();
@@ -46,16 +46,16 @@ export default function PendingCovers() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard bị chặn (http, quyền) - số vẫn hiện to trên màn hình để gõ tay.
+      // Clipboard blocked (http, permission) - the amount is still large on screen to type by hand.
       setCopied(false);
     }
   };
 
   return (
     <div className="shrink-0 border-t border-line bg-surface-2 px-4 py-2.5">
-      {/* Đích là tên bucket, KHÔNG phải "VCB". Bù cho một quỹ BIDV thì tiền
-          phải sang chính quỹ đó; nói sai chỗ nhận là bảo người dùng chuyển
-          nhầm tài khoản. */}
+      {/* The target is the bucket name, NOT "VCB". Covering a BIDV fund means
+          the money goes to that fund; naming the wrong receiver tells the user
+          to transfer to the wrong account. */}
       <p className="text-xs">
         Move <b className="font-semibold">{formatVnd(cover.amountVnd)}</b> from{' '}
         {cover.fromName} to <b className="font-semibold">{cover.toName}</b>

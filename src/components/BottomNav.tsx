@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * 5 tab cố định. Log là tab mặc định vì nó là lý do app tồn tại.
- * Icon vẽ tay bằng SVG, không dùng thư viện icon - mỗi KB tải về là mỗi
- * mili-giây chờ lúc cold start (nguyên tắc #12).
+ * 5 fixed tabs. Log is the default because it is why the app exists.
+ * Icons are hand-drawn SVG, no icon library - every KB downloaded is
+ * waiting time at cold start (rule #12).
  */
 const TABS = [
   { href: "/log", label: "Log", d: "M12 5v14M5 12h14" },

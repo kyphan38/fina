@@ -13,11 +13,11 @@ type Preview = { backup: Backup; missing: Record<string, number> };
 const COLLECTIONS = ['buckets', 'transactions', 'cycles', 'covers'] as const;
 
 /**
- * Trang ẩn - không có link nào trỏ tới ngoài Settings.
+ * Hidden page - only Settings links here.
  *
- * Restore CHỈ THÊM bản ghi còn thiếu, khớp theo id. Không ghi đè, không xoá.
- * Chạy hai lần là an toàn. Một restore "khôi phục nguyên trạng" sẽ xoá mất
- * mọi thứ ghi sau lần export - đó là cách mất dữ liệu, không phải cách cứu.
+ * Restore ONLY ADDS missing records, matched by id. No overwrite, no delete.
+ * Running it twice is safe. A "restore to exact state" would delete
+ * everything written after the export - that loses data, it does not save it.
  */
 export default function RestoreView() {
   const { user } = useAuth();
@@ -86,8 +86,7 @@ export default function RestoreView() {
     <section className="min-h-0 flex-1 overflow-y-auto pt-6">
       <h1 className="text-lg font-semibold">Restore</h1>
       <p className="mt-2 text-sm text-muted">
-        Adds only the records that are missing, matched by id. Never overwrites, never
-        deletes. Running it twice is safe.
+        Adds missing records only. Never overwrites.
       </p>
 
       <input

@@ -8,22 +8,21 @@ import { isStandalone } from '@/lib/standalone';
 import { registerServiceWorker } from '@/lib/sw';
 
 export type PushState =
-  /** Đang mở trong tab trình duyệt. iOS chỉ gửi push cho PWA đã cài. */
+  /** Open in a browser tab. iOS only sends push to an installed PWA. */
   | 'not_installed'
-  /** Trình duyệt không có Push API. */
+  /** The browser has no Push API. */
   | 'not_supported'
-  /** Người dùng đã từ chối - phải sửa trong Cài đặt hệ thống, không hỏi lại được. */
+  /** The user said no - must be fixed in system settings, cannot ask again. */
   | 'blocked'
-  /** Thiếu NEXT_PUBLIC_FIREBASE_VAPID_KEY. */
+  /** NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing. */
   | 'no_key'
   | 'off'
   | 'on';
 
 
 /**
- * Ba khả năng "không bật được" là ba việc phải làm khác hẳn nhau. Gộp thành
- * một dòng "không hỗ trợ" là cách chắc chắn để nửa năm sau không ai biết
- * vì sao.
+ * The three ways "cannot enable" happens need three different fixes. Merging
+ * them into one "not supported" line guarantees nobody knows why six months later.
  */
 export async function pushState(): Promise<PushState> {
   if (typeof window === 'undefined') return 'not_supported';
@@ -37,8 +36,9 @@ export async function pushState(): Promise<PushState> {
 }
 
 /**
- * Xin quyền và lưu token. Dùng chung service worker với phần cache - không
- * cần firebase-messaging-sw.js riêng, vì ta gửi data-only và tự vẽ thông báo.
+ * Asks for permission and stores the token. Shares the service worker with
+ * the cache - no separate firebase-messaging-sw.js, since we send data-only
+ * and draw the notification ourselves.
  */
 export async function enablePush(uid: string): Promise<PushState> {
   const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
@@ -64,7 +64,7 @@ export async function enablePush(uid: string): Promise<PushState> {
   return 'on';
 }
 
-/** Tắt nhắc. Quyền hệ thống không thu hồi được từ web - chỉ xoá token. */
+/** Turns reminders off. The web cannot revoke the system permission - it only deletes the token. */
 export async function disablePush(uid: string): Promise<void> {
   await setDoc(doc(db, 'users', uid, 'meta', 'fcm'), { token: null, updatedAt: Date.now() });
 }

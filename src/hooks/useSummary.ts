@@ -24,9 +24,9 @@ export function useSummary() {
   const [goalsBudget, setGoalsBudget] = useState(DEFAULT_GOALS_MONTHLY_VND);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
-  // Trên server now = 0 -> cycleId là '1970-01', vô hại: lúc đó chưa có
-  // bucket nào nên màn hình chỉ hiện Loading. Client render đầu tiên đã có
-  // giờ thật.
+  // On the server now = 0 -> cycleId is '1970-01', harmless: there are no
+  // buckets yet, so the screen only shows Loading. The first client render
+  // has the real time.
   const cycleId = useMemo(() => cycleOf(new Date(now)), [now]);
 
   useEffect(() => {
@@ -44,13 +44,13 @@ export function useSummary() {
     return watchCycle(uid, cycleId, setCycle);
   }, [uid, cycleId]);
 
-  // Tạo document chu kỳ lần đầu, đóng băng limits từ baseline hiện tại.
-  // Chỉ cho chu kỳ HIỆN TẠI - chu kỳ quá khứ không có document nghĩa là nó
-  // có trước khi app tồn tại, hạn mức cũ không ai biết.
+  // Create the cycle document the first time, freezing limits from the
+  // current baseline. Only for the CURRENT cycle - a past cycle with no
+  // document predates the app, and nobody knows its old limits.
   useEffect(() => {
     if (!uid || !buckets || buckets.length === 0 || cycle !== null) return;
     void ensureCycle(uid, cycleId, buckets).catch(() => {
-      // Listener sẽ nhận document khi ghi xong; lỗi mạng thì lần mở sau thử lại.
+      // The listener gets the document once written; on a network error the next open retries.
     });
   }, [uid, buckets, cycle, cycleId]);
 
@@ -94,8 +94,8 @@ export function useSummary() {
   );
   // Goals included: this is what the BIDV account should hold.
   const fundsTotal = useMemo(() => bidv.reduce((s, b) => s + b.balanceVnd, 0), [bidv]);
-  // Chỉ tiền từ BIDV chảy VÀO một hũ VCB mới làm tổng đổi. Bù trong cùng
-  // một ngân hàng chỉ là di chuyển nội bộ.
+  // Only money from BIDV flowing INTO a VCB bucket changes the total. A cover
+  // inside one bank is just an internal move.
   const surplus = useMemo(
     () => computeSurplus(limits, spent) + coveredFromOutside(covers, buckets ?? []),
     [limits, spent, covers, buckets],

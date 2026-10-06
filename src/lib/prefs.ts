@@ -1,12 +1,12 @@
 // ============================================================
-// fina - Tuỳ chọn lưu ở localStorage
+// fina - Options stored in localStorage
 //
-// Viết dạng external store thay vì đọc localStorage trong useEffect:
-// đọc trong effect gây hydration mismatch (server render một đằng, client
-// một nẻo) và React 19 cũng cấm setState thẳng trong effect.
+// Written as an external store instead of reading localStorage in useEffect:
+// reading in an effect causes a hydration mismatch (server and client render
+// differently), and React 19 forbids setState directly in an effect.
 //
-// useSyncExternalStore lo đúng cả hai: server dùng giá trị mặc định,
-// client đọc giá trị thật ngay sau khi hydrate.
+// useSyncExternalStore handles both: the server uses the default, the client
+// reads the real value right after hydration.
 // ============================================================
 
 type Listener = () => void;
@@ -21,7 +21,7 @@ function makeFlagStore(key: string, fallback: boolean) {
       const raw = localStorage.getItem(key);
       cache = raw === null ? fallback : raw === '1';
     } catch {
-      // Safari private mode chặn localStorage.
+      // Safari private mode blocks localStorage.
       cache = fallback;
     }
     return cache;
@@ -47,11 +47,11 @@ function makeFlagStore(key: string, fallback: boolean) {
 }
 
 /**
- * Lưu một chuỗi trong PHIÊN làm việc.
+ * Stores a string for the SESSION.
  *
- * sessionStorage chứ không phải localStorage: chuyển tab rồi quay lại thì
- * giữ nguyên chỗ đang xem, nhưng mở app mới ngày hôm sau thì về mặc định.
- * Chọn chu kỳ tháng 8 hôm nay không có nghĩa là tuần sau vẫn muốn xem tháng 8.
+ * sessionStorage, not localStorage: switching tabs and back keeps your place,
+ * but opening the app the next day starts fresh. Picking August today does
+ * not mean you still want August next week.
  */
 function makeValueStore(key: string) {
   const listeners = new Set<Listener>();
@@ -87,23 +87,23 @@ function makeValueStore(key: string) {
   };
 }
 
-/** Section Funds trên màn hình Log. Mặc định gập; mở ra thì giữ nguyên. */
+/** The Funds section on the Log screen. Collapsed by default; stays open once opened. */
 export const fundsOpenStore = makeFlagStore('fina.fundsOpen', false);
 
 /**
- * Chu kỳ đang xem ở History.
+ * The cycle being viewed in History.
  *
- * Trước đây nó là useState trong HistoryView, nên mỗi lần chuyển sang tab
- * khác rồi quay lại là React unmount component và chu kỳ nhảy về tháng hiện
- * tại - đang soi tháng 8 mà sửa một dòng xong là mất chỗ.
+ * It used to be useState in HistoryView, so switching tabs and back made
+ * React unmount the component and jump to the current month - studying
+ * August, editing one row, and losing your place.
  */
 export const historyCycleStore = makeValueStore('fina.historyCycle');
 
 // ------------------------------------------------------------
-// Theme (system · light · dark), lưu theo máy.
+// Theme (system · light · dark), stored per device.
 //
-// Phải có TRƯỚC lần vẽ đầu tiên, nên layout chạy THEME_SCRIPT inline trong
-// <head>; store này chỉ lo cho dòng Theme ở Settings.
+// Must exist BEFORE the first paint, so the layout runs THEME_SCRIPT inline
+// in <head>; this store only serves the Theme row in Settings.
 // ------------------------------------------------------------
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -148,7 +148,7 @@ function makeThemeStore() {
 
 export const themeStore = makeThemeStore();
 
-/** Màu thanh trạng thái (theme-color) - khớp --bg trong globals.css. */
+/** Status bar color (theme-color) - matches --bg in globals.css. */
 export const BG_LIGHT = '#fafafa';
 export const BG_DARK = '#111111';
 
@@ -164,9 +164,9 @@ function applyTheme(theme: Theme): void {
 }
 
 /**
- * Chạy đồng bộ trong <head>, trước lần vẽ đầu tiên: không nháy trắng ở dark
- * mode. Thẻ theme-color có thể nằm sau script, nên chờ DOMContentLoaded mới
- * sửa. Viết tay bằng ES5 vì nó không qua bundler.
+ * Runs synchronously in <head>, before the first paint: no white flash in dark
+ * mode. The theme-color tag may come after the script, so wait for
+ * DOMContentLoaded to update it. Handwritten ES5 because it skips the bundler.
  */
 export const THEME_SCRIPT = `(function(){try{
 var t=localStorage.getItem('${THEME_KEY}');

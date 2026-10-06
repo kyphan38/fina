@@ -1,5 +1,5 @@
-// Cho phép script dùng alias '@/...' giống app. Dùng chung resolve hook với
-// test - chép lại là sẽ có ngày hai bản khác nhau.
+// Lets scripts use the '@/...' alias like the app. Shares the resolve hook
+// with tests - a copy would one day drift apart.
 import { register } from 'node:module';
 
 register('../test/alias-hook.mjs', import.meta.url);

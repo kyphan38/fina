@@ -6,7 +6,7 @@ import AmountSheet from '@/components/AmountSheet';
 import SalaryGate from '@/components/SalaryGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { clockStore } from '@/lib/clock';
-// cycleLabel chỉ đổi 'YYYY-MM' thành tên tháng, dùng chung được.
+// cycleLabel only turns 'YYYY-MM' into a month name, so it can be shared.
 import { cycleLabel as monthLabel } from '@/lib/cycle';
 import { gateStore } from '@/lib/gate';
 import { formatVnd } from '@/lib/money';
@@ -24,7 +24,7 @@ export default function SalaryView() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
-  // Server luôn render KHOÁ; client đọc phiên thật ngay sau khi hydrate.
+  // The server always renders LOCKED; the client reads the real session right after hydration.
   const unlocked = useSyncExternalStore(
     gateStore.subscribe,
     gateStore.get,
@@ -107,8 +107,8 @@ export default function SalaryView() {
             </tbody>
           </table>
           <p className="mt-2 text-[11px] text-faint">
-            Average of the {rows.length} month{rows.length === 1 ? '' : 's'} recorded:{' '}
-            {formatVnd(avg)}. Months you never entered are left out, not counted as zero.
+            Average of {rows.length} month{rows.length === 1 ? '' : 's'}: {formatVnd(avg)}.
+            Missing months skipped.
           </p>
         </Block>
       )}
@@ -165,12 +165,12 @@ export default function SalaryView() {
 }
 
 /**
- * Cột là con TRỰC TIẾP của khung cao cố định - `height: %` chỉ có mốc để so
- * khi cha có chiều cao xác định. Bọc thêm một lớp cao auto là mọi cột tụt
- * xuống bằng nhau và biểu đồ trông như không có dữ liệu.
+ * Bars are DIRECT children of the fixed-height frame - `height: %` only
+ * resolves when the parent has a definite height. One more auto-height
+ * wrapper and every bar drops to the same size, like a chart with no data.
  */
 function Chart({ rows }: { rows: Salary[] }) {
-  // Cũ trước, đọc từ trái sang phải. Tối đa 12 tháng gần nhất cho vừa màn hình.
+  // Oldest first, read left to right. At most the last 12 months, to fit the screen.
   const recent = [...rows].reverse().slice(-12);
   const peak = Math.max(...recent.map((r) => r.amountVnd), 1);
 
@@ -198,7 +198,7 @@ function Chart({ rows }: { rows: Salary[] }) {
         ))}
       </div>
       <p className="mt-2 text-[11px] text-faint">
-        Peak is {formatVnd(peak)}. Bars are what you typed in, nothing derived.
+        Peak {formatVnd(peak)}.
       </p>
     </>
   );
