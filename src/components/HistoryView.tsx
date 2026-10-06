@@ -86,7 +86,7 @@ export default function HistoryView() {
               {txs.map((t) => {
                 const b = h.byId.get(t.bucketId);
                 const pair = t.source === 'move' && t.moveId ? h.moves.get(t.moveId) : undefined;
-                // Một lần chuyển không phải tiền vào hay ra, nên không có dấu +.
+                // A move is neither money in nor out, so no + sign.
                 const isIn = t.direction === 'in' && !pair;
                 const nameOf = (x?: Transaction | null) =>
                   x ? (h.byId.get(x.bucketId)?.name ?? x.bucketId) : '?';

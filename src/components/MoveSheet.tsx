@@ -11,7 +11,7 @@ import type { Bucket, Transaction } from '@/types/fina';
 const SELECT =
   'min-w-0 flex-1 rounded-[9px] border border-line bg-surface-2 px-2 py-2 text-[13px]';
 
-/** Chuyển tiền giữa hai quỹ BIDV. Cùng ngân hàng nên không cần chuyển khoản thật. */
+/** Move money between two BIDV funds. Same bank, so no real transfer is needed. */
 export default function MoveSheet({
   uid,
   buckets,
@@ -73,8 +73,8 @@ export default function MoveSheet({
 }
 
 /**
- * Một lần chuyển đã ghi, mở từ History. Không cho sửa: sửa một nửa là lệch
- * nửa kia. Ghi sai thì xoá (cả hai nửa) rồi chuyển lại.
+ * A saved move, opened from History. No editing: changing one side would
+ * break the other. To fix a mistake, delete both sides and move again.
  */
 export function MoveDetailSheet({
   uid,

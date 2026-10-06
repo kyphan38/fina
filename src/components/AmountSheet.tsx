@@ -29,9 +29,9 @@ export default function AmountSheet({
   confirmLabel: string;
   /** Nạp bù cho hôm trước là chuyện thường, nên ETF cần chọn ngày. */
   withDate?: boolean;
-  /** Lý do chưa cho lưu với số đang gõ (hiện ngay trên bàn phím), hoặc null. */
+  /** Why the typed amount cannot be saved yet, shown above the keypad, or null. */
   errorFor?: (amountVnd: number | null) => string | null;
-  /** Ô chọn thêm, nằm trên ô ghi chú - ví dụ hai quỹ của một lần chuyển. */
+  /** Extra fields above the note, e.g. the two funds of a move. */
   children?: React.ReactNode;
   onConfirm: (
     amountVnd: number,

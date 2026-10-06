@@ -15,17 +15,17 @@ export const REMINDER_QUIET_DAYS = 2;
 export type BucketKind = 'budget' | 'fund';
 
 /**
- * Trạng thái của một goal (quỹ để dành cho một món lớn, xem PLAN-goals.md).
- *  - saving: đang để dành, được chia tiền ngày 25
- *  - later:  chỉ ghi lại ý định, chưa chia tiền
- *  - done:   đã mua xong
+ * State of a goal (a fund saved up for one big purchase, see PLAN-goals.md).
+ *  - saving: saving now, gets money on day 25
+ *  - later:  just an idea, gets nothing yet
+ *  - done:   bought
  */
 export type GoalStatus = 'saving' | 'later' | 'done';
 
 export interface Goal {
-  /** Giá mục tiêu. null = chưa biết giá. */
+  /** Target price. null = not known yet. */
   targetVnd: number | null;
-  /** Tháng muốn mua, '2027-04'. null = chưa định ngày. */
+  /** Month to buy, '2027-04'. null = no date yet. */
   targetMonth: string | null;
   status: GoalStatus;
 }
@@ -63,9 +63,8 @@ export interface Bucket {
    */
   evenlySpent: boolean;
   /**
-   * Chỉ có ở quỹ goal. Quỹ thường là null. Goal vẫn là một fund BIDV bình
-   * thường - số dư, chia lương, History đều dùng chung - field này chỉ thêm
-   * giá mục tiêu và tháng muốn mua.
+   * Set only on goal funds; null elsewhere. A goal is a normal BIDV fund
+   * (balance, allocation, History all shared); this adds target and month.
    */
   goal: Goal | null;
   createdAt: number;
@@ -82,8 +81,8 @@ export interface Bucket {
  * `In 0` và `Left` âm.
  */
 /*
- * `move` là chuyển tiền giữa hai quỹ của chính mình (Purchases sang Phone).
- * Cũng như `allocation`, nó không phải chi tiêu.
+ * `move` moves money between two of your funds (Purchases to Phone). Like
+ * `allocation`, it is not spending.
  */
 export type TxSource = 'web' | 'import' | 'allocation' | 'opening' | 'move';
 
@@ -118,9 +117,8 @@ export interface Transaction {
    */
   importKeys?: string[];
   /**
-   * Chỉ có ở `source: 'move'`: chuyển tiền giữa hai quỹ của chính mình. Một
-   * lần chuyển là HAI giao dịch (`out` ở quỹ nguồn, `in` ở quỹ đích) cùng
-   * `moveId`. Xem lib/moves.ts.
+   * Only on `source: 'move'`. A move is TWO entries (`out` on the source
+   * fund, `in` on the target) sharing one `moveId`. See lib/moves.ts.
    */
   moveId?: string;
   createdAt: number;

@@ -19,8 +19,8 @@ service cloud.firestore {
       return v is int && v >= 0;
     }
 
-    // Goal: quy de danh cho mot mon lon (PLAN-goals.md). Gia va thang mua
-    // co the chua biet (null).
+    // Goal: a fund saved up for one big purchase (PLAN-goals.md). Target
+    // and month may be unknown (null).
     function validGoal(g) {
       return g is map
         && g.keys().hasOnly(['targetVnd', 'targetMonth', 'status'])
@@ -38,13 +38,13 @@ service cloud.firestore {
         // Chan so thuc ngay o tang DB: mot phep nhan voi so thuc
         // (4.1 * 1_000_000) da tung lam hong ca batch seed.
         && isVnd(d.standardVnd)
-        // Gioi han do dai khop voi HINT_MAX_LENGTH trong lib/bucket-hint.ts.
+        // Must match HINT_MAX_LENGTH in lib/bucket-hint.ts.
         && (!('hint' in d.keys()) || d.hint == null || (d.hint is string && d.hint.size() <= 200))
         && d.order is int
         && d.active is bool
         // balanceVnd chỉ có ở fund, và có thể âm khi tiêu lố
         && (!('balanceVnd' in d.keys()) || d.balanceVnd is int)
-        // Goal chi co o quy (fund).
+        // Only funds can be goals.
         && (!('goal' in d.keys()) || d.goal == null || (d.kind == 'fund' && validGoal(d.goal)));
     }
 
@@ -60,7 +60,7 @@ service cloud.firestore {
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
         && (d.note == null || d.note is string)
         && d.source in ['web', 'import', 'allocation', 'opening', 'move']
-        // Chuyen giua hai quy: hai giao dich cung moveId, nen move phai co no.
+        // A move is two entries that share one moveId.
         && (d.source != 'move' || ('moveId' in d.keys() && d.moveId is string))
         && (!('moveId' in d.keys()) || d.moveId is string)
         // Khoa chong trung cua lan nhap anh MoMo - chi la chuoi, khong co ten.

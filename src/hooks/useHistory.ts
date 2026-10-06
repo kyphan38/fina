@@ -30,8 +30,8 @@ export function useHistory() {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [bucketFilter, setBucketFilter] = useState<string | null>(null);
-  // Khoản chia lương vào quỹ ngày 25 và các lần chuyển giữa hai quỹ không
-  // phải thứ bạn muốn lướt qua mỗi ngày. Ẩn mặc định, bật lên khi cần đối chiếu.
+  // Day-25 allocations and fund moves are noise day to day. Hidden by
+  // default; show them to reconcile.
   const [showAllocations, setShowAllocations] = useState(false);
 
   const selected = cycle ?? currentCycle;
@@ -64,7 +64,7 @@ export function useHistory() {
 
   const moves = useMemo(() => pairMoves(txs), [txs]);
 
-  // Một lần chuyển là hai giao dịch nhưng chỉ hiện (và đếm) một dòng.
+  // A move is two entries but shows (and counts) as one row.
   const collapsed = useMemo(() => collapseMoves(txs), [txs]);
 
   const allocationCount = useMemo(
@@ -79,7 +79,7 @@ export function useHistory() {
     if (bucketFilter) {
       filtered = filtered.filter((t) => {
         if (t.bucketId === bucketFilter) return true;
-        // Lọc theo quỹ nguồn cũng phải thấy lần chuyển, dù dòng hiện là nửa đích.
+        // Filtering by the source fund must still find the move (the row is the target side).
         const pair = t.moveId ? moves.get(t.moveId) : undefined;
         return pair?.from?.bucketId === bucketFilter;
       });

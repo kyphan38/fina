@@ -22,47 +22,47 @@ const out = tx({ id: 'm1-out', bucketId: 'purchases', bank: 'BIDV', amountVnd: 1
 const into = tx({ id: 'm1-in', bucketId: 'travel', bank: 'BIDV', amountVnd: 1_500_000,
   direction: 'in', source: 'move', moveId: 'm1' });
 
-test('movableFunds - chỉ quỹ BIDV, không có hũ VCB và ETF', () => {
+test('movableFunds - BIDV funds only, no VCB buckets or ETF', () => {
   const ids = movableFunds(buckets).map((b) => b.id);
   assert.ok(ids.includes('purchases'));
   assert.ok(!ids.includes('food'));
   assert.ok(!ids.includes('etf'));
 });
 
-test('moveError - hai quỹ phải khác nhau', () => {
+test('moveError - the two funds must differ', () => {
   assert.equal(moveError(byId('purchases'), byId('purchases'), 100_000), 'Pick two different funds.');
 });
 
-test('moveError - không chuyển quá số dư quỹ nguồn', () => {
+test('moveError - cannot move more than the source balance', () => {
   assert.ok(moveError(byId('purchases'), byId('travel'), 2_000_001));
   assert.equal(moveError(byId('purchases'), byId('travel'), 2_000_000), null);
 });
 
-test('moveError - chưa gõ số thì chưa báo lỗi', () => {
+test('moveError - no error before an amount is typed', () => {
   assert.equal(moveError(byId('purchases'), byId('travel'), null), null);
 });
 
-test('move không phải chi tiêu', () => {
+test('a move is not spending', () => {
   assert.equal(netSpending([out, into]), 0);
   assert.equal(netSpending([out, into, tx({ amountVnd: 50_000 })]), 50_000);
 });
 
-test('một lần chuyển giữ nguyên tổng tiền các quỹ', () => {
+test('a move keeps the funds total the same', () => {
   const sum = [out, into].reduce((s, t) => s + (t.direction === 'in' ? t.amountVnd : -t.amountVnd), 0);
   assert.equal(sum, 0);
 });
 
-test('pairMoves - gom hai nửa theo moveId', () => {
+test('pairMoves - groups both sides by moveId', () => {
   const pair = pairMoves([out, tx({}), into]).get('m1')!;
   assert.equal(pair.from, out);
   assert.equal(pair.to, into);
 });
 
-test('collapseMoves - History hiện một dòng cho một lần chuyển', () => {
+test('collapseMoves - one History row per move', () => {
   const food = tx({ id: 'f' });
   assert.deepEqual(collapseMoves([out, food, into]), [food, into]);
 });
 
-test('collapseMoves - thiếu nửa đích thì giữ nửa nguồn', () => {
+test('collapseMoves - keeps the source side when the target is missing', () => {
   assert.deepEqual(collapseMoves([out]), [out]);
 });

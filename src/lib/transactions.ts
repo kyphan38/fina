@@ -130,10 +130,10 @@ export async function addFundTopUp(
 }
 
 /**
- * Chuyển tiền giữa hai quỹ của chính mình. Xem lib/moves.ts.
+ * Move money between two of your funds. See lib/moves.ts.
  *
- * Hai giao dịch và hai lần đổi số dư trong CÙNG một batch: chuyển nửa chừng
- * là tiền biến mất khỏi quỹ nguồn mà không tới quỹ đích.
+ * Both entries and both balance changes go in ONE batch: a half-done move
+ * would take money out of the source without reaching the target.
  */
 export async function moveBetweenFunds(
   uid: string,
@@ -176,8 +176,8 @@ export async function moveBetweenFunds(
 }
 
 /**
- * Xoá một lần chuyển: xoá cả hai nửa và trả số dư hai quỹ về như cũ, trong
- * một batch. Không bao giờ xoá một nửa - tiền sẽ mất ở một đầu.
+ * Delete a move: both sides and both balance changes, in one batch. Never
+ * delete one side alone - the money would vanish from one end.
  */
 export async function deleteMove(uid: string, legs: Transaction[]): Promise<void> {
   const now = Date.now();
@@ -218,7 +218,7 @@ export async function addEtfDeposit(
 export function spentByBucket(txs: Transaction[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const tx of txs) {
-    // Chuyển Purchases sang Phone không phải Purchases tiêu 1.500.
+    // Moving Purchases to Phone is not Purchases spending it.
     if (tx.source === 'move') continue;
     const signed = tx.direction === 'in' ? -tx.amountVnd : tx.amountVnd;
     out[tx.bucketId] = (out[tx.bucketId] ?? 0) + signed;

@@ -3,18 +3,18 @@ import { test } from 'node:test';
 import { HINT_MAX_LENGTH, normalizeHint } from '@/lib/bucket-hint';
 import { SEED_BUCKETS } from '@/types/fina';
 
-test('hint bỏ khoảng trắng hai đầu', () => {
+test('hint is trimmed', () => {
   assert.equal(normalizeHint('  Meals, coffee  '), 'Meals, coffee');
 });
 
-test('hint rỗng hoặc chỉ có khoảng trắng thành null', () => {
+test('empty or blank hint becomes null', () => {
   assert.equal(normalizeHint(''), null);
   assert.equal(normalizeHint('   \n '), null);
 });
 
-// Rules chặn hint dài hơn giới hạn. Seed vượt thì cả batch khởi tạo bị từ chối.
-test('hint trong seed không vượt giới hạn của rules', () => {
+// Rules reject a longer hint, which would fail the whole seed batch.
+test('seed hints fit the rules limit', () => {
   for (const b of SEED_BUCKETS) {
-    assert.ok((b.hint ?? '').length <= HINT_MAX_LENGTH, `${b.id} hint quá dài`);
+    assert.ok((b.hint ?? '').length <= HINT_MAX_LENGTH, `${b.id} hint too long`);
   }
 });

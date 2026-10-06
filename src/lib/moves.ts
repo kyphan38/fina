@@ -1,11 +1,11 @@
 // ============================================================
-// fina - Chuyển tiền giữa hai quỹ của chính mình
+// fina - Moving money between two of your own funds
 //
-// Một lần chuyển là HAI giao dịch cùng `moveId`: `out` ở quỹ nguồn và `in`
-// ở quỹ đích, cả hai mang `source: 'move'`. Ghi thành giao dịch (không cộng
-// thẳng vào số dư) để `recompute-balances` dựng lại được và History thấy.
+// A move is TWO entries with one `moveId`: `out` on the source fund and `in`
+// on the target, both `source: 'move'`. Entries (not a direct balance edit)
+// so `recompute-balances` can rebuild them and History shows them.
 //
-// Hàm thuần ở đây để test được mà không kéo Firebase vào. Phần ghi nằm ở
+// Pure helpers live here so tests do not load Firebase. Writes are in
 // lib/transactions.ts.
 // ============================================================
 
@@ -13,15 +13,14 @@ import { formatVnd } from '@/lib/money';
 import type { Bucket, Transaction } from '@/types/fina';
 
 /**
- * Quỹ nào được chuyển qua lại. Chỉ quỹ BIDV: hai đầu cùng một ngân hàng thì
- * không có đồng nào rời tài khoản, nên không cần chuyển khoản thật. ETF ở VPS
- * nằm ngoài.
+ * Funds that can take part in a move: BIDV only. Same bank on both sides
+ * means no money leaves the account, so no real transfer. ETF (VPS) is out.
  */
 export function movableFunds(buckets: Bucket[]): Bucket[] {
   return buckets.filter((b) => b.active && b.kind === 'fund' && b.bank === 'BIDV');
 }
 
-/** Lý do không cho chuyển, hoặc null khi được. Chữ hiện thẳng trên UI. */
+/** Why the move is not allowed, or null. Shown as is in the UI. */
 export function moveError(
   from: Bucket | null,
   to: Bucket | null,
@@ -29,20 +28,20 @@ export function moveError(
 ): string | null {
   if (!from || !to) return 'Pick both funds.';
   if (from.id === to.id) return 'Pick two different funds.';
-  if (amountVnd === null || amountVnd <= 0) return null; // chưa gõ số: chưa phải lỗi
+  if (amountVnd === null || amountVnd <= 0) return null; // nothing typed yet is not an error
   if (amountVnd > from.balanceVnd) return `${from.name} has only ${formatVnd(from.balanceVnd)}.`;
   return null;
 }
 
 export interface MovePair {
   moveId: string;
-  /** Giao dịch `out` ở quỹ nguồn. Có thể thiếu nếu chu kỳ chỉ đọc được một nửa. */
+  /** The `out` entry on the source fund. Missing if only one side was read. */
   from: Transaction | null;
-  /** Giao dịch `in` ở quỹ đích. */
+  /** The `in` entry on the target fund. */
   to: Transaction | null;
 }
 
-/** Gom các giao dịch `move` theo `moveId`. */
+/** Group `move` entries by `moveId`. */
 export function pairMoves(txs: Transaction[]): Map<string, MovePair> {
   const out = new Map<string, MovePair>();
   for (const t of txs) {
@@ -56,8 +55,8 @@ export function pairMoves(txs: Transaction[]): Map<string, MovePair> {
 }
 
 /**
- * Bỏ một nửa của mỗi cặp move để History hiện MỘT dòng cho một lần chuyển.
- * Giữ nửa `in` (quỹ đích); thiếu nó thì giữ nửa còn lại.
+ * Drop one side of each move so History shows ONE row per move. Keeps the
+ * `in` side (target fund), or the other side when it is missing.
  */
 export function collapseMoves(txs: Transaction[]): Transaction[] {
   const pairs = pairMoves(txs);

@@ -269,10 +269,8 @@ export default function SettingsView({ email }: { email: string | null }) {
 }
 
 /**
- * Mô tả của một hũ: đọc trong bong bóng, bấm Edit thì sửa tại chỗ.
- *
- * Chỉ ghi `hint`. Không đụng chu kỳ, giao dịch hay số dư - mô tả chỉ để người
- * dùng nhớ hũ này gồm những gì.
+ * A bucket's description: read it in the bubble, tap Edit to change it.
+ * Writes only `hint`; cycles, entries and balances are untouched.
  */
 function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
   const [editing, setEditing] = useState(false);
@@ -281,8 +279,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Mở ô sửa thì focus và đặt con trỏ ở cuối: sửa mô tả thường là gõ thêm,
-  // không phải gõ lại từ đầu.
+  // Focus with the caret at the end: editing usually means adding a word.
   useEffect(() => {
     const el = inputRef.current;
     if (!editing || !el) return;
