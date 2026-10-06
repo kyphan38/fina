@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { seedBuckets, updateBucket, watchBuckets } from '@/lib/buckets';
+import { HINT_MAX_LENGTH, normalizeHint } from '@/lib/bucket-hint';
 import { fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
@@ -138,7 +139,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           </>
         ) : (
           <>
-          <p className="mb-2 text-[11px] text-faint">Tap a name to see what belongs in it.</p>
+          <p className="mb-2 text-[11px] text-faint">Tap a name to see or edit what belongs in it.</p>
           <ul className="flex flex-col divide-y divide-line">
             {buckets.map((b) => (
               <li key={b.id} className="relative py-2">
@@ -165,12 +166,7 @@ export default function SettingsView({ email }: { email: string | null }) {
 
                 {/* Bong bóng chỉa lên đúng cái tên vừa bấm. Chỉ hiện khi hỏi,
                     nên không chiếm chỗ của 11 dòng còn lại. */}
-                {openHint === b.id && b.hint && (
-                  <div className="relative mt-2 rounded-lg bg-ink px-3 py-2 text-[12px] text-bg">
-                    <span aria-hidden className="absolute -top-1 left-4 h-2 w-2 rotate-45 bg-ink" />
-                    {b.hint}
-                  </div>
-                )}
+                {openHint === b.id && uid && <HintBubble uid={uid} bucket={b} />}
               </li>
             ))}
           </ul>
@@ -268,6 +264,114 @@ export default function SettingsView({ email }: { email: string | null }) {
           More
         </Link>
       </p>
+    </div>
+  );
+}
+
+/**
+ * Mô tả của một hũ: đọc trong bong bóng, bấm Edit thì sửa tại chỗ.
+ *
+ * Chỉ ghi `hint`. Không đụng chu kỳ, giao dịch hay số dư - mô tả chỉ để người
+ * dùng nhớ hũ này gồm những gì.
+ */
+function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Mở ô sửa thì focus và đặt con trỏ ở cuối: sửa mô tả thường là gõ thêm,
+  // không phải gõ lại từ đầu.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!editing || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [editing]);
+
+  const startEdit = () => {
+    setDraft(bucket.hint ?? '');
+    setError(null);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    const next = normalizeHint(draft);
+    if (next === bucket.hint) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await updateBucket(uid, bucket.id, { hint: next });
+      setEditing(false);
+    } catch (err) {
+      const code = (err as { code?: string })?.code ?? 'unknown';
+      setError(`Could not save (${code}).`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="relative mt-2 flex items-start gap-3 rounded-lg bg-ink px-3 py-2 text-[12px] text-bg">
+        <span aria-hidden className="absolute -top-1 left-4 h-2 w-2 rotate-45 bg-ink" />
+        <span className={`min-w-0 flex-1 ${bucket.hint ? '' : 'opacity-60'}`}>
+          {bucket.hint ?? 'No description'}
+        </span>
+        <button
+          type="button"
+          onClick={startEdit}
+          aria-label={`Edit description of ${bucket.name}`}
+          className="shrink-0 font-medium underline underline-offset-2"
+        >
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2">
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setEditing(false);
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void save();
+        }}
+        maxLength={HINT_MAX_LENGTH}
+        rows={2}
+        ref={inputRef}
+        aria-label={`Description of ${bucket.name}`}
+        placeholder="What belongs in this bucket"
+        className="w-full resize-none rounded-md border border-line bg-surface-2 px-2 py-1.5 text-sm"
+      />
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          disabled={saving}
+          className="rounded-lg border border-line px-3 py-1.5 text-xs disabled:opacity-30"
+        >
+          Cancel
+        </button>
+        <span className="ml-auto text-[11px] text-faint">
+          {HINT_MAX_LENGTH - draft.length} left
+        </span>
+      </div>
+      {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
     </div>
   );
 }

@@ -27,7 +27,8 @@ service cloud.firestore {
         // Chan so thuc ngay o tang DB: mot phep nhan voi so thuc
         // (4.1 * 1_000_000) da tung lam hong ca batch seed.
         && isVnd(d.standardVnd)
-        && (!('hint' in d.keys()) || d.hint == null || d.hint is string)
+        // Gioi han do dai khop voi HINT_MAX_LENGTH trong lib/bucket-hint.ts.
+        && (!('hint' in d.keys()) || d.hint == null || (d.hint is string && d.hint.size() <= 200))
         && d.order is int
         && d.active is bool
         // balanceVnd chỉ có ở fund, và có thể âm khi tiêu lố

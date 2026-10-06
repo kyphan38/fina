@@ -72,7 +72,7 @@ export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
 export async function updateBucket(
   uid: string,
   bucketId: string,
-  patch: Partial<Pick<Bucket, 'name' | 'standardVnd' | 'order' | 'active'>>,
+  patch: Partial<Pick<Bucket, 'name' | 'standardVnd' | 'hint' | 'order' | 'active'>>,
 ): Promise<void> {
   await updateDoc(doc(bucketsCol(uid), bucketId), { ...patch, updatedAt: Date.now() });
 }

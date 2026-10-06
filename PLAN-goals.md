@@ -126,7 +126,11 @@ goal đều cần nó.
 
 ## Phase G0 - Sửa mô tả (hint) của từng hũ trong Settings
 
-Branch `goals/g0-hint`. Làm trước, vì nó nhỏ, độc lập, và G2 cần nó để sửa
+**Xong (2026-10-06)**, branch `goals/g0-hint`. Unit test 148/148. Đã thử trên
+trình duyệt: Edit, Save, tải lại, xoá trống, Esc, con trỏ ở cuối, theme tối,
+màn hình điện thoại. Mô tả Food đã trả về như cũ sau khi thử.
+
+Làm trước, vì nó nhỏ, độc lập, và G2 cần nó để sửa
 hint của `Purchases`.
 
 Hiện trạng: Settings > **Standard amounts** đã sửa được mức chuẩn (ô số bên
