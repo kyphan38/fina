@@ -37,16 +37,16 @@ function toCycle(id: string, data: Record<string, unknown>): Cycle {
 }
 
 /**
- * Đọc chu kỳ, tạo mới nếu chưa có.
+ * Reads a cycle, creating it if missing.
  *
- * `limits` được chép từ `standardVnd` lúc tạo rồi ĐÓNG BĂNG. Sửa baseline trong
- * Settings không được phép làm đổi con số của một chu kỳ đã mở - nếu không,
- * mở lại biểu đồ tháng trước sẽ thấy số khác lần trước và không ai biết số
- * nào đúng.
+ * `limits` are copied from `standardVnd` at creation, then FROZEN. Editing
+ * the baseline in Settings must not change an open cycle's numbers -
+ * otherwise last month's chart shows different numbers each time and nobody
+ * knows which is right.
  *
- * CHỈ gọi cho chu kỳ hiện tại. Chu kỳ quá khứ chưa có document nghĩa là nó
- * có trước khi app tồn tại - ta không biết hạn mức cũ là bao nhiêu và không
- * được bịa ra bằng baseline hôm nay.
+ * ONLY call for the current cycle. A past cycle with no document predates the
+ * app - we do not know its old limits and must not invent them from today's
+ * baseline.
  */
 export async function ensureCycle(
   uid: string,
@@ -87,15 +87,15 @@ export function watchCycle(
   );
 }
 
-/** Danh sách chu kỳ có document, mới nhất trước. Dùng cho bộ chọn. */
+/** Cycles that have a document, newest first. For the picker. */
 export async function listCycles(uid: string): Promise<Cycle[]> {
   const snap = await getDocs(query(cyclesCol(uid), orderBy('startAt', 'desc')));
   return snap.docs.map((d) => toCycle(d.id, d.data()));
 }
 
 /**
- * Dư (+) hoặc lố (−) của cả chu kỳ, cộng trên mọi bucket dạng budget.
- * Hàm thuần - có test.
+ * Surplus (+) or overspend (−) for the whole cycle, summed over all budget buckets.
+ * Pure function - tested.
  */
 export function computeSurplus(
   limits: Record<string, number>,
@@ -108,12 +108,12 @@ export function computeSurplus(
 }
 
 /**
- * Sửa TAY hạn mức của chu kỳ đang chạy - đường dùng bởi nút `Edit limits` ở
- * Summary, và chỉ nó.
+ * MANUAL edit of the running cycle's limits - the path used by the `Edit
+ * limits` button in Summary, and only by it.
  *
- * Đường còn lại là `applyCyclePlan`, chạy ngày 25 và làm nhiều việc hơn hẳn
- * (ghi lương, chia tiền vào quỹ). Hai hàm cùng ghi `limits` nên tên phải nói
- * rõ cái nào là cái nào.
+ * The other path is `applyCyclePlan`, run on the 25th, which does much more
+ * (records salary, funds the funds). Both write `limits`, so the names must
+ * say which is which.
  */
 export async function overrideCycleLimits(
   uid: string,
@@ -124,43 +124,43 @@ export async function overrideCycleLimits(
 }
 
 /**
- * Ngày 25: một hành động, ba việc.
+ * The 25th: one action, three jobs.
  *
- *  1. Ghi bản ghi thu nhập của chu kỳ
- *  2. Đóng băng hạn mức cho các bucket VCB
- *  3. Nạp tiền vào từng quỹ BIDV bằng một giao dịch `in`, `source: 'allocation'`
+ *  1. Write the cycle's income record
+ *  2. Freeze limits for the VCB buckets
+ *  3. Fund each BIDV fund with an `in` transaction, `source: 'allocation'`
  *
- * Việc thứ ba là phần vá lỗ hổng: trước đây quỹ chỉ bao giờ giảm, không bao
- * giờ được cấp tiền. Ghi nó thành GIAO DỊCH chứ không phải cộng thẳng vào số
- * dư, để `recompute-balances` dựng lại được và để người dùng nhìn thấy tiền
- * vào quỹ trong History.
+ * Job three closes a gap: funds used to only ever go down, never get money.
+ * It is written as a TRANSACTION, not a direct balance change, so
+ * `recompute-balances` can rebuild it and the user sees the money arrive in
+ * History.
  *
- * ETF cố ý KHÔNG được phân bổ tự động: người dùng nhập tay lúc thật sự
- * chuyển sang VPS, làm cả hai là mỗi đồng bị đếm hai lần.
+ * ETF is deliberately NOT funded automatically: the user enters it when the
+ * money really moves to VPS; doing both counts every dong twice.
  *
- * Chạy lại được: id sinh cố định, và mọi allocation cũ của chu kỳ bị gỡ (hoàn
- * lại số dư quỹ) trước khi ghi bộ mới.
+ * Rerunnable: ids are fixed, and the cycle's old allocations are removed
+ * (refunding fund balances) before the new set is written.
  */
 export async function applyCyclePlan(
   uid: string,
   cycleId: string,
   plan: {
-    /** Số đem chia của kỳ này: phần dư còn lại cộng khoản vừa nhận. KHÔNG
-     *  phải lương - lương được theo dõi riêng và không đi qua đây. */
+    /** The amount to split this cycle: leftover plus what just came in. NOT
+     *  salary - salary is tracked separately and never goes through here. */
     divideVnd: number;
     limits: Record<string, number>;
-    /** bucketId -> số tiền, chỉ quỹ. Không gồm etf. */
+    /** bucketId -> amount, funds only. No etf. */
     fundAllocations: Record<string, number>;
     occurredAt?: number;
   },
 ): Promise<void> {
   const now = plan.occurredAt ?? Date.now();
 
-  // Gỡ allocation cũ của chính chu kỳ này, hoàn số dư về, rồi mới ghi lại.
+  // Remove this cycle's old allocations, refund the balances, then rewrite.
   //
-  // CHỈ gỡ những dòng do chính hàm này sinh ra (id `alloc-<chu kỳ>-<bucket>`).
-  // Khoản nạp tay giữa chừng cũng mang source 'allocation' - nó cũng là
-  // chuyển tiền VCB sang BIDV - nhưng xoá nó ở đây là ăn mất tiền của người dùng.
+  // ONLY remove rows this function created (id `alloc-<cycle>-<bucket>`).
+  // A manual mid-cycle top-up also has source 'allocation' - it is also a
+  // VCB to BIDV move - but deleting it here would eat the user's money.
   const prefix = `alloc-${cycleId}-`;
   const old = await getDocs(
     query(txCol(uid), where('cycle', '==', cycleId), where('source', '==', 'allocation')),
@@ -178,8 +178,8 @@ export async function applyCyclePlan(
     });
   }
 
-  // Con số đem chia KHÔNG được lưu lại ở đâu cả. Nó chỉ là đầu vào để tính
-  // hạn mức; giữ nó lại là dựng lại đúng thứ vừa bỏ đi (theo dõi dòng tiền).
+  // The amount to split is NOT stored anywhere. It is only an input for the
+  // limits; keeping it would rebuild exactly what was dropped (cash-flow tracking).
   batch.update(cycleRef(uid, cycleId), { limits: plan.limits });
 
   for (const [bucketId, amountVnd] of Object.entries(plan.fundAllocations)) {
@@ -206,16 +206,16 @@ export async function applyCyclePlan(
 }
 
 /**
- * Đóng sổ. Một batch: chốt chu kỳ, và chuyển phần dư vào quỹ đích.
+ * Close the books. One batch: lock the cycle and move the surplus to the target fund.
  *
- * Không tự chuyển tiền thật, không tự tạo giao dịch. Chỉ ghi con số.
+ * Never moves real money, never creates transactions. Only records the numbers.
  */
 export async function closeCycle(
   uid: string,
   cycleId: string,
   surplusVnd: number,
   surplusTo: SurplusTarget,
-  /** Chụp lại để Trend và Notes khỏi đọc lại toàn bộ giao dịch của kỳ. */
+  /** Snapshot, so Trend and Notes do not reread every transaction of the cycle. */
   snapshot: { byBucket: Record<string, number> },
 ): Promise<void> {
   const batch = writeBatch(db);
@@ -228,7 +228,7 @@ export async function closeCycle(
     closedTotals: { byBucket: snapshot.byBucket },
   });
 
-  // 'hold' = để nguyên, không cộng vào đâu cả.
+  // 'hold' = leave it, add it nowhere.
   if (surplusVnd > 0 && surplusTo !== 'hold') {
     batch.update(doc(bucketsCol(uid), surplusTo === 'etf' ? 'etf' : 'reserve'), {
       balanceVnd: increment(surplusVnd),

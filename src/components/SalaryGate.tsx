@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { checkPassword, gateStore } from '@/lib/gate';
 
 /**
- * Màn chắn trước Salary.
+ * Gate in front of Salary.
  *
- * Không nói "sai mật khẩu" nhanh hơn hay chậm hơn tuỳ trường hợp, và không
- * hiện gợi ý gì về mật khẩu. Ai mở app lên cũng chỉ thấy một ô trống.
+ * Never says "wrong password" faster or slower depending on the case, and
+ * never shows a password hint. Anyone opening the app sees only an empty field.
  */
 export default function SalaryGate() {
   const [value, setValue] = useState('');

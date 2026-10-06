@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// fina - Ap bo so chuan moi len cac bucket da co trong Firestore.
+// fina - Apply the new standard amounts to buckets already in Firestore.
 //
 //   node --import ./scripts/register.mjs --env-file=.env.local \
 //     scripts/apply-standards.mjs --uid <UID> [--commit]
 //
-// Mac dinh CHI IN RA (dry run). Doc thang SEED_BUCKETS cua app, khong chep lai.
-// Chi dung name / standardVnd / hint.
-// KHONG dung balanceVnd, active, order - do la du lieu nguoi dung.
+// PRINTS ONLY by default (dry run). Reads the app's SEED_BUCKETS directly, no copy.
+// Only touches name / standardVnd / hint.
+// NEVER touches balanceVnd, active, order - that is user data.
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
@@ -36,13 +36,13 @@ const changes = [];
 for (const seed of SEED_BUCKETS) {
   const cur = existing.get(seed.id);
   if (!cur) {
-    changes.push({ id: seed.id, why: 'CHUA CO - tao moi', patch: null });
+    changes.push({ id: seed.id, why: 'MISSING - create', patch: null });
     continue;
   }
   const patch = {};
   if (cur.name !== seed.name) patch.name = seed.name;
   if (cur.standardVnd !== seed.standardVnd) patch.standardVnd = seed.standardVnd;
-  // Hai field da bo khoi model - xoa han khoi Firestore de khong ai doc nham.
+  // Two fields dropped from the model - delete them from Firestore so nobody reads them by mistake.
   if ('baselineVnd' in cur) patch.baselineVnd = FieldValue.delete();
   if ('goal' in cur) patch.goal = FieldValue.delete();
   if (cur.hint !== seed.hint) patch.hint = seed.hint;
@@ -53,11 +53,11 @@ for (const seed of SEED_BUCKETS) {
 }
 
 if (changes.length === 0) {
-  console.log('Khong co gi phai doi.');
+  console.log('Nothing to change.');
   process.exit(0);
 }
 
-console.log(`\n${changes.length} bucket se doi:\n`);
+console.log(`\n${changes.length} buckets will change:\n`);
 for (const c of changes) {
   if (!c.patch) {
     console.log(`  ${c.id.padEnd(12)} ${c.why}`);
@@ -75,7 +75,7 @@ for (const c of changes) {
 }
 
 if (!COMMIT) {
-  console.log('\nDry run. Them --commit de ghi that.');
+  console.log('\nDry run. Add --commit to write.');
   process.exit(0);
 }
 
@@ -95,4 +95,4 @@ for (const c of changes) {
   }
 }
 await batch.commit();
-console.log(`\nDa cap nhat ${changes.length} bucket.`);
+console.log(`\nUpdated ${changes.length} buckets.`);

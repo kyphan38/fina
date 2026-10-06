@@ -23,16 +23,16 @@ export default function LogView() {
   const [buf, setBuf] = useState('');
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
-  // Vài giây để rút lại nếu vừa bấm nhầm. Chỉ có khi giao dịch không kéo
-  // theo một lần bù - gỡ giao dịch mà để cover mồ côi là tệ hơn.
+  // A few seconds to take back a mistap. Only when the transaction does not
+  // trigger a cover - removing it and leaving an orphan cover is worse.
   const [undo, setUndo] = useState<{ tx: Transaction; kind: Bucket['kind'] } | null>(null);
   const [saving, setSaving] = useState(false);
   const [coverReq, setCoverReq] = useState<CoverRequest | null>(null);
-  // Tiền được hoàn lại: ứng tiền đi picnic rồi bạn bè trả lại. Luôn trả về
-  // 'out' sau mỗi lần Save để không bao giờ lỡ để bật.
+  // Money refunded: you paid for a picnic and friends paid you back. Always
+  // back to 'out' after each Save so it is never left on by accident.
   const [direction, setDirection] = useState<'out' | 'in'>('out');
-  // Mặc định gập. Mở ra rồi thì GIỮ NGUYÊN cho tới khi tự đóng - đi du lịch
-  // cả tuần không phải mở lại mỗi lần.
+  // Collapsed by default. Once opened it STAYS open until closed - a week of
+  // travel does not mean reopening it every time.
   const fundsOpen = useSyncExternalStore(
     fundsOpenStore.subscribe,
     fundsOpenStore.get,
@@ -52,9 +52,9 @@ export default function LogView() {
     const opening = !fundsOpen;
     fundsOpenStore.set(opening);
     if (opening) {
-      // Vùng cuộn có thể chỉ cao hơn 100px trên Safari (thanh địa chỉ ăn mất
-      // chỗ). Không cuộn tới thì các ô quỹ nằm ngay dưới mép và trông như
-      // section rỗng.
+      // The scroll area may be only ~100px taller on Safari (the address bar
+      // eats space). Without scrolling, the fund tiles sit just below the
+      // edge and the section looks empty.
       requestAnimationFrame(() => {
         fundsRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
       });
@@ -63,15 +63,15 @@ export default function LogView() {
 
   const all: Bucket[] = [...monthly, ...funds, ...goals];
 
-  // Numpad đã có mặt và nhận được chạm kể từ đây.
+  // From here the numpad is on screen and accepts taps.
   const ready = !loading && all.length > 0;
   useEffect(() => {
     if (ready) markReady();
   }, [ready]);
   const selected = all.find((b) => b.id === selectedId) ?? null;
   const amountVnd = evalAmount(buf);
-  // Có dấu cộng/trừ thì con số to là TỔNG, còn biểu thức hiện nhỏ bên trên -
-  // gộp mấy khoản lẻ mà không thấy tổng thì vẫn phải tự cộng nhẩm.
+  // With a plus/minus, the big number is the TOTAL and the expression is small
+  // above it - combining small amounts without a total means mental math.
   const combining = /[+-]/.test(buf);
   const canSave = Boolean(uid && selected && amountVnd !== null && !saving);
 
@@ -84,8 +84,8 @@ export default function LogView() {
     setSaving(true);
     const trimmed = note.trim();
 
-    // Tính phần vượt bằng trạng thái TRƯỚC khi ghi. Tính sau thì listener có
-    // thể đã cộng chính giao dịch này vào và phần vượt bị đếm hai lần.
+    // Compute the overage from the state BEFORE writing. After, the listener
+    // may already include this transaction and count the overage twice.
     const overflowVnd = direction === 'in' ? 0 : overflowOf({
       bucketId: selected.id,
       kind: selected.kind,
@@ -138,12 +138,12 @@ export default function LogView() {
         setUndo(null);
       }, 6000);
 
-      // Giữ nguyên bucket đang chọn - hay log liên tiếp cùng một nhóm.
+      // Keep the selected bucket - you often log several in a row.
       setBuf('');
       setNote('');
       setDirection('out');
 
-      // Hộp thoại bù đến SAU khi giao dịch đã nằm trong Firestore.
+      // The cover dialog comes AFTER the transaction is in Firestore.
       if (overflowVnd > 0) {
         setCoverReq({
           txId,
@@ -184,8 +184,8 @@ export default function LogView() {
     },
     onClear: () => setBuf(''),
     onFlip: () => setDirection((d) => (d === 'out' ? 'in' : 'out')),
-    // CoverSheet có numpad riêng, và nó nhận phím. Để cả hai cùng nghe thì
-    // số gõ cho phần bù cũng chui vào ô số tiền của Log.
+    // CoverSheet has its own numpad that takes keys. If both listened, digits
+    // typed for the cover would land in the Log amount too.
     enabled: !coverReq,
   });
 
@@ -208,8 +208,8 @@ export default function LogView() {
   }
 
   return (
-    // Trên Mac: lưới bucket bên trái, vùng nhập bên phải. Không còn lý do
-    // nào để nút Save phải nằm dưới đáy khi màn hình rộng gấp ba lần.
+    // On Mac: bucket grid on the left, input on the right. No reason for Save
+    // to sit at the bottom on a screen three times wider.
     <div className="flex h-full flex-col min-[900px]:flex-row min-[900px]:gap-7">
       <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 items-end justify-between border-b border-line pb-2.5 pt-3">
@@ -224,7 +224,7 @@ export default function LogView() {
         </p>
       </header>
 
-      {/* Chỉ vùng này cuộn. Thêm bucket bao nhiêu cũng không đẩy Save đi đâu. */}
+      {/* Only this area scrolls. More buckets never push Save away. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
       <Section title="Monthly">
         <div className="grid grid-cols-3 gap-1.5">
@@ -256,7 +256,7 @@ export default function LogView() {
           </button>
         }
       >
-        {/* Trên Mac luôn hiện: có chỗ, và gập lại chẳng tiết kiệm được gì. */}
+        {/* Always shown on Mac: there is room, and collapsing saves nothing. */}
         <div ref={fundsRef} className={fundsOpen ? 'block' : 'hidden min-[900px]:block'}>
           <div className="grid grid-cols-3 gap-1.5">
             {funds.map((b) => (
@@ -294,15 +294,15 @@ export default function LogView() {
 
       <div className="relative shrink-0 border-t border-line pt-2.5 min-[900px]:w-[330px] min-[900px]:border-t-0 min-[900px]:pt-4">
         <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
-          {/* Không hiện gợi ý ở đây: màn hình nhập là chỗ chật nhất, và gợi ý
-              chỉ cần lúc đang cấu hình. Nó nằm ở Settings. */}
+          {/* No hint here: the entry screen is the most crowded, and hints only
+              matter while configuring. They live in Settings. */}
           <span className={`min-w-0 flex-1 truncate text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
             {selected ? selected.name : 'Pick a bucket'}
           </span>
           <span className="flex shrink-0 items-baseline gap-2">
-            {/* Chữ OUT/IN chứ không phải −/+: numpad giờ có phím + và − để
-                cộng nhiều khoản, và một màn hình không thể có hai nghĩa cho
-                cùng một ký hiệu. */}
+            {/* OUT/IN words, not −/+: the numpad now has + and − keys for
+                adding amounts, and one screen cannot give one symbol two
+                meanings. */}
             <button
               type="button"
               onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}

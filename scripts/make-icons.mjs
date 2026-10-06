@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// fina - Sinh icon PWA tu public/branding/fina-icon.svg
+// fina - Build PWA icons from public/branding/fina-icon.svg
 //
 //   node scripts/make-icons.mjs
 //
-// Sinh tu code de doi mau chi phai sua MOT cho (file SVG goc).
+// Generated, so a color change means editing ONE file (the source SVG).
 // ---------------------------------------------------------------------------
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -11,18 +11,18 @@ import sharp from 'sharp';
 
 const SRC = 'public/branding/fina-icon.svg';
 const OUT = 'public/icons';
-// Nen phai khop rect trong SVG goc, neu khong vien maskable se lo mot khung khac mau.
+// Must match the rect in the source SVG, or the maskable edge shows a different-colored frame.
 const BG = '#f4f4f1';
 
 mkdirSync(OUT, { recursive: true });
 const svg = readFileSync(SRC);
-// Ban cho he dieu hanh: bo vien manh quanh o vuong. iOS/Android tu cat icon
-// theo mat na rieng, vien se bi cat lem nham o goc.
+// OS version: drop the thin border around the tile. iOS/Android apply their own
+// mask, which would clip the border unevenly at the corners.
 const plain = Buffer.from(
   svg.toString().replace(/(<rect [^>]*?) stroke="[^"]*" stroke-width="[^"]*"/, '$1'),
 );
 
-// density cao de rasterize sac net, roi moi resize xuong.
+// High density for a sharp raster, then resize down.
 const render = (size, src = svg) => sharp(src, { density: 600 }).resize(size, size).png();
 
 for (const size of [192, 512, 1024]) {
@@ -30,16 +30,16 @@ for (const size of [192, 512, 1024]) {
   console.log(`icon-${size}.png`);
 }
 
-// apple-touch-icon: iOS tu bo goc va to DEN phan trong suot. Voi nen sang, goc
-// den se lo ro, nen ve kin ca o vuong bang mau nen.
+// apple-touch-icon: iOS rounds the corners and fills transparency with BLACK.
+// On a light tile that shows, so fill the whole square with the background.
 writeFileSync(
   `${OUT}/apple-touch-icon.png`,
   await render(180, plain).flatten({ background: BG }).toBuffer(),
 );
 console.log('apple-touch-icon.png');
 
-// Maskable: Android cat theo hinh bat ky, noi dung phai nam trong ~80% giua.
-// Thu nho glyph roi dat len nen day khung.
+// Maskable: Android may crop to any shape; content must sit in the middle ~80%.
+// Shrink the glyph and place it on a full-bleed background.
 const inner = await render(410, plain).toBuffer();
 writeFileSync(
   `${OUT}/maskable-512.png`,

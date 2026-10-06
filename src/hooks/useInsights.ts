@@ -15,14 +15,14 @@ import type { Bucket, Cycle, Transaction } from '@/types/fina';
 export interface CycleRow {
   id: string;
   closed: boolean;
-  /** Chi tiêu ròng theo từng bucket. */
+  /** Net spending per bucket. */
   byBucket: Record<string, number>;
 }
 
 /**
- * Insights đọc `closedTotals` của các chu kỳ đã đóng - mỗi chu kỳ một
- * document, không phải vài nghìn giao dịch. Chỉ chu kỳ ĐANG CHẠY mới tính
- * trực tiếp, vì nó chưa có ảnh chụp.
+ * Insights reads `closedTotals` of closed cycles - one document per cycle,
+ * not thousands of transactions. Only the RUNNING cycle is computed live,
+ * because it has no snapshot yet.
  */
 export function useInsights() {
   const { user } = useAuth();
@@ -78,14 +78,14 @@ export function useInsights() {
       }
       return { id: c.id, closed: true, byBucket: c.closedTotals?.byBucket ?? {} };
     });
-    // Chu kỳ hiện tại có thể chưa có document.
+    // The current cycle may have no document yet.
     if (!out.some((r) => r.id === currentCycle)) {
       out.unshift({ id: currentCycle, closed: false, byBucket: liveByBucket });
     }
     return out.sort((a, b) => (a.id < b.id ? 1 : -1));
   }, [cycles, currentCycle, liveByBucket]);
 
-  /** Sáu chu kỳ gần nhất, cũ trước - để vẽ biểu đồ đọc từ trái sang phải. */
+  /** The last six cycles, oldest first - so the chart reads left to right. */
   const recent = useMemo(() => {
     const ids: string[] = [];
     let id = currentCycle;
@@ -98,7 +98,7 @@ export function useInsights() {
 
   const signals = useMemo(() => {
     const byId = new Map(cycles.map((c) => [c.id, c]));
-    // Cũ trước, chu kỳ đang chạy ở cuối - đúng thứ tự computeSignals cần.
+    // Oldest first, running cycle last - the order computeSignals expects.
     const facts = [...rows].reverse().map((r) => ({
       id: r.id,
       closed: r.closed,

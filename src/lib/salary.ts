@@ -6,10 +6,10 @@ import type { Salary } from '@/types/fina';
 export const salaryCol = (uid: string) => collection(db, 'users', uid, 'salary');
 
 /**
- * Một tháng một bản ghi, id CHÍNH là tháng ('2026-09').
+ * One record per month, and the id IS the month ('2026-09').
  *
- * Nhờ vậy nhập lại tháng cũ là ghi đè chứ không đẻ ra bản thứ hai, và không
- * bao giờ có hai con số cho cùng một tháng.
+ * So re-entering an old month overwrites instead of creating a second record,
+ * and there are never two numbers for one month.
  */
 function toSalary(id: string, data: Record<string, unknown>): Salary {
   return {
@@ -20,7 +20,7 @@ function toSalary(id: string, data: Record<string, unknown>): Salary {
   };
 }
 
-/** Toàn bộ lịch sử lương, mới nhất trước. Vài chục document, đọc một lần. */
+/** The full salary history, newest first. A few dozen documents, read once. */
 export function watchSalaries(uid: string, cb: (rows: Salary[]) => void): () => void {
   return onSnapshot(salaryCol(uid), (snap) =>
     cb(
@@ -49,17 +49,17 @@ export async function removeSalary(uid: string, month: string): Promise<void> {
 }
 
 /**
- * Tháng dương lịch của một mốc thời gian: '2026-09'.
+ * The calendar month of a timestamp: '2026-09'.
  *
- * CỐ Ý không dùng `cycleOf`. Chu kỳ chi tiêu cắt ngày 25, nên đúng hôm lĩnh
- * lương (25/09) `cycleOf` đã trả về '2026-10' - lương tháng 9 sẽ bị ghi vào
- * ô tháng 10, và cả bảng lệch một tháng.
+ * Deliberately NOT `cycleOf`. The spending cycle turns on the 25th, so on
+ * payday itself (25/09) `cycleOf` already returns '2026-10' - September's
+ * salary would land in October, and the whole table shifts by a month.
  */
 export function monthOf(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-/** Tổng theo năm, năm mới trước. Năm lấy từ id tháng. */
+/** Totals per year, newest year first. The year comes from the month id. */
 export function byYear(rows: Salary[]): { year: string; totalVnd: number; months: number }[] {
   const map = new Map<string, { totalVnd: number; months: number }>();
   for (const r of rows) {
@@ -73,8 +73,8 @@ export function byYear(rows: Salary[]): { year: string; totalVnd: number; months
 }
 
 /**
- * Trung bình mỗi tháng ĐÃ ghi, không phải chia cho 12. Ghi 4 tháng mà chia
- * cho 12 thì con số nói dối về thu nhập thật.
+ * Average per month RECORDED, not divided by 12. Recording 4 months and
+ * dividing by 12 lies about real income.
  */
 export function average(rows: Salary[]): number {
   if (rows.length === 0) return 0;

@@ -22,10 +22,10 @@ const buckets = [
   bucket({ id: 'old', name: 'Old', active: false, order: 5 }),
 ];
 
-// 04/10/2026 nằm trong chu kỳ '2026-10' (25/09 - 24/10), ngày 10 trên 30.
+// 04/10/2026 is in cycle '2026-10' (25/09 - 24/10), day 10 of 30.
 const now = new Date(2026, 9, 4, 9, 0);
 
-test('widgetData - còn lại khớp với Summary: limits trừ chi ròng hũ budget', () => {
+test('widgetData - left matches Summary: limits minus net budget spending', () => {
   const d = widgetData({
     now,
     buckets,
@@ -33,7 +33,7 @@ test('widgetData - còn lại khớp với Summary: limits trừ chi ròng hũ b
       tx({ bucketId: 'food', amountVnd: 1_120_000 }),
       tx({ bucketId: 'social', amountVnd: 850_000 }),
       tx({ bucketId: 'social', amountVnd: 250_000, direction: 'in' }),
-      // Hũ fund không tính vào tổng chi của chu kỳ.
+      // Fund buckets are not part of the cycle's spending total.
       tx({ bucketId: 'travel', amountVnd: 2_000_000 }),
     ],
     limits: { food: 3_000_000, social: 1_000_000 },
@@ -46,12 +46,12 @@ test('widgetData - còn lại khớp với Summary: limits trừ chi ròng hũ b
   assert.equal(d.limitVnd, 4_000_000);
   assert.equal(d.spentVnd, 1_720_000);
   assert.equal(d.leftVnd, 2_280_000);
-  // 2.280 chia cho 21 ngày còn lại (tính cả hôm nay).
+  // 2.280 over the 21 days left (including today).
   assert.equal(d.perDayVnd, 108_571);
   assert.deepEqual(d.buckets.map((b) => b.name), ['Food', 'Social']);
 });
 
-test('widgetData - tiêu lố thì mỗi ngày về 0, không âm', () => {
+test('widgetData - overspent means 0 per day, never negative', () => {
   const d = widgetData({
     now,
     buckets,
@@ -63,7 +63,7 @@ test('widgetData - tiêu lố thì mỗi ngày về 0, không âm', () => {
   assert.equal(d.perDayVnd, 0);
 });
 
-test('widgetData - hũ bị rút đi bù tính là đã dùng, giống BudgetRow', () => {
+test('widgetData - a bucket drawn to cover others counts as used, like BudgetRow', () => {
   const covers = [
     { fromBucketId: 'social', toBucketId: 'food', amountVnd: 200_000, status: 'done' },
     { fromBucketId: 'social', toBucketId: 'food', amountVnd: 999_000, status: 'pending' },
@@ -80,7 +80,7 @@ test('widgetData - hũ bị rút đi bù tính là đã dùng, giống BudgetRow
   assert.equal(social?.limitVnd, 1_000_000);
 });
 
-test('vnWallClock - 18:00 UTC ngày 24 đã là ngày 25 ở Việt Nam', () => {
+test('vnWallClock - 18:00 UTC on the 24th is already the 25th in Vietnam', () => {
   const vn = vnWallClock(new Date(Date.UTC(2026, 8, 24, 18, 0)));
   assert.equal(vn.getDate(), 25);
   assert.equal(vn.getHours(), 1);

@@ -5,11 +5,11 @@ import { useEffect, useEffectEvent } from 'react';
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'] as const;
 
 /**
- * Bàn phím số tự vẽ, KHÔNG dùng bàn phím iOS.
+ * A self-drawn number pad, NOT the iOS keyboard.
  *
- * iOS không cho tự mở bàn phím khi app vừa mở (phải có cử chỉ chạm trước),
- * và animation bàn phím tốn ~250ms. Tự vẽ thì phím đã nằm sẵn ngay khi
- * màn hình hiện ra - đó là toàn bộ lý do app này tồn tại.
+ * iOS will not open the keyboard when the app opens (it needs a tap first),
+ * and the keyboard animation costs ~250ms. Drawing our own means the keys
+ * are there the moment the screen shows - the whole reason the app exists.
  */
 export default function Numpad({
   onKey,
@@ -23,18 +23,18 @@ export default function Numpad({
   onSave: () => void;
   canSave: boolean;
   saveLabel?: string;
-  /** Hiện phím + và − để gộp nhiều khoản nhỏ trong một lần gõ. */
+  /** Show + and − keys to combine several small amounts in one entry. */
   ops?: boolean;
   /**
-   * Nhận phím từ bàn phím thật trên Mac. Tắt ở màn Log - ở đó
-   * useLogKeyboard đã lo, và còn dùng thêm phím mũi tên để chọn bucket.
+   * Takes keys from a real keyboard on Mac. Off on the Log screen - there
+   * useLogKeyboard handles it, and also uses arrow keys to pick a bucket.
    */
   keyboard?: boolean;
 }) {
-  // useEffectEvent: luôn đọc onKey/canSave mới nhất mà không phải gỡ rồi gắn
-  // lại listener sau mỗi phím gõ.
+  // useEffectEvent: always reads the latest onKey/canSave without removing
+  // and re-adding the listener after every key.
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    // Đang gõ trong ô Note, ô ngày, hay ô chọn thì phím thuộc về ô đó.
+    // Typing in the Note, date or select field: the key belongs to that field.
     const el = document.activeElement;
     if (
       el instanceof HTMLInputElement ||
@@ -52,8 +52,8 @@ export default function Numpad({
     else if (e.key === 'Enter') {
       if (canSave) onSave();
     } else return;
-    // Chặn cả Enter: nút numpad vừa bấm chuột vẫn đang giữ focus, để mặc định
-    // thì Enter "bấm" lại nút đó và gõ thêm một chữ số.
+    // Block Enter too: a numpad button just clicked still has focus, and by
+    // default Enter would "press" it again and add a digit.
     e.preventDefault();
   });
 
@@ -76,9 +76,9 @@ export default function Numpad({
           {k === 'del' ? '⌫' : k}
         </button>
       ))}
-      {/* Hàng riêng, KHÔNG chen vào lưới số: mười hai phím kia đã nằm đúng
-          chỗ ngón tay quen từ lâu, xê dịch chúng để nhét thêm hai phím là
-          đánh đổi tệ. Ở đây cũng tách bạch phép tính khỏi con số. */}
+      {/* A separate row, NOT squeezed into the digit grid: the twelve keys sit
+          where the fingers have long expected them, and moving them to fit two
+          more is a bad trade. It also keeps the operation apart from the number. */}
       {ops && (
         <div className="col-span-3 grid grid-cols-2 gap-1.5">
           {(['+', '-'] as const).map((k) => (

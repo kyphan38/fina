@@ -3,8 +3,8 @@ import AppShell from '@/components/AppShell';
 import { getSessionUser } from '@/lib/server-auth';
 
 /**
- * Chốt chặn phía server: chưa có session hợp lệ thì không render gì cả.
- * Client-side guard là để trải nghiệm, đây mới là bảo vệ thật.
+ * Server-side gate: no valid session, render nothing.
+ * The client-side guard is for UX; this is the real protection.
  */
 export default async function MainLayout({ children }: LayoutProps<"/">) {
   const user = await getSessionUser();

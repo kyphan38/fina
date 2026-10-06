@@ -3,11 +3,11 @@ import 'server-only';
 import { adminDb } from '@/lib/firebase-admin';
 
 /**
- * Giới hạn tần suất lưu ở Firestore, không phải trong bộ nhớ.
+ * Rate limits are stored in Firestore, not in memory.
  *
- * Serverless mỗi request có thể rơi vào một instance khác, nên bộ đếm trong
- * RAM gần như không chặn được gì. Một document là đủ, và các lời gọi này vốn
- * hiếm. Mỗi API một field riêng trong cùng document.
+ * In serverless each request may hit a different instance, so an in-RAM
+ * counter blocks almost nothing. One document is enough, and these calls are
+ * rare. Each API has its own field in the same document.
  */
 export async function overLimit(
   uid: string,

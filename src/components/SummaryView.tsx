@@ -68,7 +68,7 @@ export default function SummaryView() {
         </p>
       </header>
 
-      {/* Trên Mac ba khối đứng cạnh nhau; trên điện thoại vẫn xếp dọc. */}
+      {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
         title="VCB - Monthly"
@@ -311,11 +311,11 @@ function BudgetRow({
 }: {
   bucket: Bucket;
   spentVnd: number;
-  /** Phần đã rút khỏi bucket này để bù cho bucket khác. */
+  /** Amount taken from this bucket to cover another. */
   coveredVnd: number;
   limit: number | undefined;
 }) {
-  // Buffer bị rút để bù chỗ khác vẫn là "đã dùng", dù không có giao dịch nào.
+  // Buffer drawn to cover elsewhere is still "used", even with no transaction.
   const used = spentVnd + coveredVnd;
   const over = limit !== undefined && used > limit;
   const pct = limit ? Math.min(100, (used / limit) * 100) : 0;

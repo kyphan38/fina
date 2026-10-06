@@ -1,12 +1,12 @@
 // ============================================================
-// fina - Bảng nhập MoMo đang duyệt dở, đồng bộ giữa các máy
+// fina - The MoMo import table under review, synced across devices
 //
-// Upload trên điện thoại, duyệt trên laptop: cả hai nghe CÙNG một document.
-// Mỗi thao tác chỉ ghi đúng field nó đổi (rows.<id>.note, ...), không ghi đè
-// cả bảng - hai máy sửa hai dòng khác nhau cùng lúc thì không ai mất gì.
+// Upload on the phone, review on the laptop: both listen to the SAME document.
+// Each action writes only the field it changes (rows.<id>.note, ...), never
+// the whole table - two devices editing two rows at once lose nothing.
 //
-// Document này chứa tên người nhận để đối chiếu. Nó sống tới lúc Save hoặc
-// Discard rồi bị xoá; transaction ghi ra vẫn không bao giờ có tên.
+// This document holds payee names for checking. It lives until Save or
+// Discard, then is deleted; the transactions written never contain names.
 // ============================================================
 
 import {
@@ -26,7 +26,7 @@ import { txCol } from '@/lib/transactions';
 import { appendRows, buildDrafts, type ImportRow } from '@/lib/momo-import';
 import type { Bucket } from '@/types/fina';
 
-/** `removed`: người dùng bấm ×. `imported`: đã có trong DB từ lần trước. */
+/** `removed`: the user tapped ×. `imported`: already in the DB from a previous run. */
 export type RemovedReason = 'removed' | 'imported';
 
 export interface DraftRow extends ImportRow {
@@ -37,7 +37,7 @@ export interface DraftRow extends ImportRow {
 export interface ImportDraftDoc {
   rows: Record<string, DraftRow>;
   merge: boolean;
-  /** Dòng chồng giữa các ảnh, hoặc đã có sẵn trong bảng - để báo lại. */
+  /** Rows overlapping between images, or already in the table - to report back. */
   overlap: number;
   unreadable: number;
   createdAt: number;
@@ -46,7 +46,7 @@ export interface ImportDraftDoc {
 
 const draftRef = (uid: string) => doc(db, 'users', uid, 'meta', 'importDraft');
 
-/** null = không có bảng nào đang dở. Trả về hàm huỷ. */
+/** null = no unfinished table. Returns an unsubscribe. */
 export function watchImportDraft(
   uid: string,
   cb: (draft: ImportDraftDoc | null) => void,
@@ -57,9 +57,9 @@ export function watchImportDraft(
 }
 
 /**
- * Tạo bảng mới, hoặc thêm vào bảng đang có. Chạy trong transaction: hai máy
- * upload cùng lúc thì lần sau đọc được kết quả của lần trước và không nhân
- * đôi dòng.
+ * Creates a new table, or adds to the existing one. Runs in a transaction:
+ * two devices uploading at once means the later one reads the earlier result
+ * and does not double rows.
  */
 export async function addToDraft(
   uid: string,
@@ -100,7 +100,7 @@ export async function addToDraft(
 
 type RowChange = Partial<Pick<DraftRow, 'bucketId' | 'note' | 'removed'>>;
 
-/** Ghi đúng những field đổi của một dòng. */
+/** Writes only the changed fields of one row. */
 export async function patchDraftRow(uid: string, id: string, change: RowChange): Promise<void> {
   const args: unknown[] = [];
   for (const [field, value] of Object.entries(change)) {
@@ -122,7 +122,7 @@ export async function discardDraft(uid: string): Promise<void> {
   await deleteDoc(draftRef(uid));
 }
 
-/** Dòng còn trong bảng, mới nhất trước. */
+/** Rows still in the table, newest first. */
 export function activeRows(draft: ImportDraftDoc): DraftRow[] {
   return Object.values(draft.rows)
     .filter((r) => !r.removed)
@@ -132,11 +132,11 @@ export function activeRows(draft: ImportDraftDoc): DraftRow[] {
 export class DraftGoneError extends Error {}
 
 /**
- * Ghi các transaction VÀ xoá bảng trong cùng một transaction.
+ * Writes the transactions AND deletes the table in one transaction.
  *
- * Tính lại từ bản đọc trong transaction, không từ những gì màn hình đang
- * hiện: máy kia có thể vừa sửa một dòng. Bảng đã biến mất (máy kia vừa Save)
- * thì dừng - bấm Save trên hai máy không ghi tiền hai lần.
+ * Recomputes from what the transaction reads, not from what the screen
+ * shows: the other device may have just edited a row. If the table is gone
+ * (the other device just saved), stop - Save on two devices never writes twice.
  */
 export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Promise<number> {
   return runTransaction(db, async (t) => {
@@ -156,7 +156,7 @@ export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Prom
         occurredAt: d.occurredAt,
         cycle: cycleOf(new Date(d.occurredAt)),
         bucketId: bucket.id,
-        // Chép ngân hàng vào record, như addTransaction.
+        // Copy the bank onto the record, like addTransaction.
         bank: bucket.bank,
         amountVnd: d.amountVnd,
         direction: d.direction,
@@ -172,7 +172,7 @@ export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Prom
       }
     }
 
-    // Số dư quỹ cộng dồn theo bucket rồi mới ghi - mỗi document một lần.
+    // Sum fund balances per bucket before writing - one write per document.
     for (const [bucketId, delta] of Object.entries(fundDeltas)) {
       if (delta === 0) continue;
       t.update(doc(bucketsCol(uid), bucketId), { balanceVnd: increment(delta), updatedAt: now });

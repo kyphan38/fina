@@ -1,27 +1,27 @@
 // ============================================================
-// fina - Vứt câu nào model không được phép nói
+// fina - Drop every sentence the model is not allowed to say
 //
-// Model chỉ được diễn đạt lại những gì code đã tính. Câu nào vượt ra ngoài
-// là câu nó tự nghĩ, và một con số tự nghĩ trong app tiền bạc thì tệ hơn
-// hẳn việc không có câu nào.
+// The model may only reword what the code computed. Anything beyond that is
+// made up, and a made-up number in a money app is much worse than no
+// sentence at all.
 //
-// Vứt hết cũng là kết quả hợp lệ, không phải lỗi.
+// Dropping everything is a valid result, not an error.
 // ============================================================
 
 import { allowedNumbers, type Digest } from '@/lib/digest';
 
-/** Suy luận nhân quả: model không có dữ liệu để biết cái gì gây ra cái gì. */
+/** Causal claims: the model has no data to know what caused what. */
 const CAUSAL = /\b(because|since|due to|led to|caused|resulted in|thanks to)\b/i;
 
-/** Phán xét: không phải việc của app. */
+/** Judgment: not the app's job. */
 const JUDGEMENT =
   /\b(should|shouldn't|ought|too much|too little|excessive|wasteful|unreasonable|unnecessary|bad habit|overspending problem|careless)\b/i;
 
-/** Lời khuyên đầu tư: app này không đưa ra, ở bất kỳ đâu. */
+/** Investment advice: this app never gives it, anywhere. */
 const INVESTMENT =
   /\b(invest more|invest less|portfolio|diversif|returns?|yield|stock|market|ETF allocation|financial advice)\b/i;
 
-/** Từ y khoa: model không được chẩn đoán gì cả. */
+/** Medical words: the model must not diagnose anything. */
 const MEDICAL = /\b(burnout|unhealthy|depress|anxiet|insomnia|disorder|addiction)\b/i;
 
 export interface SanitizeResult {
@@ -30,10 +30,10 @@ export interface SanitizeResult {
 }
 
 /**
- * Lọc từng câu model trả về.
+ * Filters each sentence the model returns.
  *
- * Số được so ở dạng chỉ-chữ-số, nên `1.890`, `1890` và `1,890` đều khớp cùng
- * một giá trị - model viết kiểu nào cũng được, miễn giá trị có thật.
+ * Numbers are compared as digits only, so `1.890`, `1890` and `1,890` all
+ * match the same value - any format is fine as long as the value is real.
  */
 export function sanitizeInsight(lines: string[], digest: Digest): SanitizeResult {
   const allowed = allowedNumbers(digest);

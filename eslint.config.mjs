@@ -12,11 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // functions/ la package rieng: lib/ la output CommonJS da build, va src/
-    // co eslint cua chinh no khi can. Khong lint o day.
+    // functions/ is its own package: lib/ is built CommonJS output, and src/
+    // has its own eslint when needed. Not linted here.
     "functions/**",
-    // Script chay trong app Scriptable tren iPhone, dung global cua Scriptable
-    // (ListWidget, Keychain...). Khong phai code cua Next.
+    // Runs in the Scriptable app on iPhone, using Scriptable globals
+    // (ListWidget, Keychain...). Not Next code.
     "scriptable/**",
   ]),
 ]);

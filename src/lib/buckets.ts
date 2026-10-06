@@ -43,7 +43,7 @@ function toBucket(id: string, data: Record<string, unknown>): Bucket {
   };
 }
 
-/** Nghe thay đổi bucket. Trả về hàm huỷ - người gọi PHẢI gọi khi unmount. */
+/** Listen to bucket changes. Returns an unsubscribe - the caller MUST call it on unmount. */
 export function watchBuckets(uid: string, cb: (buckets: Bucket[]) => void): () => void {
   const q = query(bucketsCol(uid), orderBy('order'));
   return onSnapshot(q, (snap) => {
@@ -52,8 +52,8 @@ export function watchBuckets(uid: string, cb: (buckets: Bucket[]) => void): () =
 }
 
 /**
- * Ghi bộ hũ khởi tạo. Chạy được nhiều lần: đã có bucket nào thì bỏ qua hết,
- * không ghi đè - baseline người dùng đã chỉnh tay là dữ liệu thật.
+ * Writes the starting buckets. Safe to rerun: if any bucket exists, skip all,
+ * never overwrite - a baseline the user edited is real data.
  */
 export async function seedBuckets(uid: string): Promise<'seeded' | 'skipped'> {
   const existing = await getDocs(bucketsCol(uid));
@@ -88,6 +88,6 @@ export async function updateBucket(
   await updateDoc(doc(bucketsCol(uid), bucketId), { ...patch, updatedAt: Date.now() });
 }
 
-// serverTimestamp chưa dùng ở Stage 2 - mọi mốc thời gian lấy từ đồng hồ máy
-// để ghi optimistic hiện ngay, không đợi server trả lời.
+// serverTimestamp is not used in Stage 2 - every timestamp comes from the
+// device clock so the optimistic write shows at once, without waiting for the server.
 void serverTimestamp;

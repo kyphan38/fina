@@ -12,23 +12,23 @@ export type SessionUser = {
 
 type SessionOptions = {
   /**
-   * Hỏi Google xem phiên đã bị thu hồi chưa. Chắc chắn hơn, nhưng tốn trọn một
-   * vòng gọi mạng TRƯỚC KHI trang được render.
+   * Asks Google whether the session was revoked. Safer, but costs a full
+   * network round trip BEFORE the page renders.
    *
-   * Mặc định false vì layout của (main) await hàm này, nên bật lên là cộng thẳng
-   * vào thời gian chờ mỗi lần mở app. Dữ liệu thật đã có firestore.rules chặn
-   * theo uid; cổng server chỉ là lớp phụ cho phần render sẵn.
+   * Default false because the (main) layout awaits this, so turning it on adds
+   * straight to the wait on every app open. Real data is already guarded by
+   * firestore.rules per uid; the server gate is only an extra layer for prerendering.
    *
-   * Bật true ở nơi nào đáng để chờ: API tốn tiền, hoặc API kiểm tra phiên.
+   * Set true where the wait is worth it: costly APIs, or session-checking APIs.
    */
   checkRevoked?: boolean;
 };
 
 /**
- * Đọc session cookie và trả về user, hoặc null nếu không hợp lệ.
+ * Reads the session cookie and returns the user, or null if invalid.
  *
- * Allowlist kiểm ở ĐÂY, không chỉ lúc login: cookie có thể bị mang sang chỗ
- * khác, và email trong Firebase có thể đổi sau khi cookie đã phát hành.
+ * The allowlist is checked HERE, not only at login: a cookie can be carried
+ * elsewhere, and the Firebase email can change after the cookie was issued.
  */
 export async function getSessionUser(
   { checkRevoked = false }: SessionOptions = {},
@@ -51,7 +51,7 @@ export async function getSessionUser(
   }
 }
 
-/** Dùng ở mọi API route. Không có session hợp lệ → throw. */
+/** Used in every API route. No valid session → throw. */
 export async function requireSessionUser(): Promise<SessionUser> {
   const user = await getSessionUser({ checkRevoked: true });
   if (!user) throw new Error('UNAUTHORIZED');

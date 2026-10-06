@@ -5,16 +5,16 @@ import { useEffect } from 'react';
 import { registerServiceWorker } from '@/lib/sw';
 
 /**
- * Đăng ký service worker cho TOÀN APP.
+ * Registers the service worker for the WHOLE app.
  *
- * Trước đây lời gọi này nằm trong `PushCard`, mà PushCard chỉ render ở tab
- * Settings - nên phần cache app-shell của Stage 6 nằm im với bất kỳ ai chưa
- * mở Settings, và mốc tốc độ 1,5s/2,5s được đo trên một app không có cache.
+ * This call used to live in `PushCard`, which only renders on the Settings
+ * tab - so Stage 6's app-shell cache sat idle for anyone who had not opened
+ * Settings, and the 1.5s/2.5s speed targets were measured with no cache.
  *
- * Không render gì. Đặt ở root layout để nó chạy kể cả trên màn hình đăng nhập.
+ * Renders nothing. Lives in the root layout so it runs on the sign-in screen too.
  *
- * Import từ `@/lib/sw` chứ không phải `@/lib/push`: push kéo theo cả
- * `firebase/messaging`, và cache app-shell không có lý do gì phải chờ nó.
+ * Imports from `@/lib/sw`, not `@/lib/push`: push pulls in all of
+ * `firebase/messaging`, and the app-shell cache should not wait for it.
  */
 export default function ServiceWorkerRegistrar() {
   useEffect(() => {

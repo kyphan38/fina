@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Khoá zoom: app là công cụ nhập nhanh, double-tap zoom chỉ gây lỗi chạm.
+  // Zoom locked: this is a fast-entry tool, double-tap zoom only causes mistaps.
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // data-theme do THEME_SCRIPT đặt trước khi React hydrate.
+    // data-theme is set by THEME_SCRIPT before React hydrates.
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

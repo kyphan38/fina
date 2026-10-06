@@ -5,14 +5,14 @@ import { useEffect } from 'react';
 import type { Bucket } from '@/types/fina';
 
 /**
- * Bàn phím thật trên Mac.
+ * The real keyboard on Mac.
  *
- * Numpad tự vẽ sinh ra để giải quyết bàn phím iOS. Trên Mac nó thành thứ cản
- * trở - có bàn phím ngay đó mà phải đưa tay ra chuột.
+ * The self-drawn numpad exists to avoid the iOS keyboard. On Mac it gets in
+ * the way - the keyboard is right there, yet you reach for the mouse.
  *
- * Plan ban đầu định dùng phím `1`–`9` để chọn bucket. Không được: số là thứ
- * cần gõ nhiều nhất, và một phím không thể vừa là "4" vừa là "chọn Tech".
- * Dùng phím mũi tên để di chuyển trong lưới, số dành trọn cho số tiền.
+ * The first plan used keys `1`–`9` to pick a bucket. That fails: digits are
+ * what you type most, and one key cannot be both "4" and "pick Tech".
+ * Arrow keys move around the grid; digits are only for amounts.
  */
 export function useLogKeyboard(args: {
   tiles: Bucket[];
@@ -23,7 +23,7 @@ export function useLogKeyboard(args: {
   onClear: () => void;
   onFlip: () => void;
   columns?: number;
-  /** Tắt khi một sheet có numpad riêng đang mở, để phím không vào hai nơi. */
+  /** Off while a sheet with its own numpad is open, so keys do not go to two places. */
   enabled?: boolean;
 }) {
   const { tiles, selectedId, onSelect, onKey, onSave, onClear, onFlip } = args;
@@ -33,7 +33,7 @@ export function useLogKeyboard(args: {
   useEffect(() => {
     if (!enabled) return;
     const handler = (e: KeyboardEvent) => {
-      // Đang gõ trong ô Note thì bàn phím thuộc về ô đó.
+      // Typing in the Note field: the keyboard belongs to that field.
       const el = document.activeElement;
       if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
       if (el instanceof HTMLSelectElement) return;
@@ -54,8 +54,8 @@ export function useLogKeyboard(args: {
         case 'Enter': onSave(); break;
         case 'Escape': onClear(); break;
         case 'Backspace': onKey('del'); break;
-        // '-' và '+' là phép tính, không phải đảo chiều tiền: numpad đã có
-        // hai phím đó để gộp nhiều khoản. Đảo chiều dời sang 'f' (flip).
+        // '-' and '+' are math, not a direction flip: the numpad has those two
+        // keys for combining amounts. Flipping moved to 'f'.
         case '-':
         case '+': onKey(e.key); break;
         case 'f':

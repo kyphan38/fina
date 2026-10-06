@@ -1,14 +1,14 @@
 import type { NextConfig } from "next";
 
-// Trang đăng nhập Google của Firebase nằm ở <project>.firebaseapp.com/__/auth/*.
-// Proxy nó về cùng domain với app: Safari (nhất là app Add to Home Screen) chặn
-// storage của domain bên thứ ba, nên signInWithRedirect qua firebaseapp.com
-// quay về tay không và màn login treo mãi. Xem src/lib/firebase-client.ts.
+// Firebase's Google sign-in page lives at <project>.firebaseapp.com/__/auth/*.
+// Proxy it onto the app's own domain: Safari (especially Home Screen apps)
+// blocks third-party storage, so signInWithRedirect via firebaseapp.com comes
+// back empty and the login screen hangs. See src/lib/firebase-client.ts.
 const firebaseAuthHost = `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`;
 
 const nextConfig: NextConfig = {
-  // Huy hiệu dev của Next nằm đè lên tab Log ở góc trái đáy - tắt đi để test
-  // trên điện thoại cho đúng vị trí chạm thật.
+  // Next's dev badge covers the Log tab in the bottom-left corner - off, so
+  // phone testing hits the real tap targets.
   devIndicators: false,
   async rewrites() {
     return [

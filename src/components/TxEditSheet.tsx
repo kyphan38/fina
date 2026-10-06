@@ -7,7 +7,7 @@ import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { deleteTransaction, updateTransaction } from '@/lib/transactions';
 import type { Bucket, Transaction } from '@/types/fina';
 
-/** yyyy-mm-ddThh:mm cho <input type="datetime-local"> theo giờ máy. */
+/** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
 function toLocalInput(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, '0');

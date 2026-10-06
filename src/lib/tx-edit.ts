@@ -1,9 +1,9 @@
 // ============================================================
-// fina - Sửa giao dịch và số dư quỹ
+// fina - Editing transactions and fund balances
 //
-// Một lần sửa có thể chạm vào HAI quỹ cùng lúc (đổi Travel sang Purchases
-// = hoàn tiền quỹ này, trừ quỹ kia). Giữ toàn bộ phép tính ở một hàm thuần
-// và test nó, thay vì rải vào component.
+// One edit can touch TWO funds at once (moving Travel to Purchases = refund
+// one fund, charge the other). All the math lives in one tested pure
+// function instead of spread across components.
 // ============================================================
 
 import type { BucketKind, TxDirection } from '@/types/fina';
@@ -15,17 +15,17 @@ export interface TxShape {
   direction: TxDirection;
 }
 
-/** Tác động lên số dư quỹ: đi ra thì trừ, đi vào thì cộng. */
+/** Effect on a fund balance: out subtracts, in adds. */
 function signOf(direction: TxDirection): 1 | -1 {
   return direction === 'in' ? 1 : -1;
 }
 
 /**
- * Số dư quỹ phải cộng thêm bao nhiêu cho mỗi bucket, sau khi sửa hoặc xoá.
+ * How much each bucket's fund balance must change after an edit or delete.
  *
- * `before = null` → đang tạo mới. `after = null` → đang xoá.
- * Bucket dạng budget không có số dư nên không bao giờ xuất hiện trong kết quả.
- * Delta bằng 0 bị loại - không ghi một lệnh update chẳng đổi gì.
+ * `before = null` → creating. `after = null` → deleting.
+ * Budget buckets have no balance, so they never appear in the result.
+ * Zero deltas are dropped - no update that changes nothing.
  */
 export function balanceDeltas(
   before: TxShape | null,
@@ -37,11 +37,11 @@ export function balanceDeltas(
     deltas[bucketId] = (deltas[bucketId] ?? 0) + value;
   };
 
-  // Gỡ tác động của bản cũ...
+  // Remove the old version's effect...
   if (before && before.kind === 'fund') {
     add(before.bucketId, -signOf(before.direction) * before.amountVnd);
   }
-  // ...rồi áp tác động của bản mới.
+  // ...then apply the new version's effect.
   if (after && after.kind === 'fund') {
     add(after.bucketId, signOf(after.direction) * after.amountVnd);
   }

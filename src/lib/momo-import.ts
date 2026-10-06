@@ -1,33 +1,34 @@
 // ============================================================
-// fina - Nhập lịch sử MoMo từ ảnh chụp màn hình
+// fina - Import MoMo history from screenshots
 //
-// Model chỉ ĐỌC chữ trên ảnh. Mọi quyết định (năm nào, dòng nào trùng, dòng
-// nào đáng nghi, gộp ra sao) nằm ở đây - thuần tuý, có test, không tin model.
+// The model only READS text on the image. Every decision (which year, which
+// rows repeat, which look suspicious, how to merge) lives here - pure,
+// tested, never trusting the model.
 //
-// Tên người nhận chỉ để người dùng đối chiếu lúc duyệt. Nó KHÔNG bao giờ được
-// ghi vào DB: khoá chống trùng chỉ gồm thời điểm, chiều và số tiền.
+// Payee names are only for the user to check while reviewing. They are NEVER
+// written to the DB: the dedup key is only time, direction and amount.
 // ============================================================
 
 import { cycleOf } from '@/lib/cycle';
 import type { Transaction, TxDirection } from '@/types/fina';
 
-/** Một dòng như model đọc được. `amount` có dấu: −25.000đ -> -25000. */
+/** One row as the model read it. `amount` is signed: −25.000đ -> -25000. */
 export interface RawRow {
   title: string;
   amount: number;
   /** 'HH:MM' */
   time: string;
-  /** 'DD/MM' - MoMo không in năm. */
+  /** 'DD/MM' - MoMo prints no year. */
   date: string;
 }
 
-/** Vì sao một dòng đáng để người dùng nhìn kỹ. Không tự bỏ - chỉ gắn nhãn. */
+/** Why a row deserves a closer look. Never dropped automatically - only labeled. */
 export type RowFlag = 'self' | 'income' | 'manual';
 
 export interface ImportRow {
-  /** Id cục bộ cho React và cho nút xoá. */
+  /** Local id for React and the delete button. */
   id: string;
-  /** Khoá chống trùng, lưu vào `importKeys` của transaction. Không có tên. */
+  /** Dedup key, stored in the transaction's `importKeys`. No name. */
   key: string;
   occurredAt: number;
   title: string;
@@ -36,16 +37,16 @@ export interface ImportRow {
   bucketId: string;
   note: string;
   flag: RowFlag | null;
-  /** Giao dịch nhập tay trông giống dòng này - để hiện nhãn cảnh báo. */
+  /** A hand-entered transaction that looks like this row - to show a warning label. */
   lookalike: { bucketId: string; occurredAt: number } | null;
 }
 
 export const DEFAULT_BUCKET = 'food';
 
-/** Giao dịch nhập tay lệch giờ bao nhiêu thì vẫn coi là "có thể là một". */
+/** How far off a hand-entered transaction can be and still count as "maybe the same". */
 const LOOKALIKE_WINDOW_MS = 3 * 60 * 60_000;
 
-/** Bỏ dấu và viết thường: 'Hoàn tiền về' -> 'hoan tien ve'. */
+/** Strip accents and lowercase: 'Hoàn tiền về' -> 'hoan tien ve'. */
 function fold(s: string): string {
   return s
     .normalize('NFD')
@@ -57,9 +58,9 @@ function fold(s: string): string {
 }
 
 /**
- * Tiền đi về tài khoản của chính mình, không phải chi tiêu.
+ * Money moving to your own account, not spending.
  *
- * Cố ý KHÔNG bắt 'nạp tiền' trơn: 'Nạp tiền điện thoại' là chi tiêu thật.
+ * Deliberately does NOT match plain 'nạp tiền': 'Nạp tiền điện thoại' is real spending.
  */
 const SELF_PREFIXES = ['hoan tien ve', 'rut tien', 'chuyen tien ve', 'nap tien vao vi'];
 
@@ -73,10 +74,11 @@ export function flagOf(title: string, signedAmount: number): RowFlag | null {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
- * 'DD/MM' + 'HH:MM' -> mốc thời gian theo giờ máy.
+ * 'DD/MM' + 'HH:MM' -> a timestamp in local time.
  *
- * Năm lấy theo hôm nay. Ra ngày ở TƯƠNG LAI thì lùi một năm - tháng 1 chụp
- * lại lịch sử tháng 12. Cho dư một ngày vì giờ máy và giờ MoMo có thể lệch.
+ * The year comes from today. A date in the FUTURE steps back a year - a
+ * January screenshot of December history. One spare day, because the device
+ * clock and MoMo's may differ.
  */
 export function parseWhen(date: string, time: string, now: Date): number | null {
   const d = /^(\d{1,2})\/(\d{1,2})$/.exec(date.trim());
@@ -90,7 +92,7 @@ export function parseWhen(date: string, time: string, now: Date): number | null 
   if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
 
   let at = new Date(now.getFullYear(), month - 1, day, hour, minute);
-  // 31/02 bị Date đẩy sang tháng 3 - đó là chữ đọc sai, không phải ngày thật.
+  // Date rolls 31/02 into March - that is a misread, not a real date.
   if (at.getDate() !== day) return null;
   if (at.getTime() > now.getTime() + 86_400_000) {
     at = new Date(now.getFullYear() - 1, month - 1, day, hour, minute);
@@ -98,22 +100,22 @@ export function parseWhen(date: string, time: string, now: Date): number | null 
   return at.getTime();
 }
 
-/** Khoá chống trùng. Đủ chặt: cùng phút, cùng chiều, cùng số tiền. */
+/** Dedup key. Strict enough: same minute, same direction, same amount. */
 export function importKey(occurredAt: number, direction: TxDirection, amountVnd: number): string {
   const d = new Date(occurredAt);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())} ${direction} ${amountVnd}`;
 }
 
 /**
- * Gộp các ảnh thành một danh sách, bỏ phần chồng lên nhau.
+ * Merges the images into one list, dropping the overlap.
  *
- * Cuộn màn hình thì dòng cuối ảnh trước hay lặp lại ở đầu ảnh sau. Nhưng
- * TRONG cùng một ảnh, hai dòng giống hệt là hai giao dịch thật (trả hai lần
- * cùng một phút). Nên mỗi khoá giữ số lần xuất hiện NHIỀU NHẤT trong một ảnh,
- * không phải tổng các ảnh.
+ * Scrolling repeats the last rows of one image at the top of the next. But
+ * INSIDE one image, two identical rows are two real transactions (paid twice
+ * in the same minute). So each key keeps its HIGHEST count within a single
+ * image, not the sum across images.
  *
- * Khoá không chứa tên: cùng một dòng bị cắt chữ khác nhau ở hai ảnh vẫn
- * phải khớp.
+ * The key has no name: the same row truncated differently in two images must
+ * still match.
  */
 export function mergeScreenshots(
   images: RawRow[][],
@@ -139,7 +141,7 @@ export function mergeScreenshots(
       const n = (counts.get(key) ?? 0) + 1;
       counts.set(key, n);
 
-      // Chỉ thêm dòng khi ảnh này có NHIỀU bản hơn mọi ảnh trước.
+      // Only add rows when this image has MORE copies than every earlier image.
       if (n > (best.get(key) ?? 0)) {
         const list = firstSeen.get(key) ?? [];
         list.push({
@@ -165,15 +167,15 @@ export function mergeScreenshots(
 }
 
 /**
- * So với những gì đã có trong DB.
+ * Compares with what is already in the DB.
  *
- *  - Khớp `importKeys` của một lần import trước -> tách ra `imported`. Đây là
- *    trùng chắc chắn; để lại thì tiền bị tính hai lần.
- *  - Giống một giao dịch NHẬP TAY (cùng chiều, cùng số tiền, lệch dưới 3 giờ)
- *    -> vẫn giữ, chỉ gắn nhãn. Ăn trưa 35k hai ngày liền là chuyện thường.
+ *  - Matches the `importKeys` of an earlier import -> moved to `imported`.
+ *    A certain duplicate; keeping it would count the money twice.
+ *  - Looks like a HAND-ENTERED transaction (same direction, same amount, under
+ *    3 hours apart) -> kept, only labeled. A 35k lunch two days running is normal.
  *
- * Mỗi giao dịch cũ chỉ được "dùng" một lần, nên hai dòng 25k không cùng bị
- * gán vào một giao dịch 25k nhập tay.
+ * Each old transaction can be "used" once, so two 25k rows are not both
+ * matched to one hand-entered 25k transaction.
  */
 export function checkAgainstExisting(
   rows: ImportRow[],
@@ -222,7 +224,7 @@ export function checkAgainstExisting(
   return { kept, imported };
 }
 
-/** Một transaction sắp ghi. */
+/** One transaction about to be written. */
 export interface ImportDraft {
   bucketId: string;
   amountVnd: number;
@@ -233,13 +235,14 @@ export interface ImportDraft {
 }
 
 /**
- * Bảng đã duyệt -> danh sách transaction.
+ * Reviewed table -> list of transactions.
  *
- * `merge`: dòng KHÔNG có note gộp theo (mục, chu kỳ, chiều) - một mục một
- * con số. Dòng CÓ note giữ riêng, vì note chỉ có nghĩa với đúng khoản đó.
+ * `merge`: rows WITHOUT a note are grouped by (bucket, cycle, direction) - one
+ * number per bucket. Rows WITH a note stay separate, since the note only
+ * makes sense for that one item.
  *
- * Gộp phải tách theo chu kỳ: ngày 24 và 25 thuộc hai tháng khác nhau, gộp
- * chung thì cả cục rơi vào tháng của dòng mới nhất.
+ * Grouping must split by cycle: the 24th and 25th belong to different months;
+ * merged, the whole lump lands in the month of the newest row.
  */
 export function buildDrafts(rows: ImportRow[], merge: boolean): ImportDraft[] {
   const drafts: ImportDraft[] = [];
@@ -279,10 +282,10 @@ export function buildDrafts(rows: ImportRow[], merge: boolean): ImportDraft[] {
     }
     drafts.push({
       bucketId: list[0].bucketId,
-      // Cộng số nguyên VND - không có số thực nào ở đây.
+      // Integer VND sums - no floats here.
       amountVnd: list.reduce((s, r) => s + r.amountVnd, 0),
       direction: list[0].direction,
-      // Mốc của dòng mới nhất, để cả cục nằm cuối ngày trong History.
+      // Time of the newest row, so the lump sits at the end of the day in History.
       occurredAt: Math.max(...list.map((r) => r.occurredAt)),
       note: `MoMo · ${list.length} payments`,
       importKeys: list.map((r) => r.key),
@@ -293,11 +296,12 @@ export function buildDrafts(rows: ImportRow[], merge: boolean): ImportDraft[] {
 }
 
 /**
- * '-330.000đ' -> -330000. Trả null khi không đúng dạng tiền MoMo.
+ * '-330.000đ' -> -330000. Returns null when it is not a MoMo amount.
  *
- * Model CHÉP chữ chứ không tự đổi ra số: lúc tự đổi, nó từng đọc -330.000đ
- * thành -33000. Chép từng ký tự thì đúng hơn hẳn, còn đổi ra số là việc của
- * code. Không có dấu thì coi là tiền ra - MoMo luôn in '+' cho tiền vào.
+ * The model COPIES the text instead of converting it: when it converted, it
+ * once read -330.000đ as -33000. Copying characters is far more accurate;
+ * converting is the code's job. No sign means money out - MoMo always prints
+ * '+' for money in.
  */
 export function parseAmountText(text: string): number | null {
   const m = /^([+\-\u2212])?\s*(\d{1,3}(?:[.,]\d{3})+|\d+)\s*(?:đ|₫|vnd)?$/i.exec(text.trim());
@@ -307,7 +311,7 @@ export function parseAmountText(text: string): number | null {
   return m[1] === '+' ? n : -n;
 }
 
-/** Model trả về gì cũng phải qua đây. Dòng sai hình dạng bị bỏ, không đoán. */
+/** Whatever the model returns goes through here. Badly shaped rows are dropped, never guessed. */
 export function sanitizeRows(value: unknown): RawRow[] {
   const list = (value as { rows?: unknown })?.rows;
   if (!Array.isArray(list)) return [];
@@ -324,11 +328,11 @@ export function sanitizeRows(value: unknown): RawRow[] {
 }
 
 /**
- * Thêm dòng mới vào một bảng đang duyệt dở - upload thêm ảnh từ máy khác.
+ * Adds new rows to a table under review - more images uploaded from another device.
  *
- * Cùng luật số lần như `mergeScreenshots`: bảng đã có khoá K hai lần thì chỉ
- * thêm những bản K thứ ba trở đi. Đếm cả dòng đã xoá khỏi bảng - xoá rồi
- * upload lại ảnh cũ thì dòng đó không được hiện lại.
+ * Same count rule as `mergeScreenshots`: if the table already has key K twice,
+ * only the third K onward is added. Rows removed from the table count too -
+ * re-uploading an old image after deleting a row does not bring it back.
  */
 export function appendRows(existing: ImportRow[], incoming: ImportRow[]): ImportRow[] {
   const have = new Map<string, number>();

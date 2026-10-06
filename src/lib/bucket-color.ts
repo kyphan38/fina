@@ -1,15 +1,14 @@
 // ============================================================
-// fina - Màu nhận dạng bucket
+// fina - Bucket identity colors
 //
-// Sáu hue, gắn theo TỪNG BUCKET chứ không theo vị trí. Đổi thứ tự hiển thị
-// thì Food vẫn xanh dương - màu đi theo thực thể, không đi theo thứ hạng.
+// Six hues, tied to EACH BUCKET, not to position. Reorder the display and
+// Food stays blue - the color follows the thing, not its rank.
 //
-// Chỉ sáu hue này đã chạy qua validator mù màu. Bucket thứ bảy sẽ nhận màu
-// trung tính chứ KHÔNG lặp lại một hue đã dùng: lặp là nói dối rằng hai
-// bucket có quan hệ với nhau.
+// Only these six hues passed the color-blind validator. A seventh bucket gets
+// a neutral color, NOT a reused hue: reuse falsely says two buckets are related.
 //
-// Quỹ cố ý không có màu. Chúng đã đọc ra là nhóm khác nhờ viền nét đứt, và
-// người dùng chỉ mở section đó vài lần mỗi tháng.
+// Funds have no color on purpose. The dashed border already marks them as a
+// different group, and that section is opened only a few times a month.
 // ============================================================
 
 const ACCENT: Record<string, string> = {
@@ -21,12 +20,12 @@ const ACCENT: Record<string, string> = {
   buffer: 'var(--b6)',
 };
 
-/** Màu của bucket, hoặc màu trung tính khi nó không có màu riêng. */
+/** The bucket's color, or a neutral color when it has none. */
 export function bucketAccent(bucketId: string): string {
   return ACCENT[bucketId] ?? 'var(--muted)';
 }
 
-/** Bucket này có màu riêng không. Dùng để quyết định có vẽ vạch màu hay không. */
+/** Whether this bucket has its own color. Decides whether to draw the color bar. */
 export function hasAccent(bucketId: string): boolean {
   return bucketId in ACCENT;
 }

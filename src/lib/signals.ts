@@ -1,20 +1,20 @@
 // ============================================================
-// fina - Chỉ số, do CODE tính
+// fina - Stats, computed by CODE
 //
-// Nguyên tắc chi phối cả Stage 7, một dòng:
-//   Code làm phép tính. Model chỉ chọn cái đáng nói.
+// The rule behind all of Stage 7, in one line:
+//   Code does the math. The model only picks what is worth saying.
 //
-// Không có gì trong file này gọi mạng. Model không bao giờ được giao việc
-// cộng trừ, nên mọi con số nó nói ra đều phải xuất hiện ở đây trước.
+// Nothing in this file touches the network. The model is never asked to add
+// or subtract, so every number it says must appear here first.
 // ============================================================
 
 import type { Bucket } from '@/types/fina';
 
-/** Ngưỡng để gọi một giao dịch là bất thường so với chính bucket đó. */
+/** Threshold for calling a transaction unusual for its own bucket. */
 export const OUTLIER_MULTIPLE = 3;
-/** Số chu kỳ liên tiếp tăng thì mới gọi là xu hướng. */
+/** Consecutive rising cycles needed to call it a trend. */
 export const RISING_RUN = 3;
-/** Quỹ im lặng bao nhiêu chu kỳ thì đáng nhắc. */
+/** Cycles a fund stays quiet before it is worth a mention. */
 export const IDLE_CYCLES = 3;
 
 export interface CycleFacts {
@@ -27,25 +27,25 @@ export interface CycleFacts {
 export interface BucketSignal {
   bucketId: string;
   name: string;
-  /** Chi tiêu chu kỳ này. */
+  /** Spending this cycle. */
   currentVnd: number;
   medianVnd: number;
-  /** Lệch so với trung vị, %. null khi chưa đủ dữ liệu để so. */
+  /** Gap from the median, %. null when there is not enough data to compare. */
   deviationPct: number | null;
   limitVnd: number | null;
-  /** Vượt hạn mức bao nhiêu chu kỳ, trên tổng bao nhiêu chu kỳ đã đóng. */
+  /** How many cycles went over the limit, out of how many closed cycles. */
   overCount: number;
   overOf: number;
-  /** Tăng liên tiếp RISING_RUN chu kỳ. */
+  /** Rose for RISING_RUN cycles in a row. */
   rising: boolean;
 }
 
 export interface PaceSignal {
   bucketId: string;
   name: string;
-  /** % của chu kỳ đã trôi qua. */
+  /** % of the cycle that has passed. */
   elapsedPct: number;
-  /** % hạn mức đã tiêu. */
+  /** % of the limit spent. */
   spentPct: number;
 }
 
@@ -58,7 +58,7 @@ export interface Signals {
   outliers: { bucketId: string; name: string; amountVnd: number; medianVnd: number }[];
   idleFunds: { bucketId: string; name: string; balanceVnd: number; idleCycles: number }[];
   negativeFunds: { bucketId: string; name: string; balanceVnd: number }[];
-  /** Số chu kỳ đã đóng dùng để so. Dưới 3 thì đừng nói gì về xu hướng. */
+  /** Closed cycles used for comparison. Under 3, say nothing about trends. */
   closedCount: number;
 }
 
@@ -75,8 +75,8 @@ function pct(part: number, whole: number): number | null {
 }
 
 /**
- * `cycles` xếp CŨ TRƯỚC, phần tử cuối là chu kỳ đang chạy.
- * `amounts` là số tiền từng giao dịch của chu kỳ hiện tại, để tìm khoản lạc loài.
+ * `cycles` are OLDEST FIRST; the last item is the running cycle.
+ * `amounts` are the current cycle's transaction amounts, to find outliers.
  */
 export function computeSignals(args: {
   cycles: CycleFacts[];
@@ -104,7 +104,7 @@ export function computeSignals(args: {
       return lim !== undefined && (c.byBucket[b.id] ?? 0) > lim;
     }).length;
 
-    // Tăng liên tiếp: chỉ tính khi có đủ số chu kỳ để nói.
+    // Rising run: only counted when there are enough cycles to say so.
     const tail = [...history.slice(-(RISING_RUN - 1)), currentVnd];
     const rising =
       tail.length === RISING_RUN && tail.every((v, i) => i === 0 || v > tail[i - 1]);
@@ -122,8 +122,9 @@ export function computeSignals(args: {
     };
   });
 
-  // Nhịp chỉ áp cho bucket tiêu đều. Health và Purchases đến theo cục, so với
-  // nhịp tuyến tính sẽ kêu sai mỗi tháng cho tới khi không ai nhìn nữa.
+  // Pace only applies to evenly spent buckets. Health and Purchases come in
+  // lumps; against a linear pace they would warn wrongly every month until
+  // nobody looks anymore.
   const elapsedPct = totalDays > 0 ? Math.round((day / totalDays) * 100) : 0;
   const pace: PaceSignal[] = budgets
     .filter((b) => b.evenlySpent)
@@ -177,7 +178,7 @@ export function computeSignals(args: {
   };
 }
 
-/** Đủ dữ liệu để nói gì chưa. Dưới 3 chu kỳ đã đóng thì không. */
+/** Whether there is enough data to say anything. Not under 3 closed cycles. */
 export function canAnalyze(s: Signals): boolean {
   return s.closedCount >= 3;
 }

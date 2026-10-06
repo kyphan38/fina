@@ -13,15 +13,15 @@ export interface CoverRequest {
   txId: string;
   cycle: string;
   toBucket: Bucket;
-  /** Phần vượt, không phải cả giao dịch. */
+  /** The overage, not the whole transaction. */
   amountVnd: number;
-  /** Giao dịch vừa ghi - cần đủ để xoá nếu người dùng chọn Discard. */
+  /** The transaction just saved - enough to delete it if the user picks Discard. */
   tx: Transaction;
 }
 
 /**
- * Hộp thoại bù tiền. Hiện SAU khi giao dịch đã lưu - tắt nó đi cũng không
- * mất record, chỉ còn lại một dải nhắc.
+ * Cover dialog. Shows AFTER the transaction is saved - closing it loses no
+ * record, only leaves a reminder strip.
  */
 export default function CoverSheet({
   uid,
@@ -38,9 +38,9 @@ export default function CoverSheet({
   bufferUsedVnd: number;
   onDone: () => void;
 }) {
-  // Phần thiếu chỉ là GỢI Ý. Số thật sự chuyển là quyết định của người dùng:
-  // hụt 500 nhưng muốn đẩy 505 cho tròn việc, hoặc chuyển dư một ít để khỏi
-  // phải mở app ngân hàng lần nữa.
+  // The shortfall is only a SUGGESTION. The real transfer is the user's call:
+  // short 500 but sending 505 to round it, or a bit extra to avoid opening
+  // the bank app again.
   const [amountVnd, setAmountVnd] = useState(request.amountVnd);
   const [editing, setEditing] = useState(false);
   const [buf, setBuf] = useState('');
@@ -55,8 +55,8 @@ export default function CoverSheet({
     toBucketId: request.toBucket.id,
     bufferLimitVnd,
     bufferUsedVnd,
-    // Đổi số thì "đủ hay không đủ" phải tính lại theo số MỚI, không phải
-    // theo phần thiếu ban đầu.
+    // A new amount means "enough or not" is checked against the NEW number,
+    // not the original shortfall.
     neededVnd: amountVnd,
   });
 
@@ -83,8 +83,8 @@ export default function CoverSheet({
   };
 
   return (
-    // Không có nền bấm-để-tắt và không có nút đóng: tiền đã rời tài khoản
-    // rồi, nên phải chỉ ra nó đến từ đâu, hoặc bỏ hẳn bản ghi.
+    // No tap-outside and no close button: the money already left the account,
+    // so either say where it came from, or drop the record.
     <div className="fixed inset-0 z-30 flex flex-col justify-end bg-black/40">
       <div className="flex-1" />
       <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-4 pb-4 pt-4">
@@ -128,8 +128,8 @@ export default function CoverSheet({
           </>
         ) : editing ? (
           <>
-            {/* Cùng numpad với màn Log, nên gõ '500+5' là ra 505 - không phải
-                tự cộng nhẩm rồi gõ lại con số mới. */}
+            {/* Same numpad as Log, so '500+5' gives 505 - no mental math and
+                retyping. */}
             <div className="mb-1 mt-3 flex items-baseline justify-between px-1">
               <span className="text-xs text-muted">Move</span>
               <span className="flex flex-col items-end">
@@ -170,7 +170,7 @@ export default function CoverSheet({
               The money is already gone. Say where it came from.
             </p>
 
-            {/* Viền đứt để không bị nhầm là một nguồn trong danh sách dưới. */}
+            {/* Dashed border so it is not mistaken for a source in the list below. */}
             <button
               type="button"
               onClick={() => {
@@ -200,9 +200,9 @@ export default function CoverSheet({
                   <button
                     type="button"
                     disabled={!o.enough || busy}
-                    // Khác ngân hàng thì dải nhắc chuyển khoản sẽ hỏi lại,
-                    // nên vào thẳng. Cùng ngân hàng thì xong ngay lúc bấm -
-                    // đây là cơ hội cuối để đổi ý, phải hỏi một câu.
+                    // A different bank means the transfer strip asks again, so
+                    // go straight in. Same bank is final on tap - this is the
+                    // last chance to change your mind, so ask once.
                     onClick={() =>
                       o.bucket.bank === request.toBucket.bank
                         ? setPicked(o.bucket)

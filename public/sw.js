@@ -1,20 +1,18 @@
 // ============================================================
 // fina - Service worker
 //
-// Hai việc, không hơn: nhận push, và cache vỏ app cho nhanh.
+// Two jobs, nothing more: receive push, and cache the app shell for speed.
 // ============================================================
 
 const CACHE_VERSION = 'fina-v1';
 
 // --- Cache -------------------------------------------------
 //
-// /_next/static/*  cache-first vĩnh viễn. Tên file có hash nội dung, nên
-//                  bản build mới là tên file mới - không bao giờ cũ.
-// HTML             network-first. Cache-first ở đây là cách chắc chắn nhất
-//                  để một hôm nào đó người dùng nhìn vào build tuần trước
-//                  mà không hiểu vì sao.
-// API / Firestore  KHÔNG đụng vào. Dữ liệu không bao giờ được phục vụ từ
-//                  bản cũ.
+// /_next/static/*  cache-first forever. File names hash their content, so a
+//                  new build means new names - never stale.
+// HTML             network-first. Cache-first here would one day show last
+//                  week's build with no clue why.
+// API / Firestore  not touched. Data is never served from an old copy.
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -83,8 +81,8 @@ self.addEventListener('fetch', (event) => {
 
 // --- Push --------------------------------------------------
 //
-// Function gửi data-only. Gửi kèm `notification` payload nữa thì iOS hiện
-// HAI thông báo cho cùng một lời nhắc.
+// The function sends data-only. Adding a `notification` payload makes iOS show
+// TWO notifications for one reminder.
 
 self.addEventListener('push', (event) => {
   let data = {};
@@ -96,7 +94,7 @@ self.addEventListener('push', (event) => {
   const payload = data.data ?? data;
 
   event.waitUntil(
-    // title mang cả nội dung: iOS đã hiện tên app ở trên rồi.
+    // title carries the message: iOS already shows the app name above it.
     self.registration.showNotification(payload.title || 'fina', {
       body: payload.body || undefined,
       icon: '/icons/icon-192.png',

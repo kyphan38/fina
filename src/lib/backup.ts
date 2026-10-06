@@ -21,8 +21,8 @@ const readAll = async (uid: string, name: string) => {
 };
 
 /**
- * Firestore free tier KHÔNG tự backup. Đây là toàn bộ mạng lưới an toàn,
- * nên export đọc mọi collection chứ không chỉ giao dịch.
+ * Firestore's free tier does NOT back up. This is the whole safety net,
+ * so export reads every collection, not just transactions.
  */
 export async function buildBackup(uid: string): Promise<Backup> {
   const [buckets, transactions, cycles, covers] = await Promise.all([
@@ -37,8 +37,8 @@ export async function buildBackup(uid: string): Promise<Backup> {
 const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
 /**
- * CSV để mở bằng Numbers/Excel. `Month` và `Year` sinh ra từ `cycle` lúc
- * export - không lưu trong DB, nên chúng không bao giờ mâu thuẫn với nhau.
+ * CSV for Numbers/Excel. `Month` and `Year` come from `cycle` at export time -
+ * not stored in the DB, so they never disagree.
  */
 export function toCsv(backup: Backup): string {
   const names = new Map(backup.buckets.map((b) => [b.id as string, String(b.name ?? b.id)]));
@@ -55,7 +55,7 @@ export function toCsv(backup: Backup): string {
         month = l.month;
         year = String(l.year);
       } catch {
-        // Chu kỳ hỏng thì để trống, đừng làm hỏng cả file export.
+        // A broken cycle stays empty; never break the whole export file.
       }
       return [
         cycle,
@@ -81,7 +81,7 @@ export function download(filename: string, content: string, type: string): void 
   URL.revokeObjectURL(url);
 }
 
-/** Ngày export gần nhất, để nhắc khi quá lâu. */
+/** Date of the last export, to remind when it gets too old. */
 const LAST_EXPORT_KEY = 'fina.lastExport';
 
 export function markExported(): void {

@@ -1,15 +1,15 @@
 // ---------------------------------------------------------------------------
-// fina - Dung lai balanceVnd cua moi quy tu toan bo lich su giao dich.
+// fina - Rebuild each fund's balanceVnd from its full transaction history.
 //
 //   node --import ./scripts/register.mjs --env-file=.env.local \
 //     scripts/recompute-balances.mjs --uid <UID> [--commit]
 //
-// balanceVnd la so denormalize (de khoi cong ca lich su moi lan mo app).
-// Day la cach kiem tra no con khop khong, va sua lai khi lech.
+// balanceVnd is denormalized (so the app does not re-add all history on open).
+// This checks that it still matches, and fixes it when it drifts.
 //
-// Tu khi Generator ghi khoan chia luong thanh giao dich `allocation`, moi
-// dong tien vao quy deu la mot ban ghi - nen phep cong o day la day du.
-// Truoc do quy chi bao gio giam, va chay script nay se xoa sach so du.
+// Since the Generator writes salary splits as `allocation` transactions, every
+// inflow to a fund is a record - so the sum here is complete. Before that,
+// funds only ever went down, and running this script would wipe the balances.
 // ---------------------------------------------------------------------------
 
 import { cert, initializeApp } from 'firebase-admin/app';
@@ -36,8 +36,8 @@ const covers = await db.collection(`users/${UID}/covers`).get();
 const kindOf = {};
 for (const d of buckets.docs) kindOf[d.id] = d.data().kind;
 
-// Chieu nam o `direction`. Ban ghi cu chua co field do: ETF la tien vao,
-// con lai la tien ra.
+// Direction lives in `direction`. Old records lack it: ETF is money in,
+// everything else money out.
 const computed = {};
 for (const d of txs.docs) {
   const t = d.data();
@@ -45,9 +45,9 @@ for (const d of txs.docs) {
   computed[t.bucketId] = (computed[t.bucketId] ?? 0) + (dir === 'in' ? 1 : -1) * t.amountVnd;
 }
 
-// Moi lan bu DA XONG cung di chuyen tien that: ra khoi quy nguon, vao quy
-// dich. Bo qua chung o day thi script se dap lai dung cai loi no phai sua -
-// quy dich ket o so am du da co tien chuyen vao.
+// Every COMPLETED cover also moves real money: out of the source fund, into
+// the target. Skipping them here would bring back the very bug this script
+// fixes - a target fund stuck negative even after money moved in.
 for (const d of covers.docs) {
   const c = d.data();
   if (c.status !== 'done') continue;
@@ -68,16 +68,16 @@ for (const d of buckets.docs) {
   const want = computed[d.id] ?? 0;
   const have = Number(b.balanceVnd ?? 0);
   if (want !== have) fixes.push([d.id, have, want]);
-  console.log(`${want === have ? 'ok  ' : 'LECH'} ${d.id.padEnd(12)} luu ${f(have).padStart(10)}  tinh ${f(want).padStart(10)}`);
+  console.log(`${want === have ? 'ok  ' : 'OFF '} ${d.id.padEnd(12)} stored ${f(have).padStart(10)}  computed ${f(want).padStart(10)}`);
 }
 
 if (fixes.length === 0) {
-  console.log('\nMoi so du deu khop.');
+  console.log('\nEvery balance matches.');
   process.exit(0);
 }
 
 if (!COMMIT) {
-  console.log(`\n${fixes.length} quy lech. Them --commit de ghi lai.`);
+  console.log(`\n${fixes.length} funds off. Add --commit to rewrite.`);
   process.exit(0);
 }
 
@@ -86,4 +86,4 @@ for (const [id, , want] of fixes) {
   batch.update(db.doc(`users/${UID}/buckets/${id}`), { balanceVnd: want, updatedAt: Date.now() });
 }
 await batch.commit();
-console.log(`\nDa sua ${fixes.length} quy.`);
+console.log(`\nFixed ${fixes.length} funds.`);

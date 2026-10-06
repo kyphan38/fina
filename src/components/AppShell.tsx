@@ -3,14 +3,14 @@ import BottomNav from '@/components/BottomNav';
 import PendingCovers from '@/components/PendingCovers';
 
 /**
- * Khung app chiếm đúng một màn hình, không bao giờ cao hơn.
+ * The app frame is exactly one screen tall, never taller.
  *
- * Trước đây dùng min-h-dvh + sticky nav: cả trang cuộn, nav trôi theo và
- * nút Save của màn Log tụt xuống dưới đáy. Giờ chỉ vùng nội dung cuộn, nav
- * là phần tử flex cố định - không cần sticky, không có gì trôi được.
+ * It used to be min-h-dvh + a sticky nav: the whole page scrolled, the nav
+ * drifted and the Log Save button sank to the bottom. Now only the content
+ * scrolls and the nav is a fixed flex item - no sticky, nothing can drift.
  *
- * min-h-0 là bắt buộc: thiếu nó thì flex item không co lại được và vùng
- * cuộn sẽ đẩy nav ra khỏi màn hình.
+ * min-h-0 is required: without it the flex item cannot shrink and the
+ * scroll area pushes the nav off screen.
  */
 export default function AppShell({ children }: { children: ReactNode }) {
   return (

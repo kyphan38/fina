@@ -1,34 +1,34 @@
 // ============================================================
-// fina - Cái gì tính là chi tiêu, và tiêu ròng bao nhiêu
+// fina - What counts as spending, and how much net
 //
-// Hai chỗ loại trừ dưới đây là phần dễ sai nhất của app, nên chúng nằm ở
-// một hàm thuần có test chứ không rải vào component. Đã có một lỗi thật:
-// tổng ở History từng trừ khoản nạp ETF, làm tháng 9 hiện 415 trong khi
-// thực tiêu 3.840.
+// The two exclusions below are the easiest part of the app to get wrong, so
+// they live in a tested pure function, not spread across components. There
+// was a real bug: the History total once subtracted ETF top-ups, showing 415
+// for September when real spending was 3.840.
 // ============================================================
 
 import type { Transaction } from '@/types/fina';
 
 export const ETF_BUCKET = 'etf';
 
-/** Số dư có sẵn từ trước: trạng thái ban đầu, không phải một khoản chi. */
+/** A pre-existing balance: the starting state, not an expense. */
 export function isOpening(tx: Transaction): boolean {
   return tx.source === 'opening';
 }
 
-/** Giao dịch này có tính là chi tiêu không. */
+/** Whether this transaction counts as spending. */
 export function isSpending(tx: Transaction): boolean {
   if (isOpening(tx)) return false;
-  // Chia lương sang BIDV là chuyển tiền giữa hai hũ của chính mình.
+  // Splitting salary to BIDV is moving money between two of your own buckets.
   if (tx.source === 'allocation') return false;
   // Moving between funds (Purchases to Phone) only relabels the money.
   if (tx.source === 'move') return false;
-  // Đầu tư không phải tiêu.
+  // Investing is not spending.
   if (tx.bucketId === ETF_BUCKET) return false;
   return true;
 }
 
-/** Chi tiêu ròng: `out` cộng vào, `in` (được hoàn) trừ ra. */
+/** Net spending: `out` adds, `in` (refunds) subtracts. */
 export function netSpending(txs: Transaction[]): number {
   return txs
     .filter(isSpending)

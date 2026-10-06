@@ -1,19 +1,19 @@
 import { isGoal, needPerMonth, openGoals } from '@/lib/goals';
 import type { Bucket } from '@/types/fina';
 
-/** Lệch quá ngưỡng này so với chuẩn thì tô đậm cho dễ thấy. */
+/** Beyond this gap from the standard, show it in bold to stand out. */
 export const DEVIATION_THRESHOLD = 0.2;
 
 export interface Allocation {
   bucket: Bucket;
   amountVnd: number;
-  /** Phần trăm của lương. Là KẾT QUẢ tính ra, không phải đầu vào. */
+  /** Percent of salary. A computed RESULT, not an input. */
   percent: number;
-  /** Mức chuẩn, để so. */
+  /** The standard amount, for comparison. */
   standardVnd: number;
-  /** amountVnd − standardVnd. 0 nghĩa là đang đúng chuẩn. */
+  /** amountVnd − standardVnd. 0 means exactly on standard. */
   deltaVnd: number;
-  /** true khi lệch quá 20% so với chuẩn - đáng nhìn kỹ. */
+  /** true when more than 20% off the standard - worth a closer look. */
   farFromStandard: boolean;
   /** Goals only: what reaches the target on time. null without target or month. */
   needVnd: number | null;
@@ -29,23 +29,23 @@ export interface GeneratorResult {
   monthlyTotalVnd: number;
   fundsTotalVnd: number;
   goalsTotalVnd: number;
-  /** Phần còn dư sau khi trừ hết. Âm nghĩa là lương không đủ. */
+  /** What is left after everything. Negative means the salary is not enough. */
   etfVnd: number;
   etfPercent: number;
 }
 
 /**
- * Phân bổ lương.
+ * Splits the salary.
  *
- * Các nhóm lấy từ `standardVnd`; ETF ăn phần còn dư. Người dùng sửa được
- * từng số ngay trong Generator - sửa ở đó là ngắn hạn, chỉ cho chu kỳ này.
- * Phần trăm chỉ để nhìn - không bao giờ là đầu vào.
+ * Groups come from `standardVnd`; ETF takes the rest. Each amount can be
+ * edited right in the Generator - edits there are short-term, this cycle only.
+ * Percentages are for viewing - never an input.
  */
 export function allocate(
   salaryVnd: number,
   buckets: Bucket[],
-  /** Số người dùng sửa tay trong Generator. Chỉ cho chu kỳ này, không ghi
-   *  ngược vào Settings - đó là lý do nó ở đây chứ không phải trong bucket. */
+  /** Amounts edited by hand in the Generator. This cycle only, never written
+   *  back to Settings - that is why they live here and not on the bucket. */
   overrides: Record<string, number> = {},
   /**
    * When goal needs are measured. Pass the moment just before the cycle

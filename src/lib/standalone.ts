@@ -1,4 +1,4 @@
-/** iOS: đã Add to Home Screen chưa. */
+/** iOS: whether the app was added to the Home Screen. */
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   return (

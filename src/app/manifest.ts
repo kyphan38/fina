@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'fina',
     short_name: 'fina',
     description: 'Personal money log',
-    // Mở thẳng vào màn hình nhập. Đó là lý do app tồn tại.
+    // Open straight into the entry screen. That is why the app exists.
     start_url: '/log',
     scope: '/',
     display: 'standalone',

@@ -1,12 +1,12 @@
 // ============================================================
-// fina - Đồng hồ dùng chung
+// fina - Shared clock
 //
-// React 19 cấm gọi Date.now() trong lúc render: kết quả đổi mỗi lần render
-// và không ai đoán được component sẽ render lại lúc nào.
+// React 19 forbids Date.now() during render: the result changes per render
+// and nobody can predict when a component re-renders.
 //
-// Đọc giờ ở một chỗ duy nhất, cập nhật mỗi phút, và trả về qua
-// useSyncExternalStore - render trở lại thuần tuý, mà app vẫn tự nhận ra
-// khi chu kỳ sang trang lúc nửa đêm ngày 25 dù đang mở sẵn.
+// Read the time in one place, update every minute, expose it via
+// useSyncExternalStore - render stays pure, and the app still notices the
+// cycle turning at midnight on the 25th even when left open.
 // ============================================================
 
 const TICK_MS = 60_000;
@@ -33,7 +33,7 @@ export const clockStore = {
     };
   },
   get: () => now,
-  // Server không có "bây giờ" nào đúng cho client - trả 0 và để lần render
-  // sau khi hydrate điền giá trị thật.
+  // The server has no correct "now" for the client - return 0 and let the
+  // render after hydration fill in the real value.
   getServer: () => 0,
 };

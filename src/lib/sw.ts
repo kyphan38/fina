@@ -1,12 +1,12 @@
 // ============================================================
-// fina - Đăng ký service worker
+// fina - Service worker registration
 //
-// File này KHÔNG import gì cả, cố ý.
+// This file imports NOTHING, on purpose.
 //
-// Trước đây hàm này nằm trong `push.ts`, nơi import `firebase/messaging`.
-// Nghĩa là phần cache app-shell - thứ quyết định app mở nhanh hay chậm - lại
-// phụ thuộc vào SDK push tải và khởi tạo được. Hai việc không liên quan gì
-// tới nhau, và cái quan trọng hơn lại đứng sau cái ít quan trọng hơn.
+// This function used to live in `push.ts`, which imports `firebase/messaging`.
+// So the app-shell cache - what decides how fast the app opens - depended on
+// the push SDK loading and starting. Two unrelated jobs, and the more
+// important one waited behind the less important one.
 // ============================================================
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
@@ -14,8 +14,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   try {
     return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   } catch {
-    // Safari private mode và một vài ngữ cảnh khác từ chối. App vẫn chạy,
-    // chỉ là không có cache và không nhận được push.
+    // Safari private mode and some other contexts refuse. The app still
+    // works, just without the cache and push.
     return null;
   }
 }

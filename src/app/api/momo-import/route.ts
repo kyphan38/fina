@@ -8,11 +8,11 @@ const MODEL = 'gemini-3.8-flash';
 const WINDOW_MS = 10 * 60_000;
 const MAX_CALLS = 10;
 const MAX_IMAGES = 5;
-/** Ảnh đã thu nhỏ ở client còn khoảng 150-300 KB. 3 MB base64 là dư. */
+/** Client-shrunk images are ~150-300 KB. 3 MB of base64 is plenty. */
 const MAX_IMAGE_CHARS = 3_000_000;
 const MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-/** Model chỉ chép lại chữ trên ảnh. Phân loại và chống trùng nằm ở client. */
+/** The model only copies the text on the image. Sorting and dedup happen on the client. */
 const PROMPT = `This is a screenshot of the transaction history in MoMo, a Vietnamese e-wallet.
 
 Extract every transaction row in the list, top to bottom.
@@ -88,10 +88,11 @@ async function readImage(key: string, image: ImageIn): Promise<RawRow[]> {
 }
 
 /**
- * Đọc ảnh chụp lịch sử MoMo. Trả về các dòng THEO TỪNG ẢNH - client cần biết
- * dòng nào thuộc ảnh nào để bỏ phần chồng lên nhau giữa hai ảnh liền kề.
+ * Reads MoMo history screenshots. Returns rows PER IMAGE - the client needs
+ * to know which row came from which image to drop the overlap between
+ * neighboring images.
  *
- * Ảnh không được lưu ở đâu cả, và không bao giờ được log.
+ * Images are never stored and never logged.
  */
 export async function POST(req: NextRequest) {
   const user = await getSessionUser({ checkRevoked: true });
@@ -119,8 +120,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Mỗi ảnh một lời gọi, chạy song song: một lời gọi cho cả 5 ảnh thì model
-    // hay trộn dòng giữa các ảnh, và client mất dấu ảnh nào chứa dòng nào.
+    // One call per image, in parallel: one call for all 5 images makes the
+    // model mix rows across images, and the client loses track of them.
     const perImage = await Promise.all(images.map((img) => readImage(key, img)));
     return NextResponse.json({ images: perImage });
   } catch (err) {
