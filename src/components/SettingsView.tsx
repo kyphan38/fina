@@ -11,6 +11,8 @@ import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import { themeStore, type Theme } from '@/lib/prefs';
 import PushCard from '@/components/PushCard';
+import GoalsCard from '@/components/GoalsCard';
+import { isGoal } from '@/lib/goals';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import type { Bucket } from '@/types/fina';
 
@@ -141,7 +143,8 @@ export default function SettingsView({ email }: { email: string | null }) {
           <>
           <p className="mb-2 text-[11px] text-faint">Tap a name to see or edit what belongs in it.</p>
           <ul className="flex flex-col divide-y divide-line">
-            {buckets.map((b) => (
+            {/* Goals have their own card below. */}
+            {buckets.filter((b) => !isGoal(b)).map((b) => (
               <li key={b.id} className="relative py-2">
                 <div className="flex items-center gap-3">
                   <button
@@ -174,6 +177,8 @@ export default function SettingsView({ email }: { email: string | null }) {
         )}
         {msg && <p className="mt-3 text-xs text-muted">{msg}</p>}
       </Card>
+
+      {uid && buckets.length > 0 && <GoalsCard uid={uid} buckets={buckets} />}
 
       <Card title="Cold start">
         {times.length === 0 ? (

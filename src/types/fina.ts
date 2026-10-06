@@ -197,6 +197,8 @@ export interface Settings {
   reminderHour: number;
   reminderQuietDays: number;
   timezone: string;
+  /** Monthly budget for all saving goals together (PLAN-goals.md). */
+  goalsMonthlyVnd: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -204,6 +206,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reminderHour: REMINDER_HOUR,
   reminderQuietDays: REMINDER_QUIET_DAYS,
   timezone: TIMEZONE,
+  goalsMonthlyVnd: 3_500_000,
 };
 
 // ------------------------------------------------------------

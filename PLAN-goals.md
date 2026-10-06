@@ -191,7 +191,15 @@ test, xem số dư, History, Insights.
 
 ## Phase G2 - Tạo goal và chia số dư Purchases
 
-Branch `goals/g2-create`.
+**Xong (2026-10-06)**, branch `goals/g2-create`. Unit test 164/164, build đạt.
+Việc chia tiền đã làm trên dữ liệu thật (qua dev server, rules đã có từ G1):
+Phone 1.500.000, Vehicle 500.000, Purchases 313.327, tổng BIDV không đổi
+(10.673.327). Purchases: mức chuẩn 500, mô tả mới. `recompute-balances`
+(dry-run): mọi số dư đều khớp. Ngân sách goals để mặc định 3.500 (chưa ghi
+vào `meta/settings`, chỉ ghi khi sửa).
+
+Lúc thử có tạo nhầm một goal "PhonePhone" (gõ hai lần). Nó có số dư 0 và
+không có giao dịch, đã xoá bằng admin SDK rồi tạo lại Phone.
 
 1. `src/lib/buckets.ts`: `createGoal(uid, { name, targetVnd, targetMonth,
    standardVnd })` tạo bucket `goal-<slug>`, `kind: 'fund'`, `bank: 'BIDV'`,
