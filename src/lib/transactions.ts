@@ -10,6 +10,7 @@ import {
   query,
   where,
   writeBatch,
+  type WriteBatch,
 } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase-client';
@@ -143,9 +144,24 @@ export async function moveBetweenFunds(
   note: string | null,
   occurredAt: number = Date.now(),
 ): Promise<string> {
+  const batch = writeBatch(db);
+  const moveId = addMoveToBatch(batch, uid, from, to, amountVnd, note, occurredAt);
+  await batch.commit();
+  return moveId;
+}
+
+/** Both legs of a move and both balance changes, added to a caller's batch. */
+export function addMoveToBatch(
+  batch: WriteBatch,
+  uid: string,
+  from: Bucket,
+  to: Bucket,
+  amountVnd: number,
+  note: string | null,
+  occurredAt: number = Date.now(),
+): string {
   const moveId = doc(txCol(uid)).id;
   const now = Date.now();
-  const batch = writeBatch(db);
   const legs = [
     { bucket: from, direction: 'out' as const, suffix: 'out' },
     { bucket: to, direction: 'in' as const, suffix: 'in' },
@@ -170,8 +186,6 @@ export async function moveBetweenFunds(
       updatedAt: now,
     });
   }
-
-  await batch.commit();
   return moveId;
 }
 

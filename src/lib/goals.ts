@@ -135,3 +135,19 @@ export function monthLabel(month: string): string {
   const [y, m] = month.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 }
+
+/**
+ * What closing a goal has to do with its balance first. A goal closes at
+ * exactly zero: money left goes back to a fund, an overspend is covered
+ * from one.
+ */
+export type ClosePlan =
+  | { kind: 'empty' }
+  | { kind: 'leftover'; amountVnd: number }
+  | { kind: 'short'; amountVnd: number };
+
+export function closePlan(b: Bucket): ClosePlan {
+  if (b.balanceVnd > 0) return { kind: 'leftover', amountVnd: b.balanceVnd };
+  if (b.balanceVnd < 0) return { kind: 'short', amountVnd: -b.balanceVnd };
+  return { kind: 'empty' };
+}

@@ -2,7 +2,8 @@ import { doc, getDoc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore'
 
 import { db } from '@/lib/firebase-client';
 import { bucketsCol } from '@/lib/buckets';
-import { DEFAULT_GOALS_MONTHLY_VND, goalId, nextGoalOrder } from '@/lib/goals';
+import { closePlan, DEFAULT_GOALS_MONTHLY_VND, goalId, nextGoalOrder } from '@/lib/goals';
+import { addMoveToBatch } from '@/lib/transactions';
 import type { Bucket, Goal } from '@/types/fina';
 
 const settingsRef = (uid: string) => doc(db, 'users', uid, 'meta', 'settings');
@@ -55,4 +56,26 @@ export function watchGoalsMonthly(uid: string, cb: (vnd: number) => void): () =>
 
 export async function setGoalsMonthly(uid: string, vnd: number): Promise<void> {
   await setDoc(settingsRef(uid), { goalsMonthlyVnd: vnd }, { merge: true });
+}
+
+/**
+ * Close a goal after the purchase. One batch: settle the balance to zero
+ * with a move (leftover out to `other`, or an overspend covered from it),
+ * then mark it done and inactive. Never deleted: History keeps its entries.
+ */
+export async function closeGoal(uid: string, goal: Bucket, other: Bucket | null): Promise<void> {
+  const plan = closePlan(goal);
+  const batch = writeBatch(db);
+  const note = `Close ${goal.name}`;
+  if (plan.kind !== 'empty') {
+    if (!other) throw new Error('A fund is needed to settle the balance');
+    if (plan.kind === 'leftover') addMoveToBatch(batch, uid, goal, other, plan.amountVnd, note);
+    else addMoveToBatch(batch, uid, other, goal, plan.amountVnd, note);
+  }
+  batch.update(doc(bucketsCol(uid), goal.id), {
+    goal: { ...goal.goal!, status: 'done' },
+    active: false,
+    updatedAt: Date.now(),
+  });
+  await batch.commit();
 }

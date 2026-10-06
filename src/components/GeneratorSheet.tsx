@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Numpad from '@/components/Numpad';
 import { allocate, type Allocation } from '@/lib/generator';
 import { applyCyclePlan } from '@/lib/cycles';
-import { cycleLabel } from '@/lib/cycle';
+import { cycleLabel, cycleRange } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
@@ -21,12 +21,14 @@ export default function GeneratorSheet({
   cycleId,
   cycleClosed,
   buckets,
+  goalsBudgetVnd,
   onClose,
 }: {
   uid: string;
   cycleId: string;
   cycleClosed: boolean;
   buckets: Bucket[];
+  goalsBudgetVnd: number;
   onClose: () => void;
 }) {
   // Bắt đầu rỗng, không điền sẵn. Số đem chia là phần dư còn lại cộng khoản
@@ -45,7 +47,9 @@ export default function GeneratorSheet({
     const v = raw.trim() === '' || raw.trim() === '0' ? 0 : toVnd(raw);
     if (v !== null) overrides[id] = v;
   }
-  const r = allocate(divide, buckets, overrides);
+  // Goal needs as of just before this cycle opens: this allocation is one of
+  // the months left.
+  const r = allocate(divide, buckets, overrides, new Date(cycleRange(cycleId).startAt - 1));
   const { month } = cycleLabel(cycleId);
   const edited = Object.keys(overrides).length > 0;
 
@@ -58,7 +62,7 @@ export default function GeneratorSheet({
 
       // ETF không nằm trong đây: người dùng tự ghi lúc thật sự chuyển sang VPS.
       const fundAllocations: Record<string, number> = {};
-      for (const a of r.funds) fundAllocations[a.bucket.id] = a.amountVnd;
+      for (const a of [...r.funds, ...r.goals]) fundAllocations[a.bucket.id] = a.amountVnd;
 
       await applyCyclePlan(uid, cycleId, { divideVnd: divide, limits, fundAllocations });
       onClose();
@@ -91,6 +95,20 @@ export default function GeneratorSheet({
           ))}
         </Group>
 
+        {r.goals.length > 0 && (
+          <Group title="BIDV - Goals" total={r.goalsTotalVnd} divide={divide}>
+            {r.goals.map((a) => (
+              <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
+            ))}
+            {r.goalsTotalVnd > goalsBudgetVnd && (
+              <li className="pt-0.5 text-[11px] font-medium text-down">
+                {formatVnd(r.goalsTotalVnd - goalsBudgetVnd)} over the goals budget (
+                {formatVnd(goalsBudgetVnd)})
+              </li>
+            )}
+          </Group>
+        )}
+
         <section className="mt-3 border-t border-line pt-2">
           <div className="flex items-baseline justify-between text-sm font-semibold">
             <span>ETF</span>
@@ -122,6 +140,12 @@ export default function GeneratorSheet({
                 <span className="text-muted">Into BIDV funds</span>
                 <b className="font-semibold">{formatVnd(r.fundsTotalVnd)}</b>
               </li>
+              {r.goals.length > 0 && (
+                <li className="flex justify-between">
+                  <span className="text-muted">Into goals</span>
+                  <b className="font-semibold">{formatVnd(r.goalsTotalVnd)}</b>
+                </li>
+              )}
               <li className="flex justify-between border-t border-line pt-1">
                 <span className="text-muted">Left for VPS, by hand</span>
                 <b className={`font-semibold ${r.etfVnd < 0 ? 'text-over' : ''}`}>
@@ -218,6 +242,11 @@ function Row({
           style={{ background: bucketAccent(a.bucket.id) }}
         />
         <span className="truncate">{a.bucket.name}</span>
+        {a.needVnd !== null && (
+          <span className={`shrink-0 ${a.belowNeed ? 'font-semibold text-down' : 'text-faint'}`}>
+            needs {formatVnd(a.needVnd)}
+          </span>
+        )}
       </span>
 
       {off && (
@@ -239,7 +268,13 @@ function Row({
         aria-label={`${a.bucket.name} amount`}
         onChange={(e) => setEdits((prev) => ({ ...prev, [a.bucket.id]: e.target.value }))}
         className={`w-20 rounded-md border bg-surface-2 px-2 py-1 text-right text-xs ${
-          a.farFromStandard ? (a.deltaVnd > 0 ? 'border-up' : 'border-down') : 'border-line'
+          a.belowNeed
+            ? 'border-down font-semibold'
+            : a.farFromStandard
+              ? a.deltaVnd > 0
+                ? 'border-up'
+                : 'border-down'
+              : 'border-line'
         }`}
       />
     </li>

@@ -6,6 +6,7 @@ import CycleClose from '@/components/CycleClose';
 import GeneratorSheet from '@/components/GeneratorSheet';
 import AmountSheet from '@/components/AmountSheet';
 import MoveSheet from '@/components/MoveSheet';
+import CloseGoalSheet from '@/components/CloseGoalSheet';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
@@ -25,6 +26,7 @@ export default function SummaryView() {
   const s = useSummary();
   const [sheet, setSheet] = useState<'none' | 'generator' | 'etf' | 'move'>('none');
   const [topUp, setTopUp] = useState<Bucket | null>(null);
+  const [closing, setClosing] = useState<Bucket | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [etfOpen, setEtfOpen] = useState(false);
@@ -175,7 +177,13 @@ export default function SummaryView() {
         <Block title="Goals">
           <ul className="flex flex-col gap-3">
             {s.goals.map((b) => (
-              <GoalRow key={b.id} bucket={b} now={new Date(s.now)} onTopUp={() => setTopUp(b)} />
+              <GoalRow
+                key={b.id}
+                bucket={b}
+                now={new Date(s.now)}
+                onTopUp={() => setTopUp(b)}
+                onClose={() => setClosing(b)}
+              />
             ))}
           </ul>
           <Totals
@@ -248,6 +256,7 @@ export default function SummaryView() {
           cycleId={s.cycleId}
           cycleClosed={s.cycle?.status === 'closed'}
           buckets={s.buckets}
+          goalsBudgetVnd={s.goalsBudget}
           onClose={() => setSheet('none')}
         />
       )}
@@ -262,6 +271,15 @@ export default function SummaryView() {
             if (s.uid) await addFundTopUp(s.uid, topUp, amountVnd, note, occurredAt);
             setTopUp(null);
           }}
+        />
+      )}
+
+      {closing && s.uid && (
+        <CloseGoalSheet
+          uid={s.uid}
+          goal={closing}
+          buckets={s.buckets}
+          onClose={() => setClosing(null)}
         />
       )}
 
@@ -325,7 +343,17 @@ function BudgetRow({
   );
 }
 
-function GoalRow({ bucket, now, onTopUp }: { bucket: Bucket; now: Date; onTopUp: () => void }) {
+function GoalRow({
+  bucket,
+  now,
+  onTopUp,
+  onClose,
+}: {
+  bucket: Bucket;
+  now: Date;
+  onTopUp: () => void;
+  onClose: () => void;
+}) {
   const g = bucket.goal!;
   const progress = goalProgress(bucket, now);
   const need = needPerMonth(bucket, now);
@@ -372,11 +400,15 @@ function GoalRow({ bucket, now, onTopUp }: { bucket: Bucket; now: Date; onTopUp:
           <span className="block h-full rounded-full bg-muted" style={{ width: `${pct}%` }} />
         </span>
       )}
-      <p
-        className={`mt-1 text-xs ${progress === 'behind' ? 'font-medium text-ink' : 'text-faint'}`}
-      >
-        {details.join(' · ')}
-      </p>
+      <div className="mt-1 flex items-baseline gap-3 text-xs">
+        <p className={`min-w-0 flex-1 ${progress === 'behind' ? 'font-medium text-ink' : 'text-faint'}`}>
+          {details.join(' · ')}
+        </p>
+        {/* After the purchase: settle what is left and retire the goal. */}
+        <button type="button" onClick={onClose} className="shrink-0 text-faint underline underline-offset-2">
+          Close
+        </button>
+      </div>
     </li>
   );
 }

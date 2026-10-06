@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   GOAL_ORDER_START,
+  closePlan,
   etaMonth,
   goalId,
   goalProgress,
@@ -101,4 +102,10 @@ test('etaMonth - when the money is there at the current pace', () => {
 
 test('monthLabel - short month and year', () => {
   assert.equal(monthLabel('2027-04'), 'Apr 2027');
+});
+
+test('closePlan - leftover goes out, an overspend is covered, zero just closes', () => {
+  assert.deepEqual(closePlan({ ...phone, balanceVnd: 300_000 }), { kind: 'leftover', amountVnd: 300_000 });
+  assert.deepEqual(closePlan({ ...phone, balanceVnd: -200_000 }), { kind: 'short', amountVnd: 200_000 });
+  assert.deepEqual(closePlan({ ...phone, balanceVnd: 0 }), { kind: 'empty' });
 });

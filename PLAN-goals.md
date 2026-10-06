@@ -259,7 +259,16 @@ Summary và Log ở cả theme sáng và tối, màn hình điện thoại.
 
 ## Phase G4 - Generator ngày 25 và đóng goal
 
-Branch `goals/g4-generator`.
+**Xong (2026-10-06)**, branch `goals/g4-generator`. Unit test 178/178, build
+đạt. Đã thử trên dữ liệu thật (không bấm Apply): Generator có nhóm "BIDV -
+Goals" 3.429, Phone hiện "needs", gõ thấp hơn thì tô đậm. Close goal: thử
+với một goal tạm "Test" số dư 0, lưu đúng `status: done`, `active: false`,
+rồi xoá document tạm đó.
+
+Số "needs" trong Generator tính tại lúc NGAY TRƯỚC chu kỳ đang lập kế hoạch
+mở, nên lần chia đang lập cũng được tính là một tháng. Ví dụ hôm nay (chu kỳ
+2026-10 mở từ 25/09) Phone hiện 1.688 (8 lần chia). Từ 25/10 (chu kỳ 2026-11)
+nó hiện 1.929, khớp với Summary.
 
 1. `src/lib/generator.ts`: tách `goals` ra khỏi `funds` thành nhóm riêng, có
    `goalsTotalVnd`. Chỉ goal `saving` được chia. ETF vẫn ăn phần còn dư.
