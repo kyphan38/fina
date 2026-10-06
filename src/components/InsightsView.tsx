@@ -36,10 +36,6 @@ export default function InsightsView() {
               <BufferRow key={n} row={r} limitVnd={buffer.standardVnd} />
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-faint">
-            Buffer resets every cycle, so nothing accumulates to look at. This is the
-            pattern instead.
-          </p>
         </Block>
       )}
 
@@ -100,20 +96,20 @@ function Trend({ rows, bucket }: { rows: (CycleRow | null)[]; bucket: Bucket }) 
 
   return (
     <>
-      {/* Cột phải là con TRỰC TIẾP của khung cao cố định. Bọc chúng trong một
-          div cao theo nội dung (items-end không kéo giãn con) thì `height: %`
-          không còn mốc nào để so, trình duyệt bỏ qua, và mọi cột tụt xuống
-          đúng minHeight - sáu ô bằng nhau trông y như biểu đồ không có dữ
-          liệu. Nhãn tháng vì vậy nằm ở hàng riêng, khớp cột bằng cùng
-          flex-1 và cùng gap. */}
+      {/* The bars must be DIRECT children of the fixed-height frame. Wrapped in a
+          content-height div (items-end does not stretch children), `height: %`
+          has nothing to resolve against, the browser ignores it, and every bar
+          drops to minHeight - six equal bars look like a chart with no data.
+          So month labels sit in their own row, aligned with the same flex-1
+          and gap. */}
       <div className="flex h-28 items-end gap-1.5">
         {rows.map((_, n) => (
           <span
             key={n}
             className="flex-1 rounded-t-[3px]"
             style={{
-              // Tiêu ròng có thể âm (được hoàn nhiều hơn chi). Chiều cao âm
-              // là giá trị không hợp lệ, và cả cột lại biến mất.
+              // Net spending can be negative (more refunds than spending). A
+              // negative height is invalid and the bar disappears again.
               height: `${Math.max(0, (values[n] / peak) * 100)}%`,
               minHeight: values[n] > 0 ? 3 : 0,
               background: bucketAccent(bucket.id),
@@ -129,8 +125,7 @@ function Trend({ rows, bucket }: { rows: (CycleRow | null)[]; bucket: Bucket }) 
         ))}
       </div>
       <p className="mt-2 text-[11px] text-faint">
-        Standard is {formatVnd(bucket.standardVnd)}. Bars are net spending - refunds
-        already taken off.
+        Standard {formatVnd(bucket.standardVnd)}. Net of refunds.
       </p>
     </>
   );

@@ -7,8 +7,8 @@ import { canAnalyze, type Signals } from '@/lib/signals';
 import { readInsight, saveInsight, type StoredInsight } from '@/lib/insights-store';
 
 /**
- * Nút chạy nhận xét. Cache theo `digestHash`, nên mở lại mà không sửa gì thì
- * không có request nào.
+ * Runs the notes. Cached by `digestHash`, so reopening without changes sends
+ * no request.
  */
 export default function InsightPanel({ uid, signals }: { uid: string; signals: Signals }) {
   const [result, setResult] = useState<StoredInsight | null>(null);
@@ -50,8 +50,7 @@ export default function InsightPanel({ uid, signals }: { uid: string; signals: S
   if (!ready) {
     return (
       <p className="mt-5 text-xs text-muted">
-        Written notes need three closed cycles; there {signals.closedCount === 1 ? 'is' : 'are'}{' '}
-        {signals.closedCount}. Two points make a line but not a trend.
+        Needs 3 closed cycles (now {signals.closedCount}).
       </p>
     );
   }
@@ -97,8 +96,8 @@ export default function InsightPanel({ uid, signals }: { uid: string; signals: S
 
       {result && result.droppedCount > 0 && (
         <p className="mt-2.5 text-[11px] text-faint">
-          {result.droppedCount} sentence{result.droppedCount > 1 ? 's' : ''} discarded for
-          quoting a number that is not in the data, or for advising.
+          {result.droppedCount} sentence{result.droppedCount > 1 ? 's' : ''} removed (wrong
+          number or advice).
         </p>
       )}
     </section>
