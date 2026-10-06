@@ -9,6 +9,8 @@ import { coveredByBucket, coveredFromOutside, watchCycleCovers } from '@/lib/cov
 import { cycleOf } from '@/lib/cycle';
 import { clockStore } from '@/lib/clock';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
+import { DEFAULT_GOALS_MONTHLY_VND, isGoal, openGoals } from '@/lib/goals';
+import { watchGoalsMonthly } from '@/lib/goal-store';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 
 export function useSummary() {
@@ -19,6 +21,7 @@ export function useSummary() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [covers, setCovers] = useState<Cover[]>([]);
+  const [goalsBudget, setGoalsBudget] = useState(DEFAULT_GOALS_MONTHLY_VND);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
   // Trên server now = 0 -> cycleId là '1970-01', vô hại: lúc đó chưa có
@@ -56,6 +59,11 @@ export function useSummary() {
     return watchCycleCovers(uid, cycleId, setCovers);
   }, [uid, cycleId]);
 
+  useEffect(() => {
+    if (!uid) return;
+    return watchGoalsMonthly(uid, setGoalsBudget);
+  }, [uid]);
+
   const etfDeposits = useMemo(
     () => txs.filter((t) => t.bucketId === 'etf').sort((a, b) => b.occurredAt - a.occurredAt),
     [txs],
@@ -67,10 +75,12 @@ export function useSummary() {
 
   const active = useMemo(() => (buckets ?? []).filter((b) => b.active), [buckets]);
   const monthly = useMemo(() => active.filter((b) => b.kind === 'budget'), [active]);
-  const funds = useMemo(
+  const bidv = useMemo(
     () => active.filter((b) => b.kind === 'fund' && b.id !== 'etf'),
     [active],
   );
+  const funds = useMemo(() => bidv.filter((b) => !isGoal(b)), [bidv]);
+  const goals = useMemo(() => openGoals(active), [active]);
   const etf = useMemo(() => active.find((b) => b.id === 'etf') ?? null, [active]);
 
   const limits = useMemo(() => cycle?.limits ?? {}, [cycle]);
@@ -82,7 +92,8 @@ export function useSummary() {
     () => Object.values(limits).reduce((a, b) => a + b, 0),
     [limits],
   );
-  const fundsTotal = useMemo(() => funds.reduce((s, b) => s + b.balanceVnd, 0), [funds]);
+  // Goals included: this is what the BIDV account should hold.
+  const fundsTotal = useMemo(() => bidv.reduce((s, b) => s + b.balanceVnd, 0), [bidv]);
   // Chỉ tiền từ BIDV chảy VÀO một hũ VCB mới làm tổng đổi. Bù trong cùng
   // một ngân hàng chỉ là di chuyển nội bộ.
   const surplus = useMemo(
@@ -99,6 +110,9 @@ export function useSummary() {
     buckets: buckets ?? [],
     monthly,
     funds,
+    goals,
+    goalsBudget,
+    now,
     etf,
     etfDeposits,
     spent,

@@ -113,3 +113,17 @@ test('không có lịch sử thì không bịa ra độ lệch', () => {
   });
   assert.equal(s.buckets.find((b) => b.bucketId === 'food')!.deviationPct, null);
 });
+
+test('a goal saving for months is not an idle fund', () => {
+  const phone: Bucket = {
+    ...buckets.find((b) => b.id === 'travel')!,
+    id: 'goal-phone', name: 'Phone', balanceVnd: 1_500 * K, order: 200,
+    goal: { targetVnd: 15_000 * K, targetMonth: '2027-04', status: 'saving' },
+  };
+  const cycles = ['2026-06', '2026-07', '2026-08'].map((id) => cycle(id));
+  const s = computeSignals({
+    cycles: [...cycles, cycle('2026-09', { closed: false })],
+    buckets: [...buckets, phone], amounts: [], day: 9, totalDays: 30,
+  });
+  assert.equal(s.idleFunds.find((x) => x.bucketId === 'goal-phone'), undefined);
+});

@@ -9,6 +9,7 @@ import { watchCycle } from '@/lib/cycles';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { cycleOf } from '@/lib/cycle';
 import { clockStore } from '@/lib/clock';
+import { isGoal, openGoals } from '@/lib/goals';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 
 /**
@@ -61,14 +62,16 @@ export function useLogData() {
     [limits],
   );
 
-  const { monthly, funds } = useMemo(() => {
+  const { monthly, funds, goals } = useMemo(() => {
     const active = (buckets ?? []).filter((b) => b.active);
     return {
       monthly: active.filter((b) => b.kind === 'budget'),
       // ETF nằm ngoài lưới Log: tiền chỉ ĐI VÀO nó, không đi ra. Ghi một
       // giao dịch vào ETF sẽ trừ số dư - ngược hoàn toàn. Khoản nạp ETF do
       // Generator và bước đóng sổ lo (Stage 3).
-      funds: active.filter((b) => b.kind === 'fund' && b.id !== 'etf'),
+      funds: active.filter((b) => b.kind === 'fund' && b.id !== 'etf' && !isGoal(b)),
+      // Logged into only when the thing is bought, so only goals still saving.
+      goals: openGoals(active).filter((b) => b.goal?.status === 'saving'),
     };
   }, [buckets]);
 
@@ -87,6 +90,7 @@ export function useLogData() {
     buckets: buckets ?? [],
     monthly,
     funds,
+    goals,
     spent,
     covered,
     limits,

@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   GOAL_ORDER_START,
+  etaMonth,
   goalId,
+  goalProgress,
+  monthLabel,
+  monthsLeft,
+  needPerMonth,
   nextGoalOrder,
   openGoals,
   parseMonth,
@@ -58,4 +63,42 @@ test('parseMonth - empty is null, bad input is undefined', () => {
   assert.equal(parseMonth(' '), null);
   assert.equal(parseMonth('2027-13'), undefined);
   assert.equal(parseMonth('04/2027'), undefined);
+});
+
+const oct6 = new Date(2026, 9, 6, 12);
+
+test('monthsLeft - counts the day-25 allocations up to the target month', () => {
+  assert.equal(monthsLeft('2027-04', oct6), 7);
+  // On or after the 25th, this month's allocation is already behind us.
+  assert.equal(monthsLeft('2027-04', new Date(2026, 9, 25, 9)), 6);
+  assert.equal(monthsLeft('2026-12', new Date(2026, 11, 26)), 1);
+  assert.equal(monthsLeft('2026-01', oct6), 1);
+});
+
+test('needPerMonth - Phone: 13.500 missing over 7 months', () => {
+  assert.equal(needPerMonth({ ...phone, balanceVnd: 1_500_000 }, oct6), 1_929_000);
+});
+
+test('needPerMonth - null without target or month, 0 when reached', () => {
+  assert.equal(needPerMonth(vehicle, oct6), null);
+  assert.equal(needPerMonth({ ...phone, balanceVnd: 15_000_000 }, oct6), 0);
+});
+
+test('goalProgress - each state', () => {
+  assert.equal(goalProgress({ ...phone, balanceVnd: 1_500_000 }, oct6), 'on track');
+  assert.equal(goalProgress({ ...phone, balanceVnd: 1_500_000, standardVnd: 1_500_000 }, oct6), 'behind');
+  assert.equal(goalProgress({ ...phone, balanceVnd: 15_000_000 }, oct6), 'ready');
+  assert.equal(goalProgress(vehicle, oct6), 'no target');
+  assert.equal(goalProgress(watch, oct6), 'later');
+});
+
+test('etaMonth - when the money is there at the current pace', () => {
+  assert.equal(etaMonth({ ...phone, balanceVnd: 1_500_000 }, oct6), '2027-04');
+  // 1.500/mo: 13.500 / 1.500 = 9 allocations, Oct 2026 .. Jun 2027
+  assert.equal(etaMonth({ ...phone, balanceVnd: 1_500_000, standardVnd: 1_500_000 }, oct6), '2027-06');
+  assert.equal(etaMonth(vehicle, oct6), null);
+});
+
+test('monthLabel - short month and year', () => {
+  assert.equal(monthLabel('2027-04'), 'Apr 2027');
 });

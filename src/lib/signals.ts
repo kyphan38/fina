@@ -147,7 +147,9 @@ export function computeSignals(args: {
     .sort((a, b) => b.amountVnd - a.amountVnd)
     .slice(0, 3);
 
+  // A goal sitting still for months is the point of a goal, not a signal.
   const idleFunds = funds
+    .filter((b) => b.goal === null)
     .map((b) => {
       let idle = 0;
       for (let i = cycles.length - 1; i >= 0; i--) {

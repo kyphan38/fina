@@ -16,7 +16,7 @@ import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export default function LogView() {
-  const { uid, cycle, buckets, monthly, funds, spent, covered, limitOf, monthlyLeft, loading } =
+  const { uid, cycle, buckets, monthly, funds, goals, spent, covered, limitOf, monthlyLeft, loading } =
     useLogData();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function LogView() {
     }
   };
 
-  const all: Bucket[] = [...monthly, ...funds];
+  const all: Bucket[] = [...monthly, ...funds, ...goals];
 
   // Numpad đã có mặt và nhận được chạm kể từ đây.
   const ready = !loading && all.length > 0;
@@ -257,10 +257,8 @@ export default function LogView() {
         }
       >
         {/* Trên Mac luôn hiện: có chỗ, và gập lại chẳng tiết kiệm được gì. */}
-        <div
-          ref={fundsRef}
-          className={`grid-cols-3 gap-1.5 ${fundsOpen ? 'grid' : 'hidden min-[900px]:grid'}`}
-        >
+        <div ref={fundsRef} className={fundsOpen ? 'block' : 'hidden min-[900px]:block'}>
+          <div className="grid grid-cols-3 gap-1.5">
             {funds.map((b) => (
               <BucketTile
                 key={b.id}
@@ -270,6 +268,25 @@ export default function LogView() {
                 onSelect={() => setSelectedId(b.id)}
               />
             ))}
+          </div>
+          {goals.length > 0 && (
+            <>
+              <h3 className="px-1 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+                Goals
+              </h3>
+              <div className="grid grid-cols-3 gap-1.5">
+                {goals.map((b) => (
+                  <BucketTile
+                    key={b.id}
+                    bucket={b}
+                    spentVnd={spent[b.id] ?? 0}
+                    selected={b.id === selectedId}
+                    onSelect={() => setSelectedId(b.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </Section>
       </div>

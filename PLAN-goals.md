@@ -226,7 +226,11 @@ chia: không được có dòng `LECH`.
 
 ## Phase G3 - Xem tiến độ: Summary và Log
 
-Branch `goals/g3-progress`.
+**Xong (2026-10-06)**, branch `goals/g3-progress`. Unit test 171/171, build
+đạt. Đã xem trên dữ liệu thật: Summary hiện "Phone 1.500 / 15.000 · Apr 2027
+· needs 1.929/mo · on track", "Vehicle 500 · 1.500/mo · no target", "Per
+month 3.429 / 3.500". Log có hàng Goals riêng. Goal cũng có nút + để nạp
+thêm như quỹ thường.
 
 1. `src/lib/goals.ts` (hàm thuần, có test):
    - `monthsLeft(targetMonth, now)`: số lần chia lương (ngày 25) còn lại, từ

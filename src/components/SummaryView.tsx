@@ -12,6 +12,13 @@ import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import { overrideCycleLimits } from '@/lib/cycles';
 import { addEtfDeposit, addFundTopUp } from '@/lib/transactions';
+import {
+  etaMonth,
+  goalProgress,
+  monthLabel,
+  needPerMonth,
+  savingMonthlyTotal,
+} from '@/lib/goals';
 import type { Bucket } from '@/types/fina';
 
 export default function SummaryView() {
@@ -161,8 +168,22 @@ export default function SummaryView() {
             <FundRow key={b.id} bucket={b} onTopUp={() => setTopUp(b)} />
           ))}
         </ul>
-        <Totals left="Total" right={formatVnd(s.fundsTotal)} />
+        <Totals left={s.goals.length > 0 ? 'Total incl. goals' : 'Total'} right={formatVnd(s.fundsTotal)} />
       </Block>
+
+      {s.goals.length > 0 && (
+        <Block title="Goals">
+          <ul className="flex flex-col gap-3">
+            {s.goals.map((b) => (
+              <GoalRow key={b.id} bucket={b} now={new Date(s.now)} onTopUp={() => setTopUp(b)} />
+            ))}
+          </ul>
+          <Totals
+            left="Per month"
+            right={`${formatVnd(savingMonthlyTotal(s.goals))} / ${formatVnd(s.goalsBudget)}`}
+          />
+        </Block>
+      )}
 
       <Block
         title="VPS"
@@ -300,6 +321,62 @@ function BudgetRow({
           }}
         />
       </span>
+    </li>
+  );
+}
+
+function GoalRow({ bucket, now, onTopUp }: { bucket: Bucket; now: Date; onTopUp: () => void }) {
+  const g = bucket.goal!;
+  const progress = goalProgress(bucket, now);
+  const need = needPerMonth(bucket, now);
+  const eta = progress === 'behind' ? etaMonth(bucket, now) : null;
+  const pct =
+    g.targetVnd && g.targetVnd > 0
+      ? Math.max(0, Math.min(100, (bucket.balanceVnd / g.targetVnd) * 100))
+      : null;
+
+  const details = [
+    g.targetMonth ? monthLabel(g.targetMonth) : null,
+    progress === 'later' || progress === 'ready'
+      ? null
+      : need !== null
+        ? `needs ${formatVnd(need)}/mo`
+        : `${formatVnd(bucket.standardVnd)}/mo`,
+    progress === 'behind'
+      ? `set ${formatVnd(bucket.standardVnd)}${eta ? `, done ${monthLabel(eta)}` : ''}`
+      : null,
+    progress,
+  ].filter(Boolean);
+
+  return (
+    <li className={progress === 'later' ? 'text-faint' : ''}>
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span>{bucket.name}</span>
+        <span className="flex items-baseline gap-3">
+          <span className={bucket.balanceVnd < 0 ? 'font-medium text-over' : 'text-muted'}>
+            {formatVnd(bucket.balanceVnd)}
+            {g.targetVnd ? ` / ${formatVnd(g.targetVnd)}` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={onTopUp}
+            aria-label={`Add to ${bucket.name}`}
+            className="rounded-md border border-line px-1.5 text-xs leading-5 text-faint"
+          >
+            +
+          </button>
+        </span>
+      </div>
+      {pct !== null && progress !== 'later' && (
+        <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
+          <span className="block h-full rounded-full bg-muted" style={{ width: `${pct}%` }} />
+        </span>
+      )}
+      <p
+        className={`mt-1 text-xs ${progress === 'behind' ? 'font-medium text-ink' : 'text-faint'}`}
+      >
+        {details.join(' · ')}
+      </p>
     </li>
   );
 }
