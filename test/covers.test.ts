@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { coverBalanceDeltas, coverOptions, coveredByBucket, coveredFromOutside } from '@/lib/covers';
+import {
+  coverBalanceDeltas,
+  coverOptions,
+  coverRollbackDeltas,
+  coveredByBucket,
+  coveredFromOutside,
+} from '@/lib/covers';
 import { computeSurplus } from '@/lib/cycles';
 import { SEED_BUCKETS, type Bucket, type Cover } from '@/types/fina';
 
@@ -169,4 +175,27 @@ test('surplus - a cover from Buffer keeps the total, one from BIDV changes it', 
 
   const fromReserve = [cover({ fromBucketId: 'reserve', amountVnd: 190_000, needsTransfer: true })];
   assert.equal(base + coveredFromOutside(fromReserve, buckets), 360_000);
+});
+
+test('coverRollbackDeltas - undoes a done cover into a fund, adds nothing for a budget source', () => {
+  // Utilities fund: 300 - 400 + 100 (cover from Buffer) = 0. Deleting the
+  // entry gives back +400, so the cover must take back its +100.
+  const d = coverRollbackDeltas([
+    { cover: cover({ toBucketId: 'utilities', fromBucketId: 'buffer', amountVnd: 100_000 }), fromKind: 'budget', toKind: 'fund' },
+  ]);
+  assert.deepEqual(d, { utilities: -100_000 });
+});
+
+test('coverRollbackDeltas - a pending cover moved nothing, so nothing to undo', () => {
+  const d = coverRollbackDeltas([
+    { cover: cover({ status: 'pending', amountVnd: 100_000 }), fromKind: 'budget', toKind: 'fund' },
+  ]);
+  assert.deepEqual(d, {});
+});
+
+test('coverRollbackDeltas - fund to fund gives back both ends', () => {
+  const d = coverRollbackDeltas([
+    { cover: cover({ toBucketId: 'health', fromBucketId: 'purchases', amountVnd: 505_000 }), fromKind: 'fund', toKind: 'fund' },
+  ]);
+  assert.deepEqual(d, { purchases: 505_000, health: -505_000 });
 });

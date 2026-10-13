@@ -3,6 +3,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   increment,
   onSnapshot,
   query,
@@ -178,6 +179,52 @@ async function kindsOf(
     fromKind: from.data()?.kind === 'fund' ? 'fund' : 'budget',
     toKind: to.data()?.kind === 'fund' ? 'fund' : 'budget',
   };
+}
+
+/**
+ * Balance changes that UNDO a set of covers. Pending covers moved nothing, so
+ * they add nothing. Pure - tested.
+ */
+export function coverRollbackDeltas(
+  items: { cover: Cover; fromKind: BucketKind; toKind: BucketKind }[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const { cover, fromKind, toKind } of items) {
+    if (cover.status !== 'done') continue;
+    const deltas = coverBalanceDeltas({
+      fromBucketId: cover.fromBucketId,
+      fromKind,
+      toBucketId: cover.toBucketId,
+      toKind,
+      amountVnd: cover.amountVnd,
+    });
+    for (const [id, v] of Object.entries(deltas)) out[id] = (out[id] ?? 0) - v;
+  }
+  for (const [id, v] of Object.entries(out)) {
+    if (v === 0) delete out[id];
+  }
+  return out;
+}
+
+/**
+ * Every cover of one transaction, plus the balance changes that undo them.
+ *
+ * Used when the transaction is deleted. The covers only exist because of that
+ * transaction: left behind, Utilities shows room it never had and Buffer
+ * stays charged for money nobody spent.
+ */
+export async function coversOfTx(
+  uid: string,
+  txId: string,
+): Promise<{ refs: ReturnType<typeof doc>[]; deltas: Record<string, number> }> {
+  const snap = await getDocs(query(coversCol(uid), where('txId', '==', txId)));
+  const items = await Promise.all(
+    snap.docs.map(async (d) => {
+      const cover = toCover(d.id, d.data());
+      return { cover, ...(await kindsOf(uid, cover)) };
+    }),
+  );
+  return { refs: snap.docs.map((d) => d.ref), deltas: coverRollbackDeltas(items) };
 }
 
 export function watchCycleCovers(
