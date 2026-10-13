@@ -75,7 +75,7 @@ export default function GeneratorSheet({
   return (
     <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
       <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
-      <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
+      <div className="max-h-[88dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
         <div className="flex items-baseline justify-between pb-1">
           <span className="text-xs font-semibold">To divide</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>

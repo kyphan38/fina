@@ -23,7 +23,7 @@ export default function InsightsView() {
   const focusBucket = budgets.find((b) => b.id === focus) ?? budgets[0];
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="border-b border-line pb-2.5 pt-3">
         <h1 className="text-lg font-semibold">Insights</h1>
       </header>

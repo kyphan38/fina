@@ -83,7 +83,7 @@ export default function RestoreView() {
   };
 
   return (
-    <section className="min-h-0 flex-1 overflow-y-auto pt-6">
+    <section className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pt-6">
       <h1 className="text-lg font-semibold">Restore</h1>
       <p className="mt-2 text-sm text-muted">
         Adds missing records only. Never overwrites.

@@ -241,7 +241,7 @@ export default function ImportView() {
 
   if (draft === undefined) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
         <Header />
         <p className="pt-6 text-sm text-muted">Loading…</p>
       </div>
@@ -250,7 +250,7 @@ export default function ImportView() {
 
   if (!draft && savedCount !== null) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
         <Header />
         <p className="pt-6 text-sm">
           Saved {savedCount} {savedCount === 1 ? 'entry' : 'entries'}.
@@ -276,7 +276,7 @@ export default function ImportView() {
 
   if (!draft) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
         <Header />
         <div className="pt-6">
           {notice && <p className="mb-3 text-xs text-up">{notice}</p>}
@@ -307,7 +307,7 @@ export default function ImportView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-4">
         <Header />
 
         <div className="flex items-center gap-2 pt-3">

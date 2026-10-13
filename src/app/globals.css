@@ -113,7 +113,7 @@
 
 html {
   /* Page never pans sideways (iOS PWA drags left/right when anything is a
-     few px too wide). Inner lists bring their own `overflow-x-auto`. */
+     few px too wide). Scroll areas also set overflow-x-hidden: overflow-y-auto alone makes x auto. */
   overflow-x: hidden;
   overscroll-behavior-x: none;
   background: var(--bg);

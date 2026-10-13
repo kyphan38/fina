@@ -50,7 +50,7 @@ export default function CycleClose({
   const blocked = pendingCount > 0;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="pt-4">
         <h1 className="text-lg font-semibold">Cycle {month} ended</h1>
         <p className="mt-1 text-sm text-muted">

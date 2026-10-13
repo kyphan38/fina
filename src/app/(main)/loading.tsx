@@ -12,7 +12,7 @@
 export default function Loading() {
   return (
     <section
-      className="min-h-0 flex-1 overflow-y-auto pt-6"
+      className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pt-6"
       aria-busy="true"
       aria-label="Loading"
     >

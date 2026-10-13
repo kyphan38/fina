@@ -87,7 +87,7 @@ export default function CoverSheet({
     // so either say where it came from, or drop the record.
     <div className="fixed inset-0 z-30 flex flex-col justify-end bg-black/40">
       <div className="flex-1" />
-      <div className="max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-4 pb-4 pt-4">
+      <div className="max-h-[88dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pb-4 pt-4">
         <h2 className="text-sm font-semibold">
           {request.toBucket.name} over by {formatVnd(request.amountVnd)}
         </h2>

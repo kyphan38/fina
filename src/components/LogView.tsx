@@ -225,7 +225,7 @@ export default function LogView() {
       </header>
 
       {/* Only this area scrolls. More buckets never push Save away. */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none">
       <Section title="Monthly">
         <div className="grid grid-cols-3 gap-1.5">
           {monthly.map((b) => (

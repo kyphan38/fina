@@ -60,7 +60,7 @@ export default function SummaryView() {
   const hasLimits = Object.keys(s.limits).length > 0;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="flex items-end justify-between border-b border-line pb-2.5 pt-3">
         <h1 className="text-lg font-semibold">{month}</h1>
         <p className="text-xs text-muted">

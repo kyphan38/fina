@@ -20,7 +20,7 @@ export default function HistoryView() {
   const groups = groupByDay(h.rows);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="flex items-center gap-2 border-b border-line pb-2.5 pt-3">
         <select
           value={h.cycle}
