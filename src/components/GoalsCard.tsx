@@ -47,7 +47,7 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
     run(() => updateBucket(uid, b.id, { goal: { ...b.goal!, ...patch } }));
 
   return (
-    <section className="rounded-xl border border-line bg-surface px-4 py-3">
+    <section className="border-t border-line pt-3">
       <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">Goals</h2>
 
       {goals.length > 0 && (
@@ -146,7 +146,7 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="mt-2 rounded-lg border border-line px-3 py-1.5 text-xs"
+          className="mt-2 py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
         >
           New goal
         </button>
@@ -200,7 +200,7 @@ function NewGoalForm({
     name.trim() !== '' && targetVnd !== undefined && targetMonth !== undefined && standardVnd !== null;
 
   return (
-    <div className="mt-2 rounded-lg border border-line p-3">
+    <div className="mt-2 border-t border-line pt-3">
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -260,7 +260,7 @@ function NewGoalForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs"
+          className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
         >
           Cancel
         </button>
@@ -295,7 +295,7 @@ function OrderButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="rounded-md border border-line px-1.5 text-xs leading-5 text-faint disabled:opacity-30"
+      className="px-1.5 text-xs leading-5 text-faint hover:text-ink disabled:opacity-30"
     >
       {children}
     </button>

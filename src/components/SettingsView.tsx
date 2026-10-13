@@ -86,13 +86,13 @@ export default function SettingsView({ email }: { email: string | null }) {
   };
 
   return (
-    <div className="mt-4 flex flex-col gap-5">
+    <div className="mt-4 flex flex-col gap-8">
       <Card title="Signed in as">
         <p className="text-sm">{email ?? '-'}</p>
         <button
           type="button"
           onClick={signOut}
-          className="mt-3 rounded-lg border border-line px-4 py-2 text-sm font-medium"
+          className="mt-3 py-1 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
         >
           Sign out
         </button>
@@ -209,7 +209,7 @@ export default function SettingsView({ email }: { email: string | null }) {
             <button
               type="button"
               onClick={clearStartupTimes}
-              className="mt-3 rounded-lg border border-line px-3 py-1.5 text-xs"
+              className="mt-3 py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
             >
               Reset
             </button>
@@ -236,7 +236,7 @@ export default function SettingsView({ email }: { email: string | null }) {
             type="button"
             disabled={!uid || exporting}
             onClick={() => exportAs('csv')}
-            className="rounded-lg border border-line px-4 py-2 text-sm disabled:opacity-30"
+            className="px-2 py-2 text-sm text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-30"
           >
             Export CSV
           </button>
@@ -355,7 +355,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
           type="button"
           onClick={() => setEditing(false)}
           disabled={saving}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs disabled:opacity-30"
+          className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-30"
         >
           Cancel
         </button>
@@ -370,7 +370,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-surface px-4 py-3">
+    <section className="border-t border-line pt-3">
       <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
         {title}
       </h2>

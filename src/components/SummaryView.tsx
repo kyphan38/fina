@@ -61,7 +61,7 @@ export default function SummaryView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <header className="flex items-end justify-between border-b border-line pb-2.5 pt-3">
+      <header className="flex items-end justify-between pb-2.5 pt-3">
         <h1 className="text-lg font-semibold">{month}</h1>
         <p className="text-xs text-muted">
           Day {day} of {total}
@@ -214,7 +214,7 @@ export default function SummaryView() {
             <button
               type="button"
               onClick={() => setSheet('etf')}
-              className="rounded-lg border border-line px-3 py-1.5 text-xs"
+              className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
             >
               Add deposit
             </button>
@@ -377,7 +377,7 @@ function GoalRow({
   ].filter(Boolean);
 
   return (
-    <li className={progress === 'later' ? 'text-faint' : ''}>
+    <li className={`group ${progress === 'later' ? 'text-faint' : ''}`}>
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{bucket.name}</span>
         <span className="flex items-baseline gap-3">
@@ -389,7 +389,7 @@ function GoalRow({
             type="button"
             onClick={onTopUp}
             aria-label={`Add to ${bucket.name}`}
-            className="rounded-md border border-line px-1.5 text-xs leading-5 text-faint"
+            className={TOP_UP}
           >
             +
           </button>
@@ -415,7 +415,7 @@ function GoalRow({
 
 function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
   return (
-    <li>
+    <li className="group">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{bucket.name}</span>
         <span className="flex items-baseline gap-3">
@@ -428,7 +428,7 @@ function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
             type="button"
             onClick={onTopUp}
             aria-label={`Add to ${bucket.name}`}
-            className="rounded-md border border-line px-1.5 text-xs leading-5 text-faint"
+            className={TOP_UP}
           >
             +
           </button>
@@ -448,7 +448,7 @@ function Block({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-5 rounded-xl border border-line bg-surface px-4 py-3">
+    <section className="mt-8 border-t border-line pt-3">
       <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}
         {action}
@@ -466,3 +466,8 @@ function Totals({ left, right }: { left: string; right: string }) {
     </div>
   );
 }
+
+/** "+" top-up: used a few times a month, so it waits for the pointer on a
+ * computer and stays faint but visible on touch screens (no hover there). */
+const TOP_UP =
+  'px-1.5 text-sm leading-5 text-faint hover:text-ink focus-visible:opacity-100 min-[900px]:opacity-0 min-[900px]:group-hover:opacity-100 min-[900px]:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100';

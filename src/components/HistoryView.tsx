@@ -56,7 +56,7 @@ export default function HistoryView() {
           <button
             type="button"
             onClick={() => h.setShowAllocations(!h.showAllocations)}
-            className="rounded-lg border border-line px-2 py-1.5 text-[11px] text-faint"
+            className="px-1 py-1.5 text-[11px] text-muted underline-offset-4 hover:text-ink hover:underline"
           >
             {h.showAllocations ? 'Hide' : `+${h.allocationCount}`}
           </button>
@@ -82,7 +82,7 @@ export default function HistoryView() {
             <h2 className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
               {day}
             </h2>
-            <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+            <ul className="divide-y divide-line border-y border-line">
               {txs.map((t) => {
                 const b = h.byId.get(t.bucketId);
                 const pair = t.source === 'move' && t.moveId ? h.moves.get(t.moveId) : undefined;
