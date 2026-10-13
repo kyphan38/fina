@@ -16,6 +16,7 @@ import {
 import { db } from '@/lib/firebase-client';
 import { cycleOf } from '@/lib/cycle';
 import { bucketsCol } from '@/lib/buckets';
+import { coversOfTx } from '@/lib/covers';
 import { balanceDeltas, type TxShape } from '@/lib/tx-edit';
 import type { Bucket, Transaction, TxDirection, TxSource } from '@/types/fina';
 
@@ -315,6 +316,11 @@ export async function updateTransaction(
 /**
  * Hard delete. Unlike buckets (only `active` turned off) - a mistyped expense
  * has no history value, keeping it only makes every total wrong.
+ *
+ * Covers of this transaction go with it, balances included, in the SAME
+ * batch. The user picked Buffer by mistake, deleted the entry, and expects
+ * every number to be exactly as before - not Utilities +100 and Buffer
+ * still charged.
  */
 export async function deleteTransaction(
   uid: string,
@@ -325,18 +331,25 @@ export async function deleteTransaction(
     { bucketId: tx.bucketId, kind, amountVnd: tx.amountVnd, direction: tx.direction },
     null,
   );
+  const covers = await coversOfTx(uid, tx.id);
+  for (const [bucketId, v] of Object.entries(covers.deltas)) {
+    deltas[bucketId] = (deltas[bucketId] ?? 0) + v;
+    if (deltas[bucketId] === 0) delete deltas[bucketId];
+  }
 
-  if (Object.keys(deltas).length === 0) {
+  if (Object.keys(deltas).length === 0 && covers.refs.length === 0) {
     await deleteDoc(doc(txCol(uid), tx.id));
     return;
   }
 
+  const now = Date.now();
   const batch = writeBatch(db);
   batch.delete(doc(txCol(uid), tx.id));
+  for (const ref of covers.refs) batch.delete(ref);
   for (const [bucketId, delta] of Object.entries(deltas)) {
     batch.update(doc(bucketsCol(uid), bucketId), {
       balanceVnd: increment(delta),
-      updatedAt: Date.now(),
+      updatedAt: now,
     });
   }
   await batch.commit();
