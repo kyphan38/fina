@@ -112,12 +112,18 @@
 }
 
 html {
+  /* Page never pans sideways (iOS PWA drags left/right when anything is a
+     few px too wide). Inner lists bring their own `overflow-x-auto`. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   background: var(--bg);
   /* iOS: stop layout jumps when the keyboard opens */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
+  overflow-x: clip;
+  overscroll-behavior-x: none;
   background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
