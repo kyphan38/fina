@@ -86,8 +86,6 @@ export default function SummaryView() {
         </span>
       </header>
 
-      {s.uid && <NotesBlock uid={s.uid} />}
-
       {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
@@ -269,6 +267,8 @@ export default function SummaryView() {
       >
         Plan next cycle →
       </button>
+
+      {s.uid && <NotesBlock uid={s.uid} />}
 
       {sheet === 'generator' && (
         <GeneratorSheet
