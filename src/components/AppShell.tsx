@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import BottomNav from '@/components/BottomNav';
 import PendingCovers from '@/components/PendingCovers';
+import SettingsCorner from '@/components/SettingsCorner';
 
 /**
  * The app frame is exactly one screen tall, never taller.
@@ -15,6 +16,7 @@ import PendingCovers from '@/components/PendingCovers';
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
+      <SettingsCorner />
       <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col px-4 min-[900px]:max-w-5xl min-[900px]:px-6">
         {children}
       </main>

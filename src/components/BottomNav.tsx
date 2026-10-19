@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 /**
  * 3 fixed tabs. Log is the default because it is why the app exists.
- * Trends live inside History, Settings behind the gear on Summary.
+ * Trends live inside History, Settings behind the gear top right.
  * Icons are hand-drawn SVG, no icon library - every KB downloaded is
  * waiting time at cold start (rule #12).
  */
