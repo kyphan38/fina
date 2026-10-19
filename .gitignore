@@ -50,3 +50,6 @@ gemini.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local QR samples for testing
+/qr_images/
