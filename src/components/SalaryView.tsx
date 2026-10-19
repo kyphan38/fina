@@ -130,14 +130,14 @@ export default function SalaryView() {
                     <button
                       type="button"
                       onClick={() => setEditing(r.month)}
-                      className="text-faint underline"
+                      className="text-faint hover:text-ink active:text-ink"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => uid && void removeSalary(uid, r.month)}
-                      className="text-faint underline"
+                      className="text-faint hover:text-ink active:text-ink"
                     >
                       Delete
                     </button>

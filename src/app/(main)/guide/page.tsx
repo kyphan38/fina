@@ -20,7 +20,7 @@ export default function GuidePage() {
     <article className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-16 pt-6 text-sm leading-relaxed">
       <header className="flex items-baseline justify-between">
         <h1 className="text-lg font-semibold">Hướng dẫn</h1>
-        <Link href="/settings" className="text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
+        <Link href="/settings" className="text-xs text-muted hover:text-ink active:text-ink">
           ← Settings
         </Link>
       </header>

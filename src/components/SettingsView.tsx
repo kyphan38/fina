@@ -92,7 +92,7 @@ export default function SettingsView({ email }: { email: string | null }) {
         <button
           type="button"
           onClick={signOut}
-          className="mt-3 py-1 text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
+          className="mt-3 py-1 text-sm text-muted hover:text-ink active:text-ink"
         >
           Sign out
         </button>
@@ -209,7 +209,7 @@ export default function SettingsView({ email }: { email: string | null }) {
             <button
               type="button"
               onClick={clearStartupTimes}
-              className="mt-3 py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
+              className="mt-3 py-1.5 text-xs text-muted hover:text-ink active:text-ink"
             >
               Reset
             </button>
@@ -236,7 +236,7 @@ export default function SettingsView({ email }: { email: string | null }) {
             type="button"
             disabled={!uid || exporting}
             onClick={() => exportAs('csv')}
-            className="px-2 py-2 text-sm text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-30"
+            className="px-2 py-2 text-sm text-muted hover:text-ink active:text-ink disabled:opacity-30"
           >
             Export CSV
           </button>
@@ -245,7 +245,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           <p className="mt-3 text-xs font-medium text-over">Last export was {stale} days ago.</p>
         )}
         <p className="mt-3 text-xs text-faint">
-          <Link href="/settings/restore" className="underline">
+          <Link href="/settings/restore" className="hover:text-ink active:text-ink after:ml-1 after:content-['›']">
             Restore
           </Link>
         </p>
@@ -255,7 +255,7 @@ export default function SettingsView({ email }: { email: string | null }) {
           the phone while the app is open never sees the word "salary".
           That page locks itself with a password. */}
       <p className="text-xs text-muted">
-        <Link href="/salary" className="text-faint underline">
+        <Link href="/salary" className="text-faint hover:text-ink active:text-ink after:ml-1 after:content-['›']">
           More
         </Link>
       </p>
@@ -318,7 +318,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
           type="button"
           onClick={startEdit}
           aria-label={`Edit description of ${bucket.name}`}
-          className="shrink-0 font-medium underline underline-offset-2"
+          className="shrink-0 font-medium"
         >
           Edit
         </button>
@@ -355,7 +355,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
           type="button"
           onClick={() => setEditing(false)}
           disabled={saving}
-          className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-30"
+          className="py-1.5 text-xs text-muted hover:text-ink active:text-ink disabled:opacity-30"
         >
           Cancel
         </button>

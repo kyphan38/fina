@@ -58,7 +58,7 @@ export default function HistoryView() {
           <button
             type="button"
             onClick={() => h.setShowAllocations(!h.showAllocations)}
-            className="px-1 py-1.5 text-[11px] text-muted underline-offset-4 hover:text-ink hover:underline"
+            className="px-1 py-1.5 text-[11px] text-muted hover:text-ink active:text-ink"
           >
             {h.showAllocations ? 'Hide' : `+${h.allocationCount}`}
           </button>

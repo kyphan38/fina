@@ -135,7 +135,7 @@ export default function RestoreView() {
 
       {msg && <p className="mt-4 text-sm">{msg}</p>}
 
-      <Link href="/settings" className="mt-6 inline-block text-sm underline">
+      <Link href="/settings" className="mt-6 inline-block text-sm text-muted hover:text-ink active:text-ink">
         Back to Settings
       </Link>
     </section>

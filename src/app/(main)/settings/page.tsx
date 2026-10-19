@@ -10,7 +10,7 @@ export default async function SettingsPage() {
     <section className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pt-6">
       <header className="flex items-baseline justify-between">
         <h1 className="text-lg font-semibold">Settings</h1>
-        <Link href="/guide" className="text-xs text-muted underline-offset-4 hover:text-ink hover:underline">
+        <Link href="/guide" className="text-xs text-muted hover:text-ink active:text-ink">
           Hướng dẫn →
         </Link>
       </header>

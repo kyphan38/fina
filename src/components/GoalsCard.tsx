@@ -146,7 +146,7 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="mt-2 py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
+          className="mt-2 py-1.5 text-xs text-muted hover:text-ink active:text-ink"
         >
           New goal
         </button>
@@ -260,7 +260,7 @@ function NewGoalForm({
         <button
           type="button"
           onClick={onCancel}
-          className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
+          className="py-1.5 text-xs text-muted hover:text-ink active:text-ink"
         >
           Cancel
         </button>

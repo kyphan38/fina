@@ -371,7 +371,7 @@ export default function LogView() {
                   if (toastTimer.current) clearTimeout(toastTimer.current);
                   await deleteTransaction(uid!, target.tx, target.kind);
                 }}
-                className="shrink-0 font-semibold underline"
+                className="shrink-0 font-semibold"
               >
                 Undo
               </button>

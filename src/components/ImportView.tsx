@@ -406,7 +406,7 @@ export default function ImportView() {
                   <button
                     type="button"
                     onClick={() => patch(r.id, { removed: null })}
-                    className="shrink-0 font-semibold text-ink underline"
+                    className="shrink-0 font-semibold text-ink"
                   >
                     Add back
                   </button>

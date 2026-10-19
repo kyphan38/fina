@@ -232,7 +232,7 @@ export default function SummaryView() {
             <button
               type="button"
               onClick={() => setSheet('etf')}
-              className="py-1.5 text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
+              className="py-1.5 text-xs text-muted hover:text-ink active:text-ink"
             >
               Add deposit
             </button>
@@ -425,7 +425,7 @@ function GoalRow({
           {details.join(' · ')}
         </p>
         {/* After the purchase: settle what is left and retire the goal. */}
-        <button type="button" onClick={onClose} className="shrink-0 text-faint underline underline-offset-2">
+        <button type="button" onClick={onClose} className="shrink-0 text-faint hover:text-ink active:text-ink">
           Close
         </button>
       </div>
