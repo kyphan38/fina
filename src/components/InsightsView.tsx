@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import HistoryTabs from '@/components/HistoryTabs';
 import InsightPanel from '@/components/InsightPanel';
 import { useInsights, type CycleRow } from '@/hooks/useInsights';
 import { bucketAccent } from '@/lib/bucket-color';
@@ -13,9 +14,15 @@ export default function InsightsView() {
   const s = useInsights();
   const [focus, setFocus] = useState<string>('food');
 
-  if (s.loading) return <p className="pt-6 text-sm text-muted">Loading…</p>;
-  if (s.rows.length === 0) {
-    return <p className="pt-6 text-sm text-muted">Nothing to show until a cycle exists.</p>;
+  if (s.loading || s.rows.length === 0) {
+    return (
+      <div>
+        <HistoryTabs active="trends" />
+        <p className="pt-6 text-sm text-muted">
+          {s.loading ? 'Loading…' : 'Nothing to show until a cycle exists.'}
+        </p>
+      </div>
+    );
   }
 
   const buffer = s.buckets.find((b) => b.id === 'buffer');
@@ -24,8 +31,8 @@ export default function InsightsView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <header className="border-b border-line pb-2.5 pt-3">
-        <h1 className="text-lg font-semibold">Insights</h1>
+      <header className="border-b border-line pb-2.5">
+        <HistoryTabs active="trends" />
       </header>
 
       <div className="min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-5">

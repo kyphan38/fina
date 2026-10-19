@@ -4,17 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * 5 fixed tabs. Log is the default because it is why the app exists.
+ * 3 fixed tabs. Log is the default because it is why the app exists.
+ * Trends live inside History, Settings behind the gear on Summary.
  * Icons are hand-drawn SVG, no icon library - every KB downloaded is
  * waiting time at cold start (rule #12).
  */
 const TABS = [
-  { href: "/log", label: "Log", d: "M12 5v14M5 12h14" },
-  { href: "/summary", label: "Summary", d: "M4 19V9M10 19V5M16 19v-6M4 19h16" },
-  { href: "/history", label: "History", d: "M4 6h16M4 12h16M4 18h10" },
-  { href: "/insights", label: "Insights", d: "M4 15l5-6 4 4 6-8" },
-  { href: "/settings", label: "Settings", d: "M12 8a4 4 0 100 8 4 4 0 000-8M12 2v3M12 19v3M2 12h3M19 12h3" },
+  { href: "/log", label: "Log", d: "M12 5v14M5 12h14", also: [] },
+  {
+    href: "/summary",
+    label: "Summary",
+    d: "M4 19V9M10 19V5M16 19v-6M4 19h16",
+    also: ["/settings", "/guide", "/salary"],
+  },
+  { href: "/history", label: "History", d: "M4 6h16M4 12h16M4 18h10", also: ["/insights", "/import"] },
 ] as const;
+
+const under = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -26,7 +33,7 @@ export default function BottomNav() {
     >
       <ul className="mx-auto flex max-w-2xl min-[900px]:max-w-5xl">
         {TABS.map((tab) => {
-          const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          const active = [tab.href, ...tab.also].some((h) => under(pathname, h));
           return (
             <li key={tab.href} className="flex-1">
               <Link

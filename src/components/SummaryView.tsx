@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 
 import CycleClose from '@/components/CycleClose';
@@ -7,6 +8,7 @@ import GeneratorSheet from '@/components/GeneratorSheet';
 import AmountSheet from '@/components/AmountSheet';
 import MoveSheet from '@/components/MoveSheet';
 import CloseGoalSheet from '@/components/CloseGoalSheet';
+import NotesBlock from '@/components/NotesBlock';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
@@ -61,12 +63,30 @@ export default function SummaryView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <header className="flex items-end justify-between pb-2.5 pt-3">
+      <header className="flex items-center justify-between pb-2.5 pt-3">
         <h1 className="text-lg font-semibold">{month}</h1>
-        <p className="text-xs text-muted">
-          Day {day} of {total}
-        </p>
+        <span className="flex items-center gap-3">
+          <p className="text-xs text-muted">
+            Day {day} of {total}
+          </p>
+          <Link href="/settings" aria-label="Settings" className="-m-1.5 p-1.5 text-faint hover:text-ink">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 8a4 4 0 100 8 4 4 0 000-8M12 2v3M12 19v3M2 12h3M19 12h3" />
+            </svg>
+          </Link>
+        </span>
       </header>
+
+      {s.uid && <NotesBlock uid={s.uid} />}
 
       {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">

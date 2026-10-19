@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+import HistoryTabs from '@/components/HistoryTabs';
 import TxEditSheet from '@/components/TxEditSheet';
 import { MoveDetailSheet } from '@/components/MoveSheet';
 import { useHistory } from '@/hooks/useHistory';
@@ -21,6 +22,7 @@ export default function HistoryView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
+      <HistoryTabs active="entries" />
       <header className="flex items-center gap-2 border-b border-line pb-2.5 pt-3">
         <select
           value={h.cycle}
