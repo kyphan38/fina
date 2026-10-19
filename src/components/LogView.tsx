@@ -11,6 +11,7 @@ import { evalAmount, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
+import SettingsLink from '@/components/SettingsLink';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket, Transaction } from '@/types/fina';
@@ -218,10 +219,13 @@ export default function LogView() {
           <br />
           Day {day} of {total}
         </p>
-        <p className="text-right">
-          <span className="block text-[11px] text-faint">Monthly left</span>
-          <b className="text-[19px] font-semibold">{formatVnd(monthlyLeft)}</b>
-        </p>
+        <span className="flex items-start gap-3">
+          <p className="text-right">
+            <span className="block text-[11px] text-faint">Monthly left</span>
+            <b className="text-[19px] font-semibold">{formatVnd(monthlyLeft)}</b>
+          </p>
+          <SettingsLink />
+        </span>
       </header>
 
       {/* Only this area scrolls. More buckets never push Save away. */}
