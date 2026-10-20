@@ -71,13 +71,16 @@ export default function SummaryView() {
       <TopBar>
         <h1 className="text-lg font-semibold">{month}</h1>
       </TopBar>
-      <p className="pb-2.5 text-xs text-muted">
+      <p className="text-xs text-muted">
         Day {day} of {total}
       </p>
 
-      {/* On Mac the three blocks sit side by side; on a phone they stack. */}
+      {/* On Mac the three blocks sit side by side; on a phone they stack.
+          The first block's top line sits right under the day line, the
+          same gap as Log, instead of a full block gap. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
+        first
         title="VCB - Monthly"
         action={
           hasLimits && s.cycle?.status === 'open' ? (
@@ -450,14 +453,17 @@ function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
 function Block({
   title,
   action,
+  first = false,
   children,
 }: {
   title: string;
   action?: React.ReactNode;
+  /** Right under the day line: a small gap, not a full block gap. */
+  first?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8 border-t border-line pt-3">
+    <section className={`${first ? 'mt-2.5' : 'mt-8'} border-t border-line pt-3 min-[900px]:mt-2.5`}>
       <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}
         {action}

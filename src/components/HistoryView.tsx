@@ -23,7 +23,9 @@ export default function HistoryView() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <HistoryTabs active="entries" />
-      <header className="flex items-center gap-2 border-b border-line pb-2.5 pt-1">
+      {/* Filters and the import link only. The count and total sit at the end
+          of the list, so the page keeps two rows on top. */}
+      <header className="flex flex-wrap items-center gap-2 border-b border-line pb-2.5 pt-1">
         <select
           value={h.cycle}
           onChange={(e) => h.setCycle(e.target.value)}
@@ -64,13 +66,9 @@ export default function HistoryView() {
           </button>
         )}
 
-        <span className="ml-auto text-xs text-muted">
-          {h.rows.length} · {formatVnd(h.total)}
-        </span>
-
         <Link
           href="/import"
-          className="rounded-lg border border-line px-2 py-1.5 text-[11px] font-semibold"
+          className="ml-auto py-1.5 text-xs text-muted hover:text-ink active:text-ink after:ml-1 after:content-['›']"
         >
           MoMo
         </Link>
@@ -132,6 +130,15 @@ export default function HistoryView() {
             </ul>
           </section>
         ))
+      )}
+
+      {h.rows.length > 0 && (
+        <div className="mt-4 flex justify-between px-1 text-xs">
+          <span className="text-muted">
+            {h.rows.length} {h.rows.length === 1 ? 'entry' : 'entries'}
+          </span>
+          <span className="font-medium">{formatVnd(h.total)}</span>
+        </div>
       )}
 
       {editing && h.uid && editing.source === 'move' && editing.moveId && (
