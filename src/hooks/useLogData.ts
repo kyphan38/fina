@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
+import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { coveredByBucket, watchCycleCovers } from '@/lib/covers';
@@ -24,6 +26,8 @@ export function useLogData() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cycleDoc, setCycleDoc] = useState<Cycle | null>(null);
   const [covers, setCovers] = useState<Cover[]>([]);
+  // Animations wait for all four listeners to have answered once.
+  const { settled, mark } = useFirstSnapshots(4);
 
   // The shared clock ticks every minute, so an app left open at midnight on
   // the 25th moves to the new cycle by itself. If the cycle string does not
@@ -33,23 +37,35 @@ export function useLogData() {
 
   useEffect(() => {
     if (!uid) return;
-    return watchBuckets(uid, setBuckets);
-  }, [uid]);
+    return watchBuckets(uid, (v) => {
+      setBuckets(v);
+      mark(0);
+    });
+  }, [uid, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycleTransactions(uid, cycle, setTxs);
-  }, [uid, cycle]);
+    return watchCycleTransactions(uid, cycle, (v) => {
+      setTxs(v);
+      mark(1);
+    });
+  }, [uid, cycle, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycle(uid, cycle, setCycleDoc);
-  }, [uid, cycle]);
+    return watchCycle(uid, cycle, (v) => {
+      setCycleDoc(v);
+      mark(2);
+    });
+  }, [uid, cycle, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycleCovers(uid, cycle, setCovers);
-  }, [uid, cycle]);
+    return watchCycleCovers(uid, cycle, (v) => {
+      setCovers(v);
+      mark(3);
+    });
+  }, [uid, cycle, mark]);
 
   const spent = useMemo(() => spentByBucket(txs), [txs]);
   const covered = useMemo(() => coveredByBucket(covers), [covers]);
@@ -99,5 +115,7 @@ export function useLogData() {
     monthlyLeft,
     /** null = still loading; empty array = loaded, no buckets seeded. */
     loading: buckets === null,
+    /** All listeners have answered: now bars and numbers may animate. */
+    settled,
   };
 }

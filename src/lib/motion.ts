@@ -20,3 +20,9 @@ export function sheetShouldClose(dy: number, height: number, velocityPxPerMs: nu
 export function dragOffset(dy: number): number {
   return dy >= 0 ? dy : dy * 0.2;
 }
+
+/** How full a bar is, 0 to 1. No limit, a bad number or a negative use gives 0. */
+export function barScale(used: number, limit: number | undefined): number {
+  if (limit === undefined || !(limit > 0) || !Number.isFinite(used)) return 0;
+  return Math.min(1, Math.max(0, used / limit));
+}

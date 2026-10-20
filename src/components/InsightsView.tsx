@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 
+import BarFill from '@/components/BarFill';
 import HistoryTabs from '@/components/HistoryTabs';
 import InsightPanel from '@/components/InsightPanel';
 import { useInsights, type CycleRow } from '@/hooks/useInsights';
 import { bucketAccent } from '@/lib/bucket-color';
 import { cycleLabel } from '@/lib/cycle';
+import { barScale } from '@/lib/motion';
 import { formatVnd } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
 
@@ -76,16 +78,16 @@ export default function InsightsView() {
 function BufferRow({ row, limitVnd }: { row: CycleRow | null; limitVnd: number }) {
   if (!row) return <li className="text-xs text-faint">-</li>;
   const used = row.byBucket.buffer ?? 0;
-  const pct = limitVnd > 0 ? Math.min(100, (used / limitVnd) * 100) : 0;
   const over = used > limitVnd;
 
   return (
     <li className="flex items-center gap-2.5 text-xs">
       <span className="w-8 shrink-0 text-faint">{cycleLabel(row.id).month.slice(0, 3)}</span>
       <span className="h-2 flex-1 rounded-full bg-sunk">
-        <span
-          className="block h-full rounded-full"
-          style={{ width: `${over ? 100 : pct}%`, background: over ? 'var(--over)' : 'var(--b6)' }}
+        <BarFill
+          fraction={over ? 1 : barScale(used, limitVnd)}
+          className="rounded-full"
+          color={over ? 'var(--over)' : 'var(--b6)'}
         />
       </span>
       <span className={`w-24 shrink-0 text-right ${over ? 'font-medium text-over' : 'text-muted'}`}>

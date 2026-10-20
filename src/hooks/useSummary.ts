@@ -12,6 +12,7 @@ import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { DEFAULT_GOALS_MONTHLY_VND, isGoal, openGoals } from '@/lib/goals';
 import { watchGoalsMonthly } from '@/lib/goal-store';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
+import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
 
 export function useSummary() {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ export function useSummary() {
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [covers, setCovers] = useState<Cover[]>([]);
   const [goalsBudget, setGoalsBudget] = useState(DEFAULT_GOALS_MONTHLY_VND);
+  // Animations wait for all five listeners to have answered once.
+  const { settled, mark } = useFirstSnapshots(5);
 
   const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
   // On the server now = 0 -> cycleId is '1970-01', harmless: there are no
@@ -31,18 +34,27 @@ export function useSummary() {
 
   useEffect(() => {
     if (!uid) return;
-    return watchBuckets(uid, setBuckets);
-  }, [uid]);
+    return watchBuckets(uid, (v) => {
+      setBuckets(v);
+      mark(0);
+    });
+  }, [uid, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycleTransactions(uid, cycleId, setTxs);
-  }, [uid, cycleId]);
+    return watchCycleTransactions(uid, cycleId, (v) => {
+      setTxs(v);
+      mark(1);
+    });
+  }, [uid, cycleId, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycle(uid, cycleId, setCycle);
-  }, [uid, cycleId]);
+    return watchCycle(uid, cycleId, (v) => {
+      setCycle(v);
+      mark(2);
+    });
+  }, [uid, cycleId, mark]);
 
   // Create the cycle document the first time, freezing limits from the
   // current baseline. Only for the CURRENT cycle - a past cycle with no
@@ -56,13 +68,19 @@ export function useSummary() {
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycleCovers(uid, cycleId, setCovers);
-  }, [uid, cycleId]);
+    return watchCycleCovers(uid, cycleId, (v) => {
+      setCovers(v);
+      mark(3);
+    });
+  }, [uid, cycleId, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchGoalsMonthly(uid, setGoalsBudget);
-  }, [uid]);
+    return watchGoalsMonthly(uid, (v) => {
+      setGoalsBudget(v);
+      mark(4);
+    });
+  }, [uid, mark]);
 
   const etfDeposits = useMemo(
     () => txs.filter((t) => t.bucketId === 'etf').sort((a, b) => b.occurredAt - a.occurredAt),
@@ -126,5 +144,7 @@ export function useSummary() {
     surplus,
     needsClose,
     loading: buckets === null,
+    /** All listeners have answered: now bars and numbers may animate. */
+    settled,
   };
 }

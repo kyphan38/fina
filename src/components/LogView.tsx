@@ -11,6 +11,7 @@ import { evalAmount, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
+import Settle from '@/components/Settle';
 import ToastBar, { type ToastData } from '@/components/ToastBar';
 import TopBar from '@/components/TopBar';
 import { markReady } from '@/lib/startup';
@@ -18,8 +19,20 @@ import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export default function LogView() {
-  const { uid, cycle, buckets, monthly, funds, goals, spent, covered, limitOf, monthlyLeft, loading } =
-    useLogData();
+  const {
+    uid,
+    cycle,
+    buckets,
+    monthly,
+    funds,
+    goals,
+    spent,
+    covered,
+    limitOf,
+    monthlyLeft,
+    loading,
+    settled,
+  } = useLogData();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [buf, setBuf] = useState('');
@@ -231,7 +244,12 @@ export default function LogView() {
       <p className="flex min-h-11 shrink-0 items-center justify-between text-xs text-muted">
         <span>Day {day} of {total}</span>
         <span>
-          Monthly left <b className="ml-1 text-[17px] font-semibold text-ink">{formatVnd(monthlyLeft)}</b>
+          Monthly left{' '}
+          <b className="ml-1 text-[17px] font-semibold text-ink">
+            <Settle value={monthlyLeft} settled={settled}>
+              {formatVnd(monthlyLeft)}
+            </Settle>
+          </b>
         </span>
       </p>
 
@@ -247,6 +265,7 @@ export default function LogView() {
               coveredVnd={covered[b.id] ?? 0}
               limitVnd={limitOf(b)}
               selected={b.id === selectedId}
+              settled={settled}
               onSelect={() => setSelectedId(b.id)}
             />
           ))}
@@ -278,6 +297,7 @@ export default function LogView() {
                 bucket={b}
                 spentVnd={spent[b.id] ?? 0}
                 selected={b.id === selectedId}
+                settled={settled}
                 onSelect={() => setSelectedId(b.id)}
               />
             ))}
@@ -294,6 +314,7 @@ export default function LogView() {
                     bucket={b}
                     spentVnd={spent[b.id] ?? 0}
                     selected={b.id === selectedId}
+                    settled={settled}
                     onSelect={() => setSelectedId(b.id)}
                   />
                 ))}
@@ -320,7 +341,7 @@ export default function LogView() {
               type="button"
               onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
               aria-label={direction === 'in' ? 'Money in' : 'Money out'}
-              className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide ${
+              className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide transition-colors duration-150 ${
                 direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
               }`}
             >

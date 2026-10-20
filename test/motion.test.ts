@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dragOffset, leavingItems, reducedMotion, sheetShouldClose } from '@/lib/motion';
+import { barScale, dragOffset, leavingItems, reducedMotion, sheetShouldClose } from '@/lib/motion';
 
 const a = { id: 'a' };
 const b = { id: 'b' };
@@ -44,4 +44,25 @@ test('dragOffset - dragging up is damped', () => {
 
 test('dragOffset - dragging down follows the finger', () => {
   assert.equal(dragOffset(30), 30);
+});
+
+test('barScale - half used is half full', () => {
+  assert.equal(barScale(50, 100), 0.5);
+});
+
+test('barScale - over the limit stops at full', () => {
+  assert.equal(barScale(150, 100), 1);
+});
+
+test('barScale - no limit or a zero limit is empty', () => {
+  assert.equal(barScale(10, 0), 0);
+  assert.equal(barScale(10, undefined), 0);
+});
+
+test('barScale - a negative amount is empty', () => {
+  assert.equal(barScale(-5, 100), 0);
+});
+
+test('barScale - not a number is empty', () => {
+  assert.equal(barScale(Number.NaN, 100), 0);
 });

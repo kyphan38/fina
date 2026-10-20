@@ -1,5 +1,8 @@
 'use client';
 
+import BarFill from '@/components/BarFill';
+import Settle from '@/components/Settle';
+import { barScale } from '@/lib/motion';
 import { formatVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
@@ -14,6 +17,7 @@ export default function BucketTile({
   coveredVnd = 0,
   limitVnd,
   selected,
+  settled,
   onSelect,
 }: {
   bucket: Bucket;
@@ -23,6 +27,8 @@ export default function BucketTile({
   /** The cycle's frozen limit. Empty = use the baseline. */
   limitVnd?: number;
   selected: boolean;
+  /** The screen has loaded: the bar and the number may animate when they change. */
+  settled: boolean;
   onSelect: () => void;
 }) {
   const isFund = bucket.kind === 'fund';
@@ -30,14 +36,14 @@ export default function BucketTile({
   const used = spentVnd + coveredVnd;
   const value = isFund ? bucket.balanceVnd : limit - used;
   const over = value < 0;
-  const pct = isFund ? 100 : limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+  const fraction = isFund ? 1 : barScale(used, limit);
 
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`relative overflow-hidden rounded-[10px] border px-2.5 pb-3 pt-2.5 text-left ${
+      className={`relative overflow-hidden rounded-[10px] border px-2.5 pb-3 pt-2.5 text-left transition-colors duration-150 ${
         isFund ? 'border-dashed' : ''
       } ${selected ? 'border-ink bg-ink' : 'border-line bg-surface-2'}`}
     >
@@ -49,21 +55,17 @@ export default function BucketTile({
           selected ? 'text-bg' : over ? 'font-medium text-over' : 'text-muted'
         }`}
       >
-        {over ? `${formatVnd(-value)} over` : formatVnd(value)}
+        <Settle value={value} settled={settled}>
+          {over ? `${formatVnd(-value)} over` : formatVnd(value)}
+        </Settle>
       </span>
       <span className={`absolute inset-x-0 bottom-0 h-0.5 ${selected ? 'bg-white/20' : 'bg-sunk'}`}>
-        <span
-          className="block h-full"
-          style={{
-            width: `${over ? 100 : pct}%`,
-            // Over the limit, strong ink beats the identity color: what matters
-            // then is "over", not "which bucket".
-            background: selected
-              ? 'var(--bg)'
-              : over
-                ? 'var(--over)'
-                : bucketAccent(bucket.id),
-          }}
+        <BarFill
+          fraction={over ? 1 : fraction}
+          settled={settled}
+          // Over the limit, strong ink beats the identity color: what matters
+          // then is "over", not "which bucket".
+          color={selected ? 'var(--bg)' : over ? 'var(--over)' : bucketAccent(bucket.id)}
         />
       </span>
     </button>

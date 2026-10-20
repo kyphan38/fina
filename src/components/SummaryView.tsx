@@ -11,6 +11,9 @@ import NotesBlock from '@/components/NotesBlock';
 import TopBar from '@/components/TopBar';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
+import BarFill from '@/components/BarFill';
+import Settle from '@/components/Settle';
+import { barScale } from '@/lib/motion';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import { overrideCycleLimits } from '@/lib/cycles';
@@ -147,11 +150,13 @@ export default function SummaryView() {
               spentVnd={s.spent[b.id] ?? 0}
               coveredVnd={s.covered[b.id] ?? 0}
               limit={s.limits[b.id]}
+              settled={s.settled}
             />
           ))}
         </ul>
         )}
         <Totals
+          settled={s.settled}
           left={`Spent ${formatVnd(s.monthlySpent)}`}
           right={
             hasLimits
@@ -175,10 +180,14 @@ export default function SummaryView() {
       >
         <ul className="flex flex-col gap-2">
           {s.funds.map((b) => (
-            <FundRow key={b.id} bucket={b} onTopUp={() => setTopUp(b)} />
+            <FundRow key={b.id} bucket={b} settled={s.settled} onTopUp={() => setTopUp(b)} />
           ))}
         </ul>
-        <Totals left={s.goals.length > 0 ? 'Total incl. goals' : 'Total'} right={formatVnd(s.fundsTotal)} />
+        <Totals
+          settled={s.settled}
+          left={s.goals.length > 0 ? 'Total incl. goals' : 'Total'}
+          right={formatVnd(s.fundsTotal)}
+        />
       </Block>
 
       {s.goals.length > 0 && (
@@ -189,12 +198,14 @@ export default function SummaryView() {
                 key={b.id}
                 bucket={b}
                 now={new Date(s.now)}
+                settled={s.settled}
                 onTopUp={() => setTopUp(b)}
                 onClose={() => setClosing(b)}
               />
             ))}
           </ul>
           <Totals
+            settled={s.settled}
             left="Per month"
             right={`${formatVnd(savingMonthlyTotal(s.goals))} / ${formatVnd(s.goalsBudget)}`}
           />
@@ -318,35 +329,38 @@ function BudgetRow({
   spentVnd,
   coveredVnd,
   limit,
+  settled,
 }: {
   bucket: Bucket;
   spentVnd: number;
   /** Amount taken from this bucket to cover another. */
   coveredVnd: number;
   limit: number | undefined;
+  settled: boolean;
 }) {
   // Buffer drawn to cover elsewhere is still "used", even with no transaction.
   const used = spentVnd + coveredVnd;
   const over = limit !== undefined && used > limit;
-  const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
+  const fraction = barScale(used, limit);
 
   return (
     <li>
       <div className="flex items-baseline justify-between text-sm">
         <span>{bucket.name}</span>
         <span className={over ? 'font-medium text-over' : 'text-muted'}>
-          {formatVnd(used)}
-          {limit !== undefined && ` / ${formatVnd(limit)}`}
-          {over && ` · ${formatVnd(used - limit)} over`}
+          <Settle value={used} settled={settled}>
+            {formatVnd(used)}
+            {limit !== undefined && ` / ${formatVnd(limit)}`}
+            {over && ` · ${formatVnd(used - limit)} over`}
+          </Settle>
         </span>
       </div>
       <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
-        <span
-          className="block h-full rounded-full"
-          style={{
-            width: `${over ? 100 : pct}%`,
-            background: over ? 'var(--over)' : bucketAccent(bucket.id),
-          }}
+        <BarFill
+          fraction={over ? 1 : fraction}
+          settled={settled}
+          className="rounded-full"
+          color={over ? 'var(--over)' : bucketAccent(bucket.id)}
         />
       </span>
     </li>
@@ -356,11 +370,13 @@ function BudgetRow({
 function GoalRow({
   bucket,
   now,
+  settled,
   onTopUp,
   onClose,
 }: {
   bucket: Bucket;
   now: Date;
+  settled: boolean;
   onTopUp: () => void;
   onClose: () => void;
 }) {
@@ -392,8 +408,10 @@ function GoalRow({
         <span>{bucket.name}</span>
         <span className="flex items-baseline gap-3">
           <span className={bucket.balanceVnd < 0 ? 'font-medium text-over' : 'text-muted'}>
-            {formatVnd(bucket.balanceVnd)}
-            {g.targetVnd ? ` / ${formatVnd(g.targetVnd)}` : ''}
+            <Settle value={bucket.balanceVnd} settled={settled}>
+              {formatVnd(bucket.balanceVnd)}
+              {g.targetVnd ? ` / ${formatVnd(g.targetVnd)}` : ''}
+            </Settle>
           </span>
           <button
             type="button"
@@ -407,7 +425,7 @@ function GoalRow({
       </div>
       {pct !== null && progress !== 'later' && (
         <span className="mt-1 block h-1 w-full rounded-full bg-sunk">
-          <span className="block h-full rounded-full bg-muted" style={{ width: `${pct}%` }} />
+          <BarFill fraction={pct / 100} settled={settled} className="rounded-full" color="var(--muted)" />
         </span>
       )}
       <div className="mt-1 flex items-baseline gap-3 text-xs">
@@ -423,16 +441,26 @@ function GoalRow({
   );
 }
 
-function FundRow({ bucket, onTopUp }: { bucket: Bucket; onTopUp: () => void }) {
+function FundRow({
+  bucket,
+  settled,
+  onTopUp,
+}: {
+  bucket: Bucket;
+  settled: boolean;
+  onTopUp: () => void;
+}) {
   return (
     <li className="group">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span>{bucket.name}</span>
         <span className="flex items-baseline gap-3">
           <span className={bucket.balanceVnd < 0 ? 'font-medium text-over' : 'text-muted'}>
-            {bucket.balanceVnd < 0
-              ? `${formatVnd(-bucket.balanceVnd)} over`
-              : formatVnd(bucket.balanceVnd)}
+            <Settle value={bucket.balanceVnd} settled={settled}>
+              {bucket.balanceVnd < 0
+                ? `${formatVnd(-bucket.balanceVnd)} over`
+                : formatVnd(bucket.balanceVnd)}
+            </Settle>
           </span>
           <button
             type="button"
@@ -473,11 +501,15 @@ function Block({
   );
 }
 
-function Totals({ left, right }: { left: string; right: string }) {
+function Totals({ left, right, settled }: { left: string; right: string; settled: boolean }) {
   return (
     <div className="mt-3 flex justify-between border-t border-line pt-2 text-xs font-medium">
       <span>{left}</span>
-      <span>{right}</span>
+      <span>
+        <Settle value={right} settled={settled}>
+          {right}
+        </Settle>
+      </span>
     </div>
   );
 }

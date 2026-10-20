@@ -321,4 +321,16 @@ rule #12), no count-up on money, the six bucket colors never change.
   keys, so a digit typed then does not land in an amount nobody saves.
 - `CoverSheet` has no `onClose`: no handle, no swipe, no backdrop close, no
   Esc (the money already left the account). It only slides in.
+- Bars (`BarFill`) are `scaleX` and fill over 500ms when their value changes.
+  `barScale(used, limit)` gives the 0 to 1 fraction. Colors are unchanged.
+- A number that changes while you look at it (after a save, an Undo, a
+  top-up) fades in once (`Settle`): Log tiles and "Monthly left", Summary
+  rows and totals. A value that is there on load stays still.
+- "On load" is decided by `useFirstSnapshots`: `useLogData` and `useSummary`
+  return `settled` only after every listener has answered once, plus one
+  frame. Until then bars jump to their value with no transition and numbers
+  do not fade, so a screen that fills in as Firestore answers plays nothing.
+- Tiles and the OUT/IN button change color over 150ms. Numpad keys and Save
+  press in (`scale` 0.97 and 0.99, 100ms); the key's own `:active` color is
+  still instant.
 

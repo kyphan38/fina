@@ -71,7 +71,7 @@ export default function Numpad({
           type="button"
           onClick={() => onKey(k)}
           aria-label={k === 'del' ? 'Delete' : k}
-          className="rounded-[10px] border border-line bg-surface-2 py-3 text-[19px] active:bg-sunk [@media(max-height:720px)]:py-2"
+          className="rounded-[10px] border border-line bg-surface-2 py-3 text-[19px] transition-transform duration-100 active:scale-[0.97] active:bg-sunk [@media(max-height:720px)]:py-2"
         >
           {k === 'del' ? '⌫' : k}
         </button>
@@ -87,7 +87,7 @@ export default function Numpad({
               type="button"
               onClick={() => onKey(k)}
               aria-label={k === '+' ? 'Plus' : 'Minus'}
-              className="rounded-[10px] border border-line bg-surface-2 py-2.5 text-[19px] active:bg-sunk [@media(max-height:720px)]:py-1.5"
+              className="rounded-[10px] border border-line bg-surface-2 py-2.5 text-[19px] transition-transform duration-100 active:scale-[0.97] active:bg-sunk [@media(max-height:720px)]:py-1.5"
             >
               {k === '-' ? '−' : k}
             </button>
@@ -99,7 +99,7 @@ export default function Numpad({
         type="button"
         onClick={onSave}
         disabled={!canSave}
-        className="col-span-3 mt-0.5 mb-2 rounded-[10px] bg-ink py-3.5 text-sm font-semibold text-bg disabled:opacity-30 [@media(max-height:720px)]:py-2.5"
+        className="col-span-3 mt-0.5 mb-2 rounded-[10px] bg-ink py-3.5 text-sm font-semibold text-bg transition-transform duration-100 active:scale-[0.99] disabled:opacity-30 [@media(max-height:720px)]:py-2.5"
       >
         {saveLabel}
       </button>
