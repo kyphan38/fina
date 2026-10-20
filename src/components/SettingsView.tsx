@@ -86,7 +86,7 @@ export default function SettingsView({ email }: { email: string | null }) {
   };
 
   return (
-    <div className="mt-4 flex flex-col gap-8">
+    <div className="mt-2 flex flex-col gap-8">
       <Card title="Signed in as">
         <p className="text-sm">{email ?? '-'}</p>
         <button
@@ -254,7 +254,10 @@ export default function SettingsView({ email }: { email: string | null }) {
       {/* No tab in the bottom bar and no hint of what it holds: someone holding
           the phone while the app is open never sees the word "salary".
           That page locks itself with a password. */}
-      <p className="text-xs text-muted">
+      <p className="flex gap-5 text-xs text-muted">
+        <Link href="/guide" className="hover:text-ink active:text-ink after:ml-1 after:content-['›']">
+          Hướng dẫn
+        </Link>
         <Link href="/salary" className="text-faint hover:text-ink active:text-ink after:ml-1 after:content-['›']">
           More
         </Link>

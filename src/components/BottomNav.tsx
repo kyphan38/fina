@@ -15,7 +15,8 @@ const TABS = [
     href: "/summary",
     label: "Summary",
     d: "M4 19V9M10 19V5M16 19v-6M4 19h16",
-    also: ["/settings", "/guide", "/salary"],
+    // Settings and its pages light up the gear instead.
+    also: ["/salary"],
   },
   { href: "/history", label: "History", d: "M4 6h16M4 12h16M4 18h10", also: ["/insights", "/import"] },
 ] as const;

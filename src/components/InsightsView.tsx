@@ -31,9 +31,9 @@ export default function InsightsView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <header className="border-b border-line pb-2.5">
+      <div className="border-b border-line">
         <HistoryTabs active="trends" />
-      </header>
+      </div>
 
       <div className="min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-5">
       {buffer && (

@@ -8,7 +8,7 @@ import AmountSheet from '@/components/AmountSheet';
 import MoveSheet from '@/components/MoveSheet';
 import CloseGoalSheet from '@/components/CloseGoalSheet';
 import NotesBlock from '@/components/NotesBlock';
-import SettingsLink from '@/components/SettingsLink';
+import TopBar from '@/components/TopBar';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
@@ -36,9 +36,14 @@ export default function SummaryView() {
   if (s.loading) return <p className="pt-6 text-sm text-muted">Loading…</p>;
   if (s.monthly.length === 0) {
     return (
-      <p className="pt-6 text-sm text-muted">
-        No buckets yet. Open <span className="font-medium text-ink">Settings</span> first.
-      </p>
+      <div>
+        <TopBar>
+          <h1 className="text-lg font-semibold">Summary</h1>
+        </TopBar>
+        <p className="pt-3 text-sm text-muted">
+          No buckets yet. Open <span className="font-medium text-ink">Settings</span> first.
+        </p>
+      </div>
     );
   }
 
@@ -63,15 +68,12 @@ export default function SummaryView() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <header className="flex items-center justify-between pb-2.5 pt-3">
+      <TopBar>
         <h1 className="text-lg font-semibold">{month}</h1>
-        <span className="flex items-center gap-3">
-          <p className="text-xs text-muted">
-            Day {day} of {total}
-          </p>
-          <SettingsLink />
-        </span>
-      </header>
+      </TopBar>
+      <p className="pb-2.5 text-xs text-muted">
+        Day {day} of {total}
+      </p>
 
       {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">

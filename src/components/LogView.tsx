@@ -11,7 +11,7 @@ import { evalAmount, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
-import SettingsLink from '@/components/SettingsLink';
+import TopBar from '@/components/TopBar';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket, Transaction } from '@/types/fina';
@@ -199,8 +199,11 @@ export default function LogView() {
 
   if (all.length === 0) {
     return (
-      <div className="pt-6">
-        <p className="text-sm text-muted">
+      <div>
+        <TopBar>
+          <h1 className="text-lg font-semibold">Log</h1>
+        </TopBar>
+        <p className="pt-3 text-sm text-muted">
           No buckets yet. Open <span className="font-medium text-ink">Settings</span> and tap{' '}
           <span className="font-medium text-ink">Initialize buckets</span>.
         </p>
@@ -211,22 +214,19 @@ export default function LogView() {
   return (
     // On Mac: bucket grid on the left, input on the right. No reason for Save
     // to sit at the bottom on a screen three times wider.
-    <div className="flex h-full flex-col min-[900px]:flex-row min-[900px]:gap-7">
+    <div className="flex h-full flex-col">
+      {/* Same two rows as Summary: cycle name and gear, then day and money left. */}
+      <TopBar>
+        <h1 className="text-lg font-semibold">{month}</h1>
+      </TopBar>
+      <div className="flex min-h-0 flex-1 flex-col min-[900px]:flex-row min-[900px]:gap-7">
       <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-end justify-between border-b border-line pb-2.5 pt-3">
-        <p className="text-xs leading-snug text-muted">
-          Cycle <b className="font-semibold text-ink">{month}</b>
-          <br />
-          Day {day} of {total}
-        </p>
-        <span className="flex items-start gap-3">
-          <p className="text-right">
-            <span className="block text-[11px] text-faint">Monthly left</span>
-            <b className="text-[19px] font-semibold">{formatVnd(monthlyLeft)}</b>
-          </p>
-          <SettingsLink />
+      <p className="flex shrink-0 items-baseline justify-between border-b border-line pb-2.5 text-xs text-muted">
+        <span>Day {day} of {total}</span>
+        <span>
+          Monthly left <b className="ml-1 text-[17px] font-semibold text-ink">{formatVnd(monthlyLeft)}</b>
         </span>
-      </header>
+      </p>
 
       {/* Only this area scrolls. More buckets never push Save away. */}
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none">
@@ -382,6 +382,7 @@ export default function LogView() {
             )}
           </p>
         )}
+      </div>
       </div>
     </div>
   );
