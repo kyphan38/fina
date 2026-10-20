@@ -25,7 +25,7 @@ export default function HistoryView() {
       <HistoryTabs active="entries" />
       {/* Filters and the import link only. The count and total sit at the end
           of the list, so the page keeps two rows on top. */}
-      <header className="flex flex-wrap items-center gap-2 border-b border-line pb-2.5 pt-1">
+      <header className="flex flex-wrap items-center gap-2 pt-2.5">
         <select
           value={h.cycle}
           onChange={(e) => h.setCycle(e.target.value)}

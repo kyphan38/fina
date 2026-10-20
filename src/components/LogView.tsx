@@ -221,7 +221,7 @@ export default function LogView() {
       </TopBar>
       <div className="flex min-h-0 flex-1 flex-col min-[900px]:flex-row min-[900px]:gap-7">
       <div className="flex min-h-0 flex-1 flex-col">
-      <p className="flex shrink-0 items-baseline justify-between border-b border-line pb-2.5 text-xs text-muted">
+      <p className="flex shrink-0 items-baseline justify-between py-2.5 text-xs text-muted">
         <span>Day {day} of {total}</span>
         <span>
           Monthly left <b className="ml-1 text-[17px] font-semibold text-ink">{formatVnd(monthlyLeft)}</b>

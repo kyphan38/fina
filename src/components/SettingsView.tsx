@@ -86,7 +86,7 @@ export default function SettingsView({ email }: { email: string | null }) {
   };
 
   return (
-    <div className="mt-2 flex flex-col gap-8">
+    <div className="mt-5 flex flex-col gap-8">
       <Card title="Signed in as">
         <p className="text-sm">{email ?? '-'}</p>
         <button

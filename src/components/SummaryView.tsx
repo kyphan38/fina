@@ -71,13 +71,11 @@ export default function SummaryView() {
       <TopBar>
         <h1 className="text-lg font-semibold">{month}</h1>
       </TopBar>
-      <p className="text-xs text-muted">
+      <p className="pt-2.5 text-xs text-muted">
         Day {day} of {total}
       </p>
 
-      {/* On Mac the three blocks sit side by side; on a phone they stack.
-          The first block's top line sits right under the day line, the
-          same gap as Log, instead of a full block gap. */}
+      {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">
       <Block
         first
@@ -458,12 +456,14 @@ function Block({
 }: {
   title: string;
   action?: React.ReactNode;
-  /** Right under the day line: a small gap, not a full block gap. */
+  /** Right under the top bar's line, so it needs no line of its own. */
   first?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className={`${first ? 'mt-2.5' : 'mt-8'} border-t border-line pt-3 min-[900px]:mt-2.5`}>
+    <section
+      className={`${first ? 'mt-5' : 'mt-8 border-t border-line pt-3'} min-[900px]:mt-5 min-[900px]:border-t-0 min-[900px]:pt-0`}
+    >
       <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}
         {action}
