@@ -9,6 +9,7 @@ import { cycleLabel, cycleRange } from '@/lib/cycle';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
+import SheetShell from '@/components/SheetShell';
 
 /**
  * Generator - an INDEPENDENT tool. It never syncs back into the running
@@ -73,128 +74,134 @@ export default function GeneratorSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
-      <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
-      <div className="max-h-[88dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
+    <SheetShell
+      onClose={onClose}
+      label="To divide"
+      z={20}
+      dim={30}
+      locked={busy}
+      className="max-h-[88dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3"
+      header={
         <div className="flex items-baseline justify-between pb-1">
           <span className="text-xs font-semibold">To divide</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
             {buf || '0'}
           </span>
         </div>
+      }
+    >
 
-        <Group title="VCB - Monthly" total={r.monthlyTotalVnd} divide={divide}>
-          {r.monthly.map((a) => (
+      <Group title="VCB - Monthly" total={r.monthlyTotalVnd} divide={divide}>
+        {r.monthly.map((a) => (
+          <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
+        ))}
+      </Group>
+
+      <Group title="BIDV - Funds" total={r.fundsTotalVnd} divide={divide}>
+        {r.funds.map((a) => (
+          <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
+        ))}
+      </Group>
+
+      {r.goals.length > 0 && (
+        <Group title="BIDV - Goals" total={r.goalsTotalVnd} divide={divide}>
+          {r.goals.map((a) => (
             <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
+          {r.goalsTotalVnd > goalsBudgetVnd && (
+            <li className="pt-0.5 text-[11px] font-medium text-down">
+              {formatVnd(r.goalsTotalVnd - goalsBudgetVnd)} over the goals budget (
+              {formatVnd(goalsBudgetVnd)})
+            </li>
+          )}
         </Group>
+      )}
 
-        <Group title="BIDV - Funds" total={r.fundsTotalVnd} divide={divide}>
-          {r.funds.map((a) => (
-            <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
-          ))}
-        </Group>
+      <section className="mt-3 border-t border-line pt-2">
+        <div className="flex items-baseline justify-between text-sm font-semibold">
+          <span>ETF</span>
+          <span className={r.etfVnd < 0 ? 'text-over' : ''}>
+            {formatVnd(r.etfVnd)} · {Math.round(r.etfPercent)}%
+          </span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-faint">
+          {r.etfVnd < 0
+            ? `The amount is ${formatVnd(-r.etfVnd)} short of the allocations.`
+            : 'Whatever is left after the fixed amounts.'}
+          {edited && ' Edits apply to this cycle only.'}
+        </p>
+      </section>
 
-        {r.goals.length > 0 && (
-          <Group title="BIDV - Goals" total={r.goalsTotalVnd} divide={divide}>
-            {r.goals.map((a) => (
-              <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
-            ))}
-            {r.goalsTotalVnd > goalsBudgetVnd && (
-              <li className="pt-0.5 text-[11px] font-medium text-down">
-                {formatVnd(r.goalsTotalVnd - goalsBudgetVnd)} over the goals budget (
-                {formatVnd(goalsBudgetVnd)})
+      {confirming ? (
+        <div className="mt-3 rounded-[10px] border border-line px-3 py-3">
+          <p className="text-sm font-semibold">Apply to {month}?</p>
+          <ul className="mt-2 flex flex-col gap-1 text-xs">
+            <li className="flex justify-between">
+              <span className="text-muted">To divide</span>
+              <b className="font-semibold">{formatVnd(divide)}</b>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-muted">Monthly limits</span>
+              <b className="font-semibold">{formatVnd(r.monthlyTotalVnd)}</b>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-muted">Into BIDV funds</span>
+              <b className="font-semibold">{formatVnd(r.fundsTotalVnd)}</b>
+            </li>
+            {r.goals.length > 0 && (
+              <li className="flex justify-between">
+                <span className="text-muted">Into goals</span>
+                <b className="font-semibold">{formatVnd(r.goalsTotalVnd)}</b>
               </li>
             )}
-          </Group>
-        )}
+            <li className="flex justify-between border-t border-line pt-1">
+              <span className="text-muted">Left for VPS, by hand</span>
+              <b className={`font-semibold ${r.etfVnd < 0 ? 'text-over' : ''}`}>
+                {formatVnd(r.etfVnd)}
+              </b>
+            </li>
+          </ul>
+          {edited && (
+            <p className="mt-2 text-[11px] text-faint">
+              Replaces this cycle&rsquo;s allocation - it does not add to it.
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={apply}
+            className="mt-3 w-full rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-30"
+          >
+            {busy ? 'Applying…' : `Apply to ${month}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className="mt-1 w-full py-2 text-xs text-muted"
+          >
+            Back
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3">
+          <Numpad
+            onKey={(k) => setBuf((cur) => pressKey(cur, k))}
+            canSave={divide > 0 && !cycleClosed}
+            saveLabel={cycleClosed ? 'Cycle is closed' : `Apply to ${month}`}
+            onSave={() => setConfirming(true)}
+          />
+        </div>
+      )}
 
-        <section className="mt-3 border-t border-line pt-2">
-          <div className="flex items-baseline justify-between text-sm font-semibold">
-            <span>ETF</span>
-            <span className={r.etfVnd < 0 ? 'text-over' : ''}>
-              {formatVnd(r.etfVnd)} · {Math.round(r.etfPercent)}%
-            </span>
-          </div>
-          <p className="mt-0.5 text-[11px] text-faint">
-            {r.etfVnd < 0
-              ? `The amount is ${formatVnd(-r.etfVnd)} short of the allocations.`
-              : 'Whatever is left after the fixed amounts.'}
-            {edited && ' Edits apply to this cycle only.'}
-          </p>
-        </section>
-
-        {confirming ? (
-          <div className="mt-3 rounded-[10px] border border-line px-3 py-3">
-            <p className="text-sm font-semibold">Apply to {month}?</p>
-            <ul className="mt-2 flex flex-col gap-1 text-xs">
-              <li className="flex justify-between">
-                <span className="text-muted">To divide</span>
-                <b className="font-semibold">{formatVnd(divide)}</b>
-              </li>
-              <li className="flex justify-between">
-                <span className="text-muted">Monthly limits</span>
-                <b className="font-semibold">{formatVnd(r.monthlyTotalVnd)}</b>
-              </li>
-              <li className="flex justify-between">
-                <span className="text-muted">Into BIDV funds</span>
-                <b className="font-semibold">{formatVnd(r.fundsTotalVnd)}</b>
-              </li>
-              {r.goals.length > 0 && (
-                <li className="flex justify-between">
-                  <span className="text-muted">Into goals</span>
-                  <b className="font-semibold">{formatVnd(r.goalsTotalVnd)}</b>
-                </li>
-              )}
-              <li className="flex justify-between border-t border-line pt-1">
-                <span className="text-muted">Left for VPS, by hand</span>
-                <b className={`font-semibold ${r.etfVnd < 0 ? 'text-over' : ''}`}>
-                  {formatVnd(r.etfVnd)}
-                </b>
-              </li>
-            </ul>
-            {edited && (
-              <p className="mt-2 text-[11px] text-faint">
-                Replaces this cycle&rsquo;s allocation - it does not add to it.
-              </p>
-            )}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={apply}
-              className="mt-3 w-full rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-30"
-            >
-              {busy ? 'Applying…' : `Apply to ${month}`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="mt-1 w-full py-2 text-xs text-muted"
-            >
-              Back
-            </button>
-          </div>
-        ) : (
-          <div className="mt-3">
-            <Numpad
-              onKey={(k) => setBuf((cur) => pressKey(cur, k))}
-              canSave={divide > 0 && !cycleClosed}
-              saveLabel={cycleClosed ? 'Cycle is closed' : `Apply to ${month}`}
-              onSave={() => setConfirming(true)}
-            />
-          </div>
-        )}
-
-        {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
-        <button
-          type="button"
-          onClick={onClose}
-          className="mb-3 w-full py-2 text-center text-xs text-muted"
-        >
-          Close
-        </button>
-      </div>
-    </div>
+      {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
+      <button
+        type="button"
+        onClick={onClose}
+        className="mb-3 w-full py-2 text-center text-xs text-muted"
+      >
+        Close
+      </button>
+    </SheetShell>
   );
 }
 

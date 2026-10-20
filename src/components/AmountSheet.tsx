@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
 import { pressKey, toVnd } from '@/lib/money';
+import SheetShell from '@/components/SheetShell';
 
 /**
  * Sheet for entering one amount, with the same numpad as the Log screen.
@@ -49,56 +50,62 @@ export default function AmountSheet({
   const error = errorFor?.(amountVnd) ?? null;
 
   return (
-    <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
-      <button type="button" aria-label="Close" className="flex-1" onClick={onCancel} />
-      <div className="rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
+    <SheetShell
+      onClose={onCancel}
+      label={title}
+      z={20}
+      dim={30}
+      locked={busy}
+      className="rounded-t-2xl border-t border-line bg-surface px-4 pt-3"
+      header={
         <div className="flex items-baseline justify-between pb-2">
           <span className="text-xs font-semibold">{title}</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
             {buf || '0'}
           </span>
         </div>
-        {withDate && (
-          <input
-            type="datetime-local"
-            value={when}
-            onChange={(e) => setWhen(e.target.value)}
-            aria-label="Date and time"
-            className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
-          />
-        )}
-
-        {children}
-
+      }
+    >
+      {withDate && (
         <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Note (optional)"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+          type="datetime-local"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+          aria-label="Date and time"
+          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
         />
-        {error && <p className="mb-1.5 text-xs font-medium text-over">{error}</p>}
-        <Numpad
-          onKey={(k) => setBuf((cur) => pressKey(cur, k))}
-          canSave={amountVnd !== null && !busy && !error}
-          saveLabel={confirmLabel}
-          onSave={async () => {
-            if (amountVnd === null) return;
-            setBusy(true);
-            try {
-              await onConfirm(amountVnd, note.trim() || null, new Date(when).getTime());
-            } finally {
-              setBusy(false);
-            }
-          }}
-        />
-        <button
-          type="button"
-          onClick={onCancel}
-          className="mb-3 w-full py-2 text-center text-xs text-muted"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+      )}
+
+      {children}
+
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Note (optional)"
+        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+      />
+      {error && <p className="mb-1.5 text-xs font-medium text-over">{error}</p>}
+      <Numpad
+        onKey={(k) => setBuf((cur) => pressKey(cur, k))}
+        canSave={amountVnd !== null && !busy && !error}
+        saveLabel={confirmLabel}
+        onSave={async () => {
+          if (amountVnd === null) return;
+          setBusy(true);
+          try {
+            await onConfirm(amountVnd, note.trim() || null, new Date(when).getTime());
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={onCancel}
+        className="mb-3 w-full py-2 text-center text-xs text-muted"
+      >
+        Cancel
+      </button>
+    </SheetShell>
   );
 }

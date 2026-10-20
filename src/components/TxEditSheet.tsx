@@ -6,6 +6,7 @@ import Numpad from '@/components/Numpad';
 import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { deleteTransaction, updateTransaction } from '@/lib/transactions';
 import type { Bucket, Transaction } from '@/types/fina';
+import SheetShell from '@/components/SheetShell';
 
 /** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
 function toLocalInput(ms: number): string {
@@ -53,9 +54,14 @@ export default function TxEditSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
-      <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
-      <div className="max-h-[92dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3">
+    <SheetShell
+      onClose={onClose}
+      label="Edit entry"
+      z={20}
+      dim={30}
+      locked={busy}
+      className="max-h-[92dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3"
+      header={
         <div className="flex items-baseline justify-between pb-2">
           <span className="text-xs font-semibold">Edit entry</span>
           <span className="flex items-baseline gap-2">
@@ -67,85 +73,86 @@ export default function TxEditSheet({
                 direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
               }`}
             >
-              {direction === 'in' ? '+' : '−'}
-            </button>
-            <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
-              {buf || '0'}
-            </span>
+            {direction === 'in' ? '+' : '−'}
+          </button>
+          <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
+            {buf || '0'}
           </span>
-        </div>
-
-        <select
-          value={bucketId}
-          onChange={(e) => setBucketId(e.target.value)}
-          aria-label="Bucket"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
-        >
-          {buckets.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name} · {b.bank}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="datetime-local"
-          value={when}
-          onChange={(e) => setWhen(e.target.value)}
-          aria-label="Date and time"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
-        />
-
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Note (optional)"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
-        />
-
-        {error && <p className="mb-2 text-xs font-medium text-over">{error}</p>}
-
-        <Numpad
-          onKey={(k) => setBuf((cur) => pressKey(cur, k))}
-          canSave={amountVnd !== null && Boolean(bucket) && !busy}
-          saveLabel={busy ? 'Saving…' : 'Save changes'}
-          onSave={() =>
-            run(() =>
-              updateTransaction(uid, tx, beforeKind, {
-                bucket: bucket!,
-                amountVnd: amountVnd!,
-                direction,
-                note: note.trim() || null,
-                occurredAt: new Date(when).getTime(),
-              }),
-            )
-          }
-        />
-
-        <div className="mb-3 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2 text-center text-xs text-muted"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              confirmDelete
-                ? run(() => deleteTransaction(uid, tx, beforeKind))
-                : setConfirmDelete(true)
-            }
-            className={`flex-1 rounded-lg py-2 text-center text-xs ${
-              confirmDelete ? 'bg-over font-semibold text-bg' : 'text-over'
-            }`}
-          >
-            {confirmDelete ? `Delete ${formatVnd(tx.amountVnd)} - tap again` : 'Delete'}
-          </button>
-        </div>
+        </span>
       </div>
-    </div>
+    }
+  >
+
+      <select
+        value={bucketId}
+        onChange={(e) => setBucketId(e.target.value)}
+        aria-label="Bucket"
+        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
+      >
+        {buckets.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name} · {b.bank}
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="datetime-local"
+        value={when}
+        onChange={(e) => setWhen(e.target.value)}
+        aria-label="Date and time"
+        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
+      />
+
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Note (optional)"
+        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+      />
+
+      {error && <p className="mb-2 text-xs font-medium text-over">{error}</p>}
+
+      <Numpad
+        onKey={(k) => setBuf((cur) => pressKey(cur, k))}
+        canSave={amountVnd !== null && Boolean(bucket) && !busy}
+        saveLabel={busy ? 'Saving…' : 'Save changes'}
+        onSave={() =>
+          run(() =>
+            updateTransaction(uid, tx, beforeKind, {
+              bucket: bucket!,
+              amountVnd: amountVnd!,
+              direction,
+              note: note.trim() || null,
+              occurredAt: new Date(when).getTime(),
+            }),
+          )
+        }
+      />
+
+      <div className="mb-3 flex gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-2 text-center text-xs text-muted"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() =>
+            confirmDelete
+              ? run(() => deleteTransaction(uid, tx, beforeKind))
+              : setConfirmDelete(true)
+          }
+          className={`flex-1 rounded-lg py-2 text-center text-xs ${
+            confirmDelete ? 'bg-over font-semibold text-bg' : 'text-over'
+          }`}
+        >
+          {confirmDelete ? `Delete ${formatVnd(tx.amountVnd)} - tap again` : 'Delete'}
+        </button>
+      </div>
+    </SheetShell>
   );
 }

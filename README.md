@@ -313,4 +313,12 @@ rule #12), no count-up on money, the six bucket colors never change.
 - The browser pane and Safari keep an old stylesheet through the service
   worker in dev: unregister it and clear the `fina-v1` cache if CSS looks
   stale.
+- Every bottom sheet uses `SheetShell`: the backdrop fades in and the panel
+  slides up (200ms); closing by the backdrop, a swipe down or Esc plays the
+  exit first. Buttons inside close at once. On a phone and tablet (under
+  900px) the title row is the drag zone, with a handle on top; controls in it
+  never start a drag. While a sheet slides out it is `inert` and swallows
+  keys, so a digit typed then does not land in an amount nobody saves.
+- `CoverSheet` has no `onClose`: no handle, no swipe, no backdrop close, no
+  Esc (the money already left the account). It only slides in.
 

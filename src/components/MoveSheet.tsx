@@ -7,6 +7,7 @@ import { formatVnd } from '@/lib/money';
 import { moveError, movableFunds } from '@/lib/moves';
 import { deleteMove, moveBetweenFunds } from '@/lib/transactions';
 import type { Bucket, Transaction } from '@/types/fina';
+import SheetShell from '@/components/SheetShell';
 
 const SELECT =
   'min-w-0 flex-1 rounded-[9px] border border-line bg-surface-2 px-2 py-2 text-[13px]';
@@ -110,61 +111,67 @@ export function MoveDetailSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/30">
-      <button type="button" aria-label="Close" className="flex-1" onClick={onClose} />
-      <div className="rounded-t-2xl border-t border-line bg-surface px-4 pb-3 pt-3">
+    <SheetShell
+      onClose={onClose}
+      label="Move"
+      z={20}
+      dim={30}
+      locked={busy}
+      className="rounded-t-2xl border-t border-line bg-surface px-4 pb-3 pt-3"
+      header={
         <div className="flex items-baseline justify-between pb-2">
           <span className="text-xs font-semibold">Move</span>
           <span className="text-[30px] font-medium leading-none">
             {formatVnd(any.amountVnd)}
           </span>
         </div>
-        <p className="text-sm">
-          {name(from)} → {name(to)}
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          {new Date(any.occurredAt).toLocaleString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-          {any.note ? ` · ${any.note}` : ''}
-        </p>
-        <p className="mt-3 text-xs text-faint">
-          A move cannot be edited. Delete it and move again.
-        </p>
+      }
+    >
+      <p className="text-sm">
+        {name(from)} → {name(to)}
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        {new Date(any.occurredAt).toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
+        {any.note ? ` · ${any.note}` : ''}
+      </p>
+      <p className="mt-3 text-xs text-faint">
+        A move cannot be edited. Delete it and move again.
+      </p>
 
-        {error && <p className="mt-3 text-xs font-medium text-over">{error}</p>}
+      {error && <p className="mt-3 text-xs font-medium text-over">{error}</p>}
 
-        <div className="mt-3 flex gap-2">
-          {confirm ? (
-            <button
-              type="button"
-              onClick={remove}
-              disabled={busy}
-              className="flex-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
-            >
-              {busy ? 'Deleting…' : 'Delete both sides'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirm(true)}
-              className="flex-1 rounded-lg border border-line py-2.5 text-sm"
-            >
-              Delete move
-            </button>
-          )}
+      <div className="mt-3 flex gap-2">
+        {confirm ? (
           <button
             type="button"
-            onClick={onClose}
+            onClick={remove}
+            disabled={busy}
+            className="flex-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
+          >
+            {busy ? 'Deleting…' : 'Delete both sides'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirm(true)}
             className="flex-1 rounded-lg border border-line py-2.5 text-sm"
           >
-            Close
+            Delete move
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 rounded-lg border border-line py-2.5 text-sm"
+        >
+          Close
+        </button>
       </div>
-    </div>
+    </SheetShell>
   );
 }
