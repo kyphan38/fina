@@ -71,7 +71,7 @@ export default function SummaryView() {
       <TopBar>
         <h1 className="text-lg font-semibold">{month}</h1>
       </TopBar>
-      <p className="pt-2.5 text-xs text-muted">
+      <p className="flex min-h-11 items-center text-xs text-muted">
         Day {day} of {total}
       </p>
 
@@ -462,7 +462,7 @@ function Block({
 }) {
   return (
     <section
-      className={`${first ? 'mt-5' : 'mt-8 border-t border-line pt-3'} min-[900px]:mt-5 min-[900px]:border-t-0 min-[900px]:pt-0`}
+      className={`${first ? 'mt-1' : 'mt-8 border-t border-line pt-3'} min-[900px]:mt-1 min-[900px]:border-t-0 min-[900px]:pt-0`}
     >
       <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
         {title}

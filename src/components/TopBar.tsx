@@ -6,6 +6,7 @@ import SettingsLink from '@/components/SettingsLink';
  * on the right. One fixed height, so the gear never moves between pages.
  * Meta (day, amounts) goes in the page's own line below, not in this row.
  * The hairline under it sits at the same height on every page.
+ * The row under the line is min-h-11 with centered text on every page.
  */
 export default function TopBar({ children, settings = false }: { children: ReactNode; settings?: boolean }) {
   return (
