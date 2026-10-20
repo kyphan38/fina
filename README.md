@@ -333,4 +333,12 @@ rule #12), no count-up on money, the six bucket colors never change.
 - Tiles and the OUT/IN button change color over 150ms. Numpad keys and Save
   press in (`scale` 0.97 and 0.99, 100ms); the key's own `:active` color is
   still instant.
+- The bottom bar has one line under the open tab that slides between tabs
+  (`useIndicator`, copied from logi; the tab `li` carries `data-active`). On a
+  settings page no tab is open and the line hides.
+- History: a row a live update adds rises in (`rise`) and one it removes
+  slides out (`row-out`, 180ms, not tappable); the rows below move with
+  `useFlip` (`useRowMotion`). A new cycle or filter, the first load and a swap
+  of more than 3 rows play nothing. The total at the end fades like the other
+  changed numbers. There is no swipe to delete.
 

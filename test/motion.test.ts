@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { barScale, dragOffset, leavingItems, reducedMotion, sheetShouldClose } from '@/lib/motion';
+import {
+  barScale,
+  dragOffset,
+  leavingItems,
+  reducedMotion,
+  rowChanges,
+  sheetShouldClose,
+} from '@/lib/motion';
 
 const a = { id: 'a' };
 const b = { id: 'b' };
@@ -65,4 +72,24 @@ test('barScale - a negative amount is empty', () => {
 
 test('barScale - not a number is empty', () => {
   assert.equal(barScale(Number.NaN, 100), 0);
+});
+
+test('rowChanges - one added row', () => {
+  assert.deepEqual(rowChanges(['a', 'b'], ['c', 'a', 'b']), { added: ['c'], removed: [] });
+});
+
+test('rowChanges - one removed row', () => {
+  assert.deepEqual(rowChanges(['a', 'b', 'c'], ['a', 'c']), { added: [], removed: ['b'] });
+});
+
+test('rowChanges - nothing changed', () => {
+  assert.deepEqual(rowChanges(['a', 'b'], ['b', 'a']), { added: [], removed: [] });
+});
+
+test('rowChanges - a swapped list is not an edit', () => {
+  assert.equal(rowChanges(['a', 'b', 'c'], ['x', 'y', 'z']), null);
+});
+
+test('rowChanges - the limit can be raised', () => {
+  assert.deepEqual(rowChanges([], ['a', 'b', 'c', 'd'], 5), { added: ['a', 'b', 'c', 'd'], removed: [] });
 });

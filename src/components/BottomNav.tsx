@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useIndicator } from "@/hooks/useIndicator";
+
 /**
  * 3 fixed tabs. Log is the default because it is why the app exists.
  * Trends live inside History, Settings behind the gear top right.
@@ -26,17 +28,28 @@ const under = (pathname: string, href: string) =>
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const current = TABS.find((tab) => [tab.href, ...tab.also].some((h) => under(pathname, h)));
+  // Settings pages light up the gear, so no tab is current and the line hides.
+  const { container, indicator } = useIndicator<HTMLUListElement, HTMLLIElement>(current?.href ?? "");
 
   return (
     <nav
       className="shrink-0 border-t border-line bg-surface"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <ul className="mx-auto flex max-w-2xl min-[900px]:max-w-5xl">
+      <ul ref={container} className="relative mx-auto flex max-w-2xl min-[900px]:max-w-5xl">
+        {/* One bold line under the open tab, sliding between tabs. */}
+        <li
+          ref={indicator}
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 flex justify-center"
+        >
+          <span className="h-0.5 w-10 rounded-full bg-ink" />
+        </li>
         {TABS.map((tab) => {
-          const active = [tab.href, ...tab.also].some((h) => under(pathname, h));
+          const active = tab === current;
           return (
-            <li key={tab.href} className="flex-1">
+            <li key={tab.href} data-active={active} className="flex-1">
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}

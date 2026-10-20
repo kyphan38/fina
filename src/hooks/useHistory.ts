@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
+import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { clockStore } from '@/lib/clock';
@@ -33,18 +35,26 @@ export function useHistory() {
   // Day-25 allocations and fund moves are noise day to day. Hidden by
   // default; show them to reconcile.
   const [showAllocations, setShowAllocations] = useState(false);
+  // Row animations wait for both listeners to have answered once.
+  const { settled, mark } = useFirstSnapshots(2);
 
   const selected = cycle ?? currentCycle;
 
   useEffect(() => {
     if (!uid) return;
-    return watchBuckets(uid, setBuckets);
-  }, [uid]);
+    return watchBuckets(uid, (v) => {
+      setBuckets(v);
+      mark(0);
+    });
+  }, [uid, mark]);
 
   useEffect(() => {
     if (!uid) return;
-    return watchCycleTransactions(uid, selected, setTxs);
-  }, [uid, selected]);
+    return watchCycleTransactions(uid, selected, (v) => {
+      setTxs(v);
+      mark(1);
+    });
+  }, [uid, selected, mark]);
 
   useEffect(() => {
     if (!uid) return;
@@ -110,5 +120,7 @@ export function useHistory() {
     moves,
     rows,
     total,
+    /** Both listeners have answered: now rows and totals may animate. */
+    settled,
   };
 }

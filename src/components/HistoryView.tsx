@@ -4,9 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import HistoryTabs from '@/components/HistoryTabs';
+import Settle from '@/components/Settle';
 import TxEditSheet from '@/components/TxEditSheet';
 import { MoveDetailSheet } from '@/components/MoveSheet';
+import { useFlip } from '@/hooks/useFlip';
 import { useHistory } from '@/hooks/useHistory';
+import { useRowMotion } from '@/hooks/useRowMotion';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd } from '@/lib/money';
 import { bucketAccent, hasAccent } from '@/lib/bucket-color';
@@ -18,7 +21,12 @@ export default function HistoryView() {
   const h = useHistory();
   const [editing, setEditing] = useState<Transaction | null>(null);
 
-  const groups = groupByDay(h.rows);
+  // Rows a live update adds or removes animate; a new cycle or filter swaps the list.
+  const scope = `${h.cycle}|${h.bucketFilter ?? ''}|${h.showAllocations}`;
+  const { shown, goingIds, rose } = useRowMotion(h.rows, scope, h.settled);
+  const groups = groupByDay(shown);
+  // The rows below one that leaves or arrives slide to their new place.
+  const flip = useFlip(shown.map((t) => t.id));
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
@@ -74,7 +82,7 @@ export default function HistoryView() {
         </Link>
       </header>
 
-      {h.rows.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="pt-6 text-sm text-muted">Nothing logged in this cycle.</p>
       ) : (
         groups.map(([day, txs]) => (
@@ -94,10 +102,16 @@ export default function HistoryView() {
                   ? `${nameOf(pair.from)} → ${nameOf(pair.to)}${t.note ? ` · ${t.note}` : ''}`
                   : (t.note ?? '');
                 return (
-                  <li key={t.id}>
+                  <li
+                    key={t.id}
+                    ref={flip(t.id)}
+                    className={goingIds.has(t.id) ? 'row-out' : rose.has(t.id) ? 'rise' : undefined}
+                    aria-hidden={goingIds.has(t.id) || undefined}
+                  >
                     <button
                       type="button"
-                      onClick={() => setEditing(t)}
+                      onClick={goingIds.has(t.id) ? undefined : () => setEditing(t)}
+                      tabIndex={goingIds.has(t.id) ? -1 : undefined}
                       className="flex w-full items-baseline gap-2.5 border-l-[3px] px-3 py-2.5 text-left"
                       style={{
                         borderLeftColor: hasAccent(t.bucketId)
@@ -137,7 +151,11 @@ export default function HistoryView() {
           <span className="text-muted">
             {h.rows.length} {h.rows.length === 1 ? 'entry' : 'entries'}
           </span>
-          <span className="font-medium">{formatVnd(h.total)}</span>
+          <span className="font-medium">
+            <Settle value={h.total} settled={h.settled}>
+              {formatVnd(h.total)}
+            </Settle>
+          </span>
         </div>
       )}
 
