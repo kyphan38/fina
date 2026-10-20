@@ -11,6 +11,7 @@ import { evalAmount, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
+import ToastBar, { type ToastData } from '@/components/ToastBar';
 import TopBar from '@/components/TopBar';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
@@ -23,7 +24,10 @@ export default function LogView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [buf, setBuf] = useState('');
   const [note, setNote] = useState('');
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastData | null>(null);
+  const toastSeq = useRef(0);
+  const showToast = (text: string, undoable: boolean) =>
+    setToast({ id: ++toastSeq.current, text, undoable });
   // A few seconds to take back a mistap. Only when the transaction does not
   // trigger a cover - removing it and leaving an orphan cover is worse.
   const [undo, setUndo] = useState<{ tx: Transaction; kind: Bucket['kind'] } | null>(null);
@@ -129,9 +133,12 @@ export default function LogView() {
         updatedAt: occurredAt,
       };
 
-      setToast(
+      showToast(
         `${selected.name} · ${direction === 'in' ? '+' : ''}${formatVnd(amountVnd)} · ${after}`,
+        overflowVnd === 0,
       );
+      // A short tap on Android; iPhone ignores it.
+      navigator.vibrate?.(10);
       setUndo(overflowVnd > 0 ? null : { tx: saved, kind: selected.kind });
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => {
@@ -167,7 +174,7 @@ export default function LogView() {
         });
       }
     } catch {
-      setToast('Could not save. Check your connection.');
+      showToast('Could not save. Check your connection.', false);
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToast(null), 4000);
     } finally {
@@ -256,7 +263,9 @@ export default function LogView() {
             className="ml-auto flex items-center gap-1.5 text-[11px] uppercase tracking-[0.09em] text-faint min-[900px]:hidden"
           >
             {fundsOpen ? 'Hide' : 'Show'}
-            <span className={fundsOpen ? '' : '-rotate-90'}>▼</span>
+            <span className={`inline-block transition-transform duration-200 ${fundsOpen ? '' : '-rotate-90'}`}>
+              ▼
+            </span>
           </button>
         }
       >
@@ -359,29 +368,20 @@ export default function LogView() {
         />
       )}
 
-      {toast && (
-          <p
-            role="status"
-            className="absolute inset-x-0 bottom-full mb-1.5 flex items-center gap-3 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg"
-          >
-            <span className="min-w-0 flex-1 truncate">{toast}</span>
-            {undo && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const target = undo;
-                  setUndo(null);
-                  setToast(null);
-                  if (toastTimer.current) clearTimeout(toastTimer.current);
-                  await deleteTransaction(uid!, target.tx, target.kind);
-                }}
-                className="shrink-0 font-semibold"
-              >
-                Undo
-              </button>
-            )}
-          </p>
-        )}
+      <ToastBar
+        toast={toast}
+        onUndo={
+          undo
+            ? async () => {
+                const target = undo;
+                setUndo(null);
+                setToast(null);
+                if (toastTimer.current) clearTimeout(toastTimer.current);
+                await deleteTransaction(uid!, target.tx, target.kind);
+              }
+            : null
+        }
+      />
       </div>
       </div>
     </div>

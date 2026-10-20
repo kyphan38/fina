@@ -300,8 +300,9 @@ File: `src/components/LogView.tsx:259`.
   `-rotate-90`. Vùng Funds mở/đóng vẫn đổi ngay (không animate chiều cao).
 
 Xong khi: lưu một khoản, toast trượt lên nhẹ, sau 6 giây mờ đi; bấm Undo thì
-toast mất ngay; mở app thấy Log và numpad hiện sẵn, không có gì chạy; reduced
-motion thì mọi thứ hiện/mất ngay.
+việc hoàn tác chạy ngay và toast mờ đi (nút Undo bị khoá trong lúc mờ); mở app
+thấy Log và numpad hiện sẵn, không có gì chạy; reduced motion thì mọi thứ
+hiện/mất ngay.
 
 ---
 
@@ -471,3 +472,4 @@ sẵn, không có gì chạy.
 ## Tiến độ
 
 (AI làm ghi một dòng mỗi phase: ngày, commit, ghi chú.)
+- P1 (2026-10-20): Motion CSS block + `--ease-soft`, one global reduced-motion block, `src/lib/motion.ts` + test, `usePresence`, `useFlip`, skeleton `breathe`, `ToastBar` (rise, fade-out, Undo locked while leaving) with a `{id, text, undoable}` toast state in `LogView`, 10ms vibrate on a good save, Funds arrow transition. Toast and arrow checked on a temporary page (rise, replace, leaving with pointer-events none, Undo runs once, error toast has no Undo, a rotate transition runs). The dev service worker (`fina-v1`) served an old stylesheet until it was unregistered. Real Log page not tried (needs sign-in). `next typegen` kept failing on a stale `.next/dev/types` entry for a deleted page until it was removed.

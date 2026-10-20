@@ -16,11 +16,11 @@ export default function Loading() {
       aria-busy="true"
       aria-label="Loading"
     >
-      <div className="h-6 w-28 animate-pulse rounded bg-sunk" />
+      <div className="h-6 w-28 breathe rounded bg-sunk" />
       <div className="mt-5 flex flex-col gap-3">
-        <div className="h-20 w-full animate-pulse rounded bg-sunk" />
-        <div className="h-20 w-full animate-pulse rounded bg-sunk" />
-        <div className="h-20 w-full animate-pulse rounded bg-sunk" />
+        <div className="h-20 w-full breathe rounded bg-sunk" />
+        <div className="h-20 w-full breathe rounded bg-sunk" />
+        <div className="h-20 w-full breathe rounded bg-sunk" />
       </div>
     </section>
   );

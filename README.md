@@ -291,3 +291,26 @@ Each of these passed locally and failed only in production or on the phone.
   someone took to decide to type: one reading was 28 seconds. Measuring to the
   painted keypad still gave 82s, because iOS wakes a suspended PWA without a new
   navigation. Only runs where the page stayed visible are recorded now.
+
+## Motion
+
+Short, opacity/transform only, following `ws/app/DESIGN.md` "Motion". Plan:
+`PLAN-motion.md`. Classes live in the Motion block of `src/app/globals.css`
+(`fade-in`, `fade-out`, `sheet-up`, `sheet-down`, `rise`, `row-out`,
+`breathe`) with `--ease-soft`; the last block there turns every animation and
+transition off under `prefers-reduced-motion`.
+
+Rules for this app: nothing animates when a page first shows (type at once,
+rule #12), no count-up on money, the six bucket colors never change.
+
+- `src/lib/motion.ts` (`reducedMotion`, `leavingItems`) is covered by
+  `node --test`; `usePresence` and `useFlip` are copied from logi.
+- The loading skeleton `breathe`s instead of pulsing.
+- The Undo toast after a save is `ToastBar`: it rises in, and fades out over
+  200ms (a leaving toast takes no taps). A save also gives a 10ms vibration
+  on Android.
+- The Funds Show/Hide arrow turns smoothly.
+- The browser pane and Safari keep an old stylesheet through the service
+  worker in dev: unregister it and clear the `fina-v1` cache if CSS looks
+  stale.
+
