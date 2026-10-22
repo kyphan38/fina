@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { watchBuckets } from '@/lib/buckets';
-import { clockStore } from '@/lib/clock';
-import { cycleOf, previousCycle } from '@/lib/cycle';
+import { previousCycle } from '@/lib/cycle';
 import { listCycles } from '@/lib/cycles';
 import { computeSignals } from '@/lib/signals';
 import { cycleProgress } from '@/lib/cycle';
@@ -28,8 +28,7 @@ export function useInsights() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
-  const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
-  const currentCycle = useMemo(() => cycleOf(new Date(now)), [now]);
+  const { cycle: currentCycle } = useCurrentCycle();
 
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);

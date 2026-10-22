@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import BottomNav from '@/components/BottomNav';
+import CycleOverridesSync from '@/components/CycleOverridesSync';
 import PendingCovers from '@/components/PendingCovers';
 
 /**
@@ -18,6 +19,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto flex w-full min-h-0 max-w-2xl flex-1 flex-col px-4 min-[900px]:max-w-5xl min-[900px]:px-6">
         {children}
       </main>
+      <CycleOverridesSync />
       <PendingCovers />
       <BottomNav />
     </div>

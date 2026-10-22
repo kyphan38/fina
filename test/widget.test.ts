@@ -22,7 +22,8 @@ const buckets = [
   bucket({ id: 'old', name: 'Old', active: false, order: 5 }),
 ];
 
-// 04/10/2026 is in cycle '2026-10' (25/09 - 24/10), day 10 of 30.
+// 04/10/2026 is in cycle '2026-10' (25/09 - 22/10), day 10 of 28: 25/10 is a
+// Sunday, so the November cycle starts on Friday 23/10.
 const now = new Date(2026, 9, 4, 9, 0);
 
 test('widgetData - left matches Summary: limits minus net budget spending', () => {
@@ -42,12 +43,12 @@ test('widgetData - left matches Summary: limits minus net budget spending', () =
 
   assert.equal(d.cycle, '2026-10');
   assert.equal(d.day, 10);
-  assert.equal(d.totalDays, 30);
+  assert.equal(d.totalDays, 28);
   assert.equal(d.limitVnd, 4_000_000);
   assert.equal(d.spentVnd, 1_720_000);
   assert.equal(d.leftVnd, 2_280_000);
-  // 2.280 over the 21 days left (including today).
-  assert.equal(d.perDayVnd, 108_571);
+  // 2.280 over the 19 days left (including today).
+  assert.equal(d.perDayVnd, 120_000);
   assert.deepEqual(d.buckets.map((b) => b.name), ['Food', 'Social']);
 });
 

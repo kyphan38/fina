@@ -8,6 +8,7 @@ import AmountSheet from '@/components/AmountSheet';
 import MoveSheet from '@/components/MoveSheet';
 import CloseGoalSheet from '@/components/CloseGoalSheet';
 import NotesBlock from '@/components/NotesBlock';
+import PaydayButton from '@/components/PaydayButton';
 import TopBar from '@/components/TopBar';
 import { useSummary } from '@/hooks/useSummary';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
@@ -74,9 +75,12 @@ export default function SummaryView() {
       <TopBar>
         <h1 className="text-lg font-semibold">{month}</h1>
       </TopBar>
-      <p className="flex min-h-11 items-center text-xs text-muted">
-        Day {day} of {total}
-      </p>
+      <div className="flex min-h-11 items-center gap-3 text-xs text-muted">
+        <p>
+          Day {day} of {total}
+        </p>
+        {s.uid && <PaydayButton uid={s.uid} now={s.now} />}
+      </div>
 
       {/* On Mac the three blocks sit side by side; on a phone they stack. */}
       <div className="min-[900px]:grid min-[900px]:grid-cols-3 min-[900px]:items-start min-[900px]:gap-5">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,8 +10,6 @@ import { watchBuckets } from '@/lib/buckets';
 import { coveredByBucket, watchCycleCovers } from '@/lib/covers';
 import { watchCycle } from '@/lib/cycles';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
-import { cycleOf } from '@/lib/cycle';
-import { clockStore } from '@/lib/clock';
 import { isGoal, openGoals } from '@/lib/goals';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 
@@ -32,8 +31,7 @@ export function useLogData() {
   // The shared clock ticks every minute, so an app left open at midnight on
   // the 25th moves to the new cycle by itself. If the cycle string does not
   // change, the listener does not resubscribe.
-  const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
-  const cycle = useMemo(() => cycleOf(new Date(now)), [now]);
+  const { cycle } = useCurrentCycle();
 
   useEffect(() => {
     if (!uid) return;

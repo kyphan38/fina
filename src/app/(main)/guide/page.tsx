@@ -9,7 +9,7 @@ const SECTIONS = [
   { id: 'cover', title: 'Khi bucket bị vượt' },
   { id: 'history', title: 'History' },
   { id: 'summary', title: 'Summary' },
-  { id: 'payday', title: 'Ngày 25: đóng sổ và chia lương' },
+  { id: 'payday', title: 'Ngày lương: đóng sổ và chia lương' },
   { id: 'debt', title: 'Mượn và trả nợ' },
   { id: 'widget', title: 'Widget' },
   { id: 'settings', title: 'Settings và sao lưu' },
@@ -48,8 +48,14 @@ export default function GuidePage() {
           ]}
         />
         <P>
-          <B>Chu kỳ</B> chạy từ ngày 25 đến ngày 24 tháng sau, và mang tên tháng kết thúc. Ví dụ, chu kỳ
-          October là từ 25/9 đến 24/10.
+          <B>Chu kỳ</B> bắt đầu từ ngày nhận lương và mang tên tháng kết thúc. Ngày nhận lương là ngày 25.
+          Nếu ngày 25 rơi vào thứ 7 hoặc chủ nhật thì là thứ 6 trước đó. Ví dụ: 25/10/2026 là chủ nhật, nên
+          chu kỳ November bắt đầu từ thứ 6, 23/10.
+        </P>
+        <P>
+          Lương về sớm vì lý do khác (Tết, lễ): trong tuần trước ngày bắt đầu, Summary có nút{' '}
+          <B>Paid today?</B>. Bấm Start thì chu kỳ mới bắt đầu hôm nay, và các khoản đã ghi hôm nay được chuyển
+          sang chu kỳ mới.
         </P>
         <P>Hai con số cần phân biệt:</P>
         <Rows
@@ -142,7 +148,7 @@ export default function GuidePage() {
         <Steps
           items={[
             <>
-              <B>Đóng sổ.</B> Sang ngày 25, Summary hiện màn hình đóng chu kỳ. Nếu còn dư, chọn chuyển phần dư
+              <B>Đóng sổ.</B> Sang ngày lương, Summary hiện màn hình đóng chu kỳ. Nếu còn dư, chọn chuyển phần dư
               vào ETF, Reserve, hoặc giữ lại (Hold). Bấm Close thì chu kỳ mới mới mở.
             </>,
             <>

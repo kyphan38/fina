@@ -144,9 +144,10 @@ test('buildDrafts - groups by bucket, rows with a note stay separate', () => {
 });
 
 test('buildDrafts - groups split by cycle (the 24th and 25th)', () => {
+  // November 2026: the 25th is a Wednesday, so the cycle turns that day.
   const rows = [
-    row({ key: 'a', occurredAt: new Date(2026, 9, 24, 20, 0).getTime() }),
-    row({ key: 'b', occurredAt: new Date(2026, 9, 25, 8, 0).getTime() }),
+    row({ key: 'a', occurredAt: new Date(2026, 10, 24, 20, 0).getTime() }),
+    row({ key: 'b', occurredAt: new Date(2026, 10, 25, 8, 0).getTime() }),
   ];
   assert.equal(buildDrafts(rows, true).length, 2);
 });

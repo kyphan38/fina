@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { cycleOf } from '@/lib/cycle';
+import { cycleOf, cycleOverridesStore, parseOverrides } from '@/lib/cycle';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { coveredOf, vnWallClock, widgetData } from '@/lib/widget';
 import type { Bucket, Cover, Transaction } from '@/types/fina';
@@ -49,6 +49,10 @@ export async function GET(req: NextRequest) {
 
   const now = vnWallClock(new Date());
   const user = adminDb.collection('users').doc(uid);
+  // Payday overrides decide which cycle today is in. One user per app, so a
+  // module-level store set per request is safe here.
+  const settings = (await user.collection('meta').doc('settings').get()).data();
+  cycleOverridesStore.set(parseOverrides(settings?.cycleStarts));
   const cycle = cycleOf(now);
 
   const [bucketSnap, txSnap, cycleSnap, coverSnap] = await Promise.all([

@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { watchBuckets } from '@/lib/buckets';
 import { computeSurplus, ensureCycle, watchCycle } from '@/lib/cycles';
 import { coveredByBucket, coveredFromOutside, watchCycleCovers } from '@/lib/covers';
-import { cycleOf } from '@/lib/cycle';
-import { clockStore } from '@/lib/clock';
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { DEFAULT_GOALS_MONTHLY_VND, isGoal, openGoals } from '@/lib/goals';
 import { watchGoalsMonthly } from '@/lib/goal-store';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
 
 export function useSummary() {
@@ -26,11 +25,7 @@ export function useSummary() {
   // Animations wait for all five listeners to have answered once.
   const { settled, mark } = useFirstSnapshots(5);
 
-  const now = useSyncExternalStore(clockStore.subscribe, clockStore.get, clockStore.getServer);
-  // On the server now = 0 -> cycleId is '1970-01', harmless: there are no
-  // buckets yet, so the screen only shows Loading. The first client render
-  // has the real time.
-  const cycleId = useMemo(() => cycleOf(new Date(now)), [now]);
+  const { now, cycle: cycleId } = useCurrentCycle();
 
   useEffect(() => {
     if (!uid) return;

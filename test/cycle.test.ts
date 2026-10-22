@@ -94,3 +94,67 @@ test('previousCycle / nextCycle - across the year boundary', () => {
   assert.equal(nextCycle('2026-12'), '2027-01');
   assert.equal(nextCycle(previousCycle('2026-09')), '2026-09');
 });
+
+// --- Payday rule: weekend 25th moves to the Friday before (from 2026-11) ---
+
+import { cycleOverridesStore, cycleStart, validOverride } from '@/lib/cycle';
+
+test('payday - 25/10/2026 is a Sunday, so November starts Friday 23/10', () => {
+  assert.equal(cycleOf(at('2026-10-22')), '2026-10');
+  assert.equal(cycleOf(new Date('2026-10-23T00:00:00')), '2026-11');
+  assert.equal(cycleOf(at('2026-10-24')), '2026-11');
+  assert.equal(cycleOf(at('2026-10-25')), '2026-11');
+  assert.equal(cycleStart('2026-11').getDate(), 23);
+});
+
+test('payday - a Saturday 25th moves back one day', () => {
+  // 25/09/2027 is a Saturday.
+  assert.equal(cycleStart('2027-10').getDate(), 24);
+  assert.equal(cycleOf(at('2027-09-23')), '2027-09');
+  assert.equal(cycleOf(at('2027-09-24')), '2027-10');
+});
+
+test('payday - a weekday 25th stays', () => {
+  assert.equal(cycleStart('2026-12').getDate(), 25);
+  assert.equal(cycleOf(at('2026-11-24')), '2026-11');
+  assert.equal(cycleOf(at('2026-11-25')), '2026-12');
+});
+
+test('payday - cycles before the rule keep the plain 25th', () => {
+  // 25/04/2026 was a Saturday; old entries are stored with the old rule.
+  assert.equal(cycleOf(at('2026-04-24')), '2026-04');
+  assert.equal(cycleOf(at('2026-04-25')), '2026-05');
+});
+
+test('payday - the October cycle is shorter, the November one longer', () => {
+  assert.equal(cycleProgress('2026-10', at('2026-10-22')).total, 28);
+  assert.equal(cycleProgress('2026-11', at('2026-10-23')).total, 33);
+});
+
+test('override - salary early for a holiday starts the cycle that day', () => {
+  cycleOverridesStore.set({ '2027-02': '2027-01-20' });
+  try {
+    assert.equal(cycleOf(at('2027-01-19')), '2027-01');
+    assert.equal(cycleOf(at('2027-01-20')), '2027-02');
+    assert.equal(cycleRange('2027-01').endAt, new Date(2027, 0, 20).getTime());
+  } finally {
+    cycleOverridesStore.set({});
+  }
+});
+
+test('override - only a day in the month before the cycle name is valid', () => {
+  assert.equal(validOverride('2027-02', '2027-01-20'), true);
+  assert.equal(validOverride('2027-02', '2027-02-01'), false);
+  assert.equal(validOverride('2027-01', '2026-12-20'), true);
+  assert.equal(validOverride('2027-01', 'junk'), false);
+});
+
+import { earlyPaydayCycle } from '@/lib/cycle';
+
+test('early payday - offered in the week before the start, not the day before', () => {
+  // December 2026 cycle starts Wednesday 25/11.
+  assert.equal(earlyPaydayCycle(at('2026-11-17')), null, 'more than 7 days early');
+  assert.equal(earlyPaydayCycle(at('2026-11-20')), '2026-12');
+  assert.equal(earlyPaydayCycle(at('2026-11-24')), null, 'starts tomorrow anyway');
+  assert.equal(earlyPaydayCycle(at('2026-11-25')), null, 'already started');
+});
