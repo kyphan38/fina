@@ -30,6 +30,7 @@ export default function LogView() {
     covered,
     limitOf,
     monthlyLeft,
+    budgetLeftVnd,
     loading,
     settled,
   } = useLogData();
@@ -385,6 +386,7 @@ export default function LogView() {
           buckets={buckets}
           bufferLimitVnd={limitOf(buckets.find((b) => b.id === 'buffer') ?? coverReq.toBucket)}
           bufferUsedVnd={(spent.buffer ?? 0) + (covered.buffer ?? 0)}
+          budgetLeftVnd={budgetLeftVnd}
           onDone={() => setCoverReq(null)}
         />
       )}

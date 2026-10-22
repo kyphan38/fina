@@ -94,7 +94,10 @@ export default function GuidePage() {
         </P>
         <List
           items={[
-            <>Buffer luôn được gợi ý đầu tiên, sau đó mới tới các quỹ BIDV.</>,
+            <>
+              Thứ tự gợi ý: Buffer, rồi các bucket VCB còn dư (ví dụ Beauty bù cho Food, không cần chuyển
+              khoản), rồi các quỹ BIDV.
+            </>,
             <>
               Nếu lấy từ BIDV sang VCB, bạn phải chuyển khoản thật. App hiện một dải nhắc ở dưới màn hình cho
               đến khi bạn xác nhận đã chuyển.
@@ -112,7 +115,7 @@ export default function GuidePage() {
               sửa bucket, OUT/IN, ngày giờ, ghi chú, hoặc xoá.
             </>,
             <>
-              <B>MoMo</B>: nhập lịch sử MoMo, kiểm tra từng dòng rồi mới lưu.
+              <B>MoMo</B>: nhập lịch sử MoMo, kiểm tra từng dòng rồi mới lưu. Nếu sau khi lưu có bucket bị vượt, app hỏi lấy tiền từ đâu cho từng bucket.
             </>,
             <>
               <B>Trends</B>: Buffer 6 chu kỳ gần nhất, xu hướng của từng bucket, và nhận xét do AI viết.

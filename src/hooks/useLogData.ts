@@ -100,6 +100,16 @@ export function useLogData() {
     [monthly, spent, covered, limitOf],
   );
 
+  // Room per monthly bucket. Negative stays negative: a cover source reads it
+  // as "none", the overflow check needs the real number.
+  const budgetLeftVnd = useMemo(
+    () =>
+      Object.fromEntries(
+        monthly.map((b) => [b.id, limitOf(b) - (spent[b.id] ?? 0) - (covered[b.id] ?? 0)]),
+      ),
+    [monthly, spent, covered, limitOf],
+  );
+
   return {
     uid,
     cycle,
@@ -113,6 +123,7 @@ export function useLogData() {
     limitOf,
     cycleDoc,
     monthlyLeft,
+    budgetLeftVnd,
     /** null = still loading; empty array = loaded, no buckets seeded. */
     loading: buckets === null,
     /** All listeners have answered: now bars and numbers may animate. */

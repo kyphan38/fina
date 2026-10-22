@@ -53,6 +53,9 @@ export function coverOptions(args: {
   bufferLimitVnd: number;
   bufferUsedVnd: number;
   neededVnd: number;
+  /** Room left (limit - used) in each monthly bucket. Buckets with room can
+   * cover each other: both sit in VCB, so it only relabels the money. */
+  budgetLeftVnd?: Record<string, number>;
 }): CoverOption[] {
   const out: CoverOption[] = [];
 
@@ -66,16 +69,23 @@ export function coverOptions(args: {
       out.push({ bucket: b, availableVnd, enough: availableVnd >= args.neededVnd });
       continue;
     }
+    if (b.kind === 'budget') {
+      // Only those with room: six faded rows of empty buckets is noise.
+      const availableVnd = args.budgetLeftVnd?.[b.id] ?? 0;
+      if (availableVnd > 0) {
+        out.push({ bucket: b, availableVnd, enough: availableVnd >= args.neededVnd });
+      }
+      continue;
+    }
     if (b.kind === 'fund') {
       const availableVnd = Math.max(0, b.balanceVnd);
       out.push({ bucket: b, availableVnd, enough: availableVnd >= args.neededVnd });
     }
   }
 
-  // Buffer first, then funds in display order.
-  return out.sort((a, c) =>
-    a.bucket.id === 'buffer' ? -1 : c.bucket.id === 'buffer' ? 1 : a.bucket.order - c.bucket.order,
-  );
+  // Buffer first, then monthly buckets (same bank, no transfer), then funds.
+  const rank = (o: CoverOption) => (o.bucket.id === 'buffer' ? 0 : o.bucket.kind === 'budget' ? 1 : 2);
+  return out.sort((a, c) => rank(a) - rank(c) || a.bucket.order - c.bucket.order);
 }
 
 /**

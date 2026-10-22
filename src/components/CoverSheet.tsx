@@ -16,8 +16,10 @@ export interface CoverRequest {
   toBucket: Bucket;
   /** The overage, not the whole transaction. */
   amountVnd: number;
-  /** The transaction just saved - enough to delete it if the user picks Discard. */
-  tx: Transaction;
+  /** The transaction just saved - enough to delete it if the user picks Discard.
+   * Absent for a batch (MoMo import): one entry of many is not "the" entry,
+   * so the way out is to leave it over instead. */
+  tx?: Transaction;
 }
 
 /**
@@ -30,6 +32,7 @@ export default function CoverSheet({
   buckets,
   bufferLimitVnd,
   bufferUsedVnd,
+  budgetLeftVnd,
   onDone,
 }: {
   uid: string;
@@ -37,6 +40,7 @@ export default function CoverSheet({
   buckets: Bucket[];
   bufferLimitVnd: number;
   bufferUsedVnd: number;
+  budgetLeftVnd: Record<string, number>;
   onDone: () => void;
 }) {
   // The shortfall is only a SUGGESTION. The real transfer is the user's call:
@@ -56,6 +60,7 @@ export default function CoverSheet({
     toBucketId: request.toBucket.id,
     bufferLimitVnd,
     bufferUsedVnd,
+    budgetLeftVnd,
     // A new amount means "enough or not" is checked against the NEW number,
     // not the original shortfall.
     neededVnd: amountVnd,
@@ -111,7 +116,7 @@ export default function CoverSheet({
             onClick={async () => {
               setBusy(true);
               try {
-                await deleteTransaction(uid, request.tx, request.toBucket.kind);
+                if (request.tx) await deleteTransaction(uid, request.tx, request.toBucket.kind);
                 onDone();
               } catch (err) {
                 setError(`Could not delete (${(err as { code?: string })?.code ?? 'unknown'}).`);
@@ -255,10 +260,10 @@ export default function CoverSheet({
       {!discarding && !editing && picked === null && (
         <button
           type="button"
-          onClick={() => setDiscarding(true)}
+          onClick={() => (request.tx ? setDiscarding(true) : onDone())}
           className="mt-3 w-full py-2 text-xs text-muted"
         >
-          Discard this entry instead
+          {request.tx ? 'Discard this entry instead' : 'Leave it over'}
         </button>
       )}
     </SheetShell>

@@ -24,6 +24,7 @@ import { bucketsCol } from '@/lib/buckets';
 import { cycleOf } from '@/lib/cycle';
 import { txCol } from '@/lib/transactions';
 import { appendRows, buildDrafts, type ImportRow } from '@/lib/momo-import';
+import type { WrittenTx } from '@/lib/overflow';
 import type { Bucket } from '@/types/fina';
 
 /** `removed`: the user tapped ×. `imported`: already in the DB from a previous run. */
@@ -138,7 +139,8 @@ export class DraftGoneError extends Error {}
  * shows: the other device may have just edited a row. If the table is gone
  * (the other device just saved), stop - Save on two devices never writes twice.
  */
-export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Promise<number> {
+/** Returns what was written, so the caller can check for overages. */
+export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Promise<WrittenTx[]> {
   return runTransaction(db, async (t) => {
     const ref = draftRef(uid);
     const snap = await t.get(ref);
@@ -148,13 +150,24 @@ export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Prom
     const drafts = buildDrafts(activeRows(draft), draft.merge);
     const now = Date.now();
     const fundDeltas: Record<string, number> = {};
+    const written: WrittenTx[] = [];
 
     for (const d of drafts) {
       const bucket = buckets.get(d.bucketId);
       if (!bucket) throw new Error(`[import] Unknown bucket: ${d.bucketId}`);
-      t.set(doc(txCol(uid)), {
+      const txRef = doc(txCol(uid));
+      const cycle = cycleOf(new Date(d.occurredAt));
+      written.push({
+        id: txRef.id,
+        bucketId: bucket.id,
+        cycle,
+        amountVnd: d.amountVnd,
+        direction: d.direction,
         occurredAt: d.occurredAt,
-        cycle: cycleOf(new Date(d.occurredAt)),
+      });
+      t.set(txRef, {
+        occurredAt: d.occurredAt,
+        cycle,
         bucketId: bucket.id,
         // Copy the bank onto the record, like addTransaction.
         bank: bucket.bank,
@@ -179,6 +192,6 @@ export async function saveDraft(uid: string, buckets: Map<string, Bucket>): Prom
     }
 
     t.delete(ref);
-    return drafts.length;
+    return written;
   });
 }

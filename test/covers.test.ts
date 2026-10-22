@@ -199,3 +199,24 @@ test('coverRollbackDeltas - fund to fund gives back both ends', () => {
   ]);
   assert.deepEqual(d, { purchases: 505_000, health: -505_000 });
 });
+
+test('coverOptions - monthly buckets with room come after Buffer, before funds', () => {
+  const opts = coverOptions({
+    buckets, toBucketId: 'food', bufferLimitVnd: 1_000_000, bufferUsedVnd: 0,
+    neededVnd: 441_525, budgetLeftVnd: { food: -441_525, beauty: 2_602_438, social: 0, buffer: 1_000_000 },
+  });
+  const ids = opts.map((o) => o.bucket.id);
+  assert.equal(ids[0], 'buffer');
+  assert.equal(ids[1], 'beauty');
+  assert.ok(!ids.includes('social'), 'a bucket with no room is not offered');
+  assert.ok(!ids.includes('food'), 'never covers itself');
+  assert.equal(opts.find((o) => o.bucket.id === 'beauty')!.enough, true);
+  const firstFund = opts.findIndex((o) => o.bucket.kind === 'fund');
+  assert.ok(firstFund > ids.indexOf('beauty'));
+});
+
+test('covers - Beauty covering Food moves "used" between them, total unchanged', () => {
+  const c = coveredByBucket([cover({ fromBucketId: 'beauty', toBucketId: 'food', amountVnd: 441_525 })]);
+  assert.equal(c.beauty, 441_525);
+  assert.equal(c.food, -441_525);
+});

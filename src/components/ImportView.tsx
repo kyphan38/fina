@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import CoverSheet from '@/components/CoverSheet';
 import { useAuth } from '@/contexts/AuthContext';
-import { watchBuckets } from '@/lib/buckets';
+import { useLogData } from '@/hooks/useLogData';
 import { bucketAccent } from '@/lib/bucket-color';
 import { formatVnd, toVnd } from '@/lib/money';
 import {
@@ -29,6 +30,7 @@ import {
   type DraftRow,
   type ImportDraftDoc,
 } from '@/lib/import-draft';
+import { batchOverflows, type BatchOverflow } from '@/lib/overflow';
 import { listTransactionsBetween } from '@/lib/transactions';
 import type { Bucket } from '@/types/fina';
 
@@ -74,7 +76,11 @@ export default function ImportView() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
-  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  // Same live cycle state as Log, so an import that runs a bucket over can
+  // ask where the money came from, like a single entry does.
+  const live = useLogData();
+  const buckets = live.buckets;
+  const [overflows, setOverflows] = useState<BatchOverflow[]>([]);
   // undefined = first load, null = no unfinished table.
   const [draft, setDraft] = useState<ImportDraftDoc | null | undefined>(undefined);
   const [reading, setReading] = useState(false);
@@ -87,11 +93,6 @@ export default function ImportView() {
   // The table vanished because THIS device saved/discarded it: no message needed.
   const closingHere = useRef(false);
   const hadDraft = useRef(false);
-
-  useEffect(() => {
-    if (!uid) return;
-    return watchBuckets(uid, setBuckets);
-  }, [uid]);
 
   useEffect(() => {
     if (!uid) return;
@@ -203,8 +204,20 @@ export default function ImportView() {
     setSaving(true);
     setError(null);
     closingHere.current = true;
+    // State BEFORE the write: after it, the listener may already hold the
+    // new entries and count them twice.
+    const before = {
+      cycle: live.cycle,
+      buckets: live.buckets,
+      limitOf: live.limitOf,
+      usedBefore: Object.fromEntries(
+        live.monthly.map((b) => [b.id, (live.spent[b.id] ?? 0) + (live.covered[b.id] ?? 0)]),
+      ),
+    };
     try {
-      setSavedCount(await saveDraft(uid, byId));
+      const written = await saveDraft(uid, byId);
+      setSavedCount(written.length);
+      setOverflows(batchOverflows({ written, ...before }));
     } catch (err) {
       closingHere.current = false;
       setError(
@@ -248,9 +261,30 @@ export default function ImportView() {
     );
   }
 
+  const next = overflows[0];
+  const coverSheet = next && uid && (
+    <CoverSheet
+      // One sheet per over bucket, in turn. The key resets its state.
+      key={next.bucket.id}
+      uid={uid}
+      request={{
+        txId: next.txId,
+        cycle: live.cycle,
+        toBucket: next.bucket,
+        amountVnd: next.amountVnd,
+      }}
+      buckets={buckets}
+      bufferLimitVnd={live.limitOf(buckets.find((b) => b.id === 'buffer') ?? next.bucket)}
+      bufferUsedVnd={(live.spent.buffer ?? 0) + (live.covered.buffer ?? 0)}
+      budgetLeftVnd={live.budgetLeftVnd}
+      onDone={() => setOverflows((o) => o.slice(1))}
+    />
+  );
+
   if (!draft && savedCount !== null) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
+        {coverSheet}
         <Header />
         <p className="pt-6 text-sm">
           Saved {savedCount} {savedCount === 1 ? 'entry' : 'entries'}.
