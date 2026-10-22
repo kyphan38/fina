@@ -51,17 +51,17 @@ export default function SummaryView() {
     );
   }
 
-  if (s.needsClose && s.cycle) {
+  if (s.closing) {
     return (
       <CycleClose
         uid={s.uid!}
-        cycle={s.cycle}
+        cycle={s.closing.cycle}
         monthly={s.monthly}
-        spent={s.spent}
-        covered={s.covered}
-        surplusVnd={s.surplus}
-        snapshot={{ byBucket: s.spent }}
-        pendingCount={s.pendingCovers.length}
+        spent={s.closing.spent}
+        covered={s.closing.covered}
+        surplusVnd={s.closing.surplus}
+        snapshot={{ byBucket: s.closing.spent }}
+        pendingCount={s.closing.pendingCount}
       />
     );
   }

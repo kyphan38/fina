@@ -9,6 +9,7 @@ import { coveredByBucket, coveredFromOutside, watchCycleCovers } from '@/lib/cov
 import { spentByBucket, watchCycleTransactions } from '@/lib/transactions';
 import { DEFAULT_GOALS_MONTHLY_VND, isGoal, openGoals } from '@/lib/goals';
 import { watchGoalsMonthly } from '@/lib/goal-store';
+import { cycleToClose, previousCycle } from '@/lib/cycle';
 import type { Bucket, Cover, Cycle, Transaction } from '@/types/fina';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import { useFirstSnapshots } from '@/hooks/useFirstSnapshots';
@@ -22,10 +23,16 @@ export function useSummary() {
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [covers, setCovers] = useState<Cover[]>([]);
   const [goalsBudget, setGoalsBudget] = useState(DEFAULT_GOALS_MONTHLY_VND);
-  // Animations wait for all five listeners to have answered once.
-  const { settled, mark } = useFirstSnapshots(5);
+  // The cycle before, tagged with its id so a stale snapshot is never used
+  // after the cycle turns.
+  const [prev, setPrev] = useState<{ id: string; cycle: Cycle | null } | null>(null);
+  const [prevTxs, setPrevTxs] = useState<{ id: string; txs: Transaction[] } | null>(null);
+  const [prevCovers, setPrevCovers] = useState<{ id: string; covers: Cover[] } | null>(null);
+  // Animations wait for these six listeners to have answered once.
+  const { settled, mark } = useFirstSnapshots(6);
 
   const { now, cycle: cycleId } = useCurrentCycle();
+  const prevId = previousCycle(cycleId);
 
   useEffect(() => {
     if (!uid) return;
@@ -77,6 +84,32 @@ export function useSummary() {
     });
   }, [uid, mark]);
 
+  // One doc read. Usually closed, so nothing more is read.
+  useEffect(() => {
+    if (!uid) return;
+    return watchCycle(uid, prevId, (v) => {
+      setPrev({ id: prevId, cycle: v });
+      mark(5);
+    });
+  }, [uid, prevId, mark]);
+
+  const closeId = cycleToClose(
+    cycleId,
+    prev?.id === prevId ? prev.cycle : null,
+    now,
+  );
+
+  // Its transactions and covers only while it still waits to be closed.
+  useEffect(() => {
+    if (!uid || !closeId) return;
+    return watchCycleTransactions(uid, closeId, (v) => setPrevTxs({ id: closeId, txs: v }));
+  }, [uid, closeId]);
+
+  useEffect(() => {
+    if (!uid || !closeId) return;
+    return watchCycleCovers(uid, closeId, (v) => setPrevCovers({ id: closeId, covers: v }));
+  }, [uid, closeId]);
+
   const etfDeposits = useMemo(
     () => txs.filter((t) => t.bucketId === 'etf').sort((a, b) => b.occurredAt - a.occurredAt),
     [txs],
@@ -114,7 +147,22 @@ export function useSummary() {
     [limits, spent, covers, buckets],
   );
 
-  const needsClose = Boolean(cycle && cycle.status === 'open' && now > 0 && now >= cycle.endAt);
+  // The close screen waits for the old cycle's own data, so it never shows
+  // the current cycle's numbers or a half-loaded surplus.
+  const closing = useMemo(() => {
+    if (!closeId || !prev?.cycle) return null;
+    if (prevTxs?.id !== closeId || prevCovers?.id !== closeId) return null;
+    const pSpent = spentByBucket(prevTxs.txs);
+    const pCovers = prevCovers.covers;
+    return {
+      cycle: prev.cycle,
+      spent: pSpent,
+      covered: coveredByBucket(pCovers),
+      surplus:
+        computeSurplus(prev.cycle.limits, pSpent) + coveredFromOutside(pCovers, buckets ?? []),
+      pendingCount: pCovers.filter((c) => c.status === 'pending').length,
+    };
+  }, [closeId, prev, prevTxs, prevCovers, buckets]);
 
   return {
     uid,
@@ -137,7 +185,8 @@ export function useSummary() {
     monthlyLimit,
     fundsTotal,
     surplus,
-    needsClose,
+    /** The ended cycle still open, with its own numbers, or null. */
+    closing,
     loading: buckets === null,
     /** All listeners have answered: now bars and numbers may animate. */
     settled,

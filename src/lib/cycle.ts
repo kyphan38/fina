@@ -178,3 +178,18 @@ export function earlyPaydayCycle(now: Date): string | null {
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
   return start > tomorrow && start - now.getTime() <= EARLY_PAYDAY_DAYS * 86_400_000 ? next : null;
 }
+
+/**
+ * The cycle the close screen should show, or null. Only the previous cycle
+ * can need closing: once a cycle ends, cycleOf already names the next one.
+ * Uses the computed end, not the stored endAt, which may predate the payday rule.
+ */
+export function cycleToClose(
+  current: CycleId,
+  previous: { status: 'open' | 'closed' } | null,
+  now: number,
+): CycleId | null {
+  if (!previous || previous.status !== 'open' || now <= 0) return null;
+  const prev = previousCycle(current);
+  return now >= cycleRange(prev).endAt ? prev : null;
+}

@@ -86,7 +86,7 @@ Free tier is 50k/day. Every screen drops its listeners on unmount.
 | Screen | Docs per open |
 |---|---|
 | Log | buckets 12 + cycle transactions ~30 + cycle 1 + covers ~2 ≈ **45** |
-| Summary | the above + income ~2 ≈ **47** |
+| Summary | the above + income ~2 + previous cycle 1 ≈ **48** (plus its transactions and covers only while it waits to be closed) |
 | History | buckets 12 + transactions ~30 + cycle list ~3 ≈ **45** |
 | Insights | buckets 12 + cycle docs ~3 + current cycle ~32 ≈ **47** |
 

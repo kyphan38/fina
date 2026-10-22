@@ -8,6 +8,7 @@ import {
   parseCycle,
   previousCycle,
   nextCycle,
+  cycleToClose,
 } from '@/lib/cycle';
 
 const at = (s: string) => new Date(`${s}T12:00:00`);
@@ -157,4 +158,34 @@ test('early payday - offered in the week before the start, not the day before', 
   assert.equal(earlyPaydayCycle(at('2026-11-20')), '2026-12');
   assert.equal(earlyPaydayCycle(at('2026-11-24')), null, 'starts tomorrow anyway');
   assert.equal(earlyPaydayCycle(at('2026-11-25')), null, 'already started');
+});
+
+test('cycleToClose - the day after payday, the ended cycle is offered', () => {
+  // 2026-11 starts Friday 23/10 (25/10 is a Sunday), so 2026-10 ends then.
+  const now = new Date('2026-10-23T08:00:00').getTime();
+  assert.equal(cycleOf(new Date(now)), '2026-11');
+  assert.equal(cycleToClose('2026-11', { status: 'open' }, now), '2026-10');
+});
+
+test('cycleToClose - nothing when the previous cycle is closed or missing', () => {
+  const now = new Date('2026-10-23T08:00:00').getTime();
+  assert.equal(cycleToClose('2026-11', { status: 'closed' }, now), null);
+  assert.equal(cycleToClose('2026-11', null, now), null);
+});
+
+test('cycleToClose - uses the computed end, not the plain 25th', () => {
+  // A stored endAt of 25/10 would hide the screen on 23/10 and 24/10.
+  const fri = new Date('2026-10-23T00:00:00').getTime();
+  assert.equal(cycleToClose('2026-11', { status: 'open' }, fri), '2026-10');
+  assert.equal(cycleToClose('2026-11', { status: 'open' }, fri - 1), null);
+});
+
+test('cycleToClose - no clock yet (server render) shows nothing', () => {
+  assert.equal(cycleToClose('2026-11', { status: 'open' }, 0), null);
+});
+
+test('cycleToClose - across the year', () => {
+  const now = new Date('2026-12-26T09:00:00').getTime();
+  assert.equal(cycleOf(new Date(now)), '2027-01');
+  assert.equal(cycleToClose('2027-01', { status: 'open' }, now), '2026-12');
 });
