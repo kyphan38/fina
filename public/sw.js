@@ -18,10 +18,28 @@ const CACHE_VERSION = 'fina-v2';
 //                  its JS/CSS, and shows on the next open.
 // API / Firestore  not touched. Data is never served from an old copy.
 
+// Every page, so a page never opened before still opens offline. A miss must
+// not fall back to another page: signed out and offline, the /login <-> app
+// redirect would then loop forever.
+const PAGES = ['/log', '/history', '/summary', '/insights', '/salary', '/import', '/guide', '/settings', '/settings/restore', '/login'];
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_VERSION));
+  event.waitUntil(precache());
 });
+
+async function precache() {
+  const cache = await caches.open(CACHE_VERSION);
+  await Promise.all(
+    PAGES.map((path) =>
+      fetch(path, { cache: 'no-cache' })
+        .then((res) => res.ok && store(cache, path, res))
+        .catch(() => {
+          // Offline during install: pages fill in as they are opened.
+        }),
+    ),
+  );
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -83,7 +101,7 @@ self.addEventListener('fetch', (event) => {
           event.waitUntil(fresh);
           return hit;
         }
-        return (await fresh) || (await cache.match('/log')) || Response.error();
+        return (await fresh) || Response.error();
       }),
     );
   }
