@@ -1,10 +1,6 @@
 /**
- * Shared loading frame for every page in (main).
- *
- * Not for looks. Next 16 docs (guides/prefetching.md): a dynamic route is only
- * prefetched by <Link> when it has a loading boundary. Every route here is
- * dynamic because the layout reads a cookie, so before this file every tab
- * tap froze while waiting for the server.
+ * Shared loading frame for every page in (main), shown while a route's code
+ * loads. It is also the Suspense boundary for the client-only pages.
  *
  * Uses fina's bg-sunk token, not a hardcoded color: it follows the theme in
  * globals.css.

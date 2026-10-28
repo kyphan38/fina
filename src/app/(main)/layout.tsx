@@ -1,14 +1,24 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppShell from '@/components/AppShell';
-import { getSessionUser } from '@/lib/server-auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * Server-side gate: no valid session, render nothing.
- * The client-side guard is for UX; this is the real protection.
+ * Client-side gate, so every page in (main) is static: served from the CDN and
+ * the service worker cache, with no server call before the first paint.
+ *
+ * The real protection is firestore.rules (per uid) and requireSessionUser in
+ * every API route. Views already handle `user === null` while auth loads.
  */
-export default async function MainLayout({ children }: LayoutProps<"/">) {
-  const user = await getSessionUser();
-  if (!user) redirect('/login');
+export default function MainLayout({ children }: LayoutProps<'/'>) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  return <AppShell>{children}</AppShell>;
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login');
+  }, [loading, user, router]);
+
+  return <AppShell>{!loading && !user ? null : children}</AppShell>;
 }

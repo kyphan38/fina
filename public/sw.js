@@ -4,14 +4,18 @@
 // Two jobs, nothing more: receive push, and cache the app shell for speed.
 // ============================================================
 
-const CACHE_VERSION = 'fina-v1';
+// v2: HTML moved to stale-while-revalidate, keyed by pathname.
+const CACHE_VERSION = 'fina-v2';
 
 // --- Cache -------------------------------------------------
 //
 // /_next/static/*  cache-first forever. File names hash their content, so a
 //                  new build means new names - never stale.
-// HTML             network-first. Cache-first here would one day show last
-//                  week's build with no clue why.
+// HTML             stale-while-revalidate, key = pathname. Pages are static
+//                  (auth is checked in the browser), so last build's HTML is
+//                  still correct and the app opens without waiting for the
+//                  network. The new build is fetched in the background, with
+//                  its JS/CSS, and shows on the next open.
 // API / Firestore  not touched. Data is never served from an old copy.
 
 self.addEventListener('install', (event) => {
@@ -65,19 +69,39 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (req.mode === 'navigate') {
+    const key = url.pathname;
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(req).then((hit) => hit ?? caches.match('/log'))),
+      caches.open(CACHE_VERSION).then(async (cache) => {
+        const hit = await cache.match(key);
+        const fresh = fetch(req)
+          .then((res) => {
+            if (res.ok) event.waitUntil(store(cache, key, res.clone()));
+            return res;
+          })
+          .catch(() => null);
+        if (hit) {
+          event.waitUntil(fresh);
+          return hit;
+        }
+        return (await fresh) || (await cache.match('/log')) || Response.error();
+      }),
     );
   }
 });
+
+// Save the HTML, then fetch the JS/CSS it needs now, so the next open (which
+// uses this HTML) does not hit the network or a removed old build file.
+async function store(cache, key, res) {
+  const html = await res.clone().text();
+  await cache.put(key, res);
+  const urls = new Set();
+  for (const m of html.matchAll(/["'(](\/_next\/static\/[^"'()\s]+)/g)) urls.add(m[1]);
+  await Promise.all(
+    [...urls].map((u) =>
+      cache.match(u).then((hit) => hit || fetch(u).then((r) => r.ok && cache.put(u, r)).catch(() => {})),
+    ),
+  );
+}
 
 // --- Push --------------------------------------------------
 //

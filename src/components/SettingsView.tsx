@@ -16,7 +16,7 @@ import { isGoal } from '@/lib/goals';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import type { Bucket } from '@/types/fina';
 
-export default function SettingsView({ email }: { email: string | null }) {
+export default function SettingsView() {
   const { user, signOut } = useAuth();
   const uid = user?.uid ?? null;
 
@@ -88,7 +88,7 @@ export default function SettingsView({ email }: { email: string | null }) {
   return (
     <div className="mt-5 flex flex-col gap-8">
       <Card title="Signed in as">
-        <p className="text-sm">{email ?? '-'}</p>
+        <p className="text-sm">{user?.email ?? '-'}</p>
         <button
           type="button"
           onClick={signOut}

@@ -15,9 +15,7 @@ type SessionOptions = {
    * Asks Google whether the session was revoked. Safer, but costs a full
    * network round trip BEFORE the page renders.
    *
-   * Default false because the (main) layout awaits this, so turning it on adds
-   * straight to the wait on every app open. Real data is already guarded by
-   * firestore.rules per uid; the server gate is only an extra layer for prerendering.
+   * Default false: real data is already guarded by firestore.rules per uid.
    *
    * Set true where the wait is worth it: costly APIs, or session-checking APIs.
    */
