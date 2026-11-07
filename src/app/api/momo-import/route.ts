@@ -4,7 +4,7 @@ import { getSessionUser } from '@/lib/server-auth';
 import { overLimit } from '@/lib/rate-limit';
 import { sanitizeRows, type RawRow } from '@/lib/momo-import';
 
-const MODEL = 'gemini-4-argon';
+const MODEL = 'gemini-3.8-flash';
 const WINDOW_MS = 10 * 60_000;
 const MAX_CALLS = 10;
 const MAX_IMAGES = 5;
@@ -77,6 +77,8 @@ async function readImage(key: string, image: ImageIn): Promise<RawRow[]> {
           maxOutputTokens: 4096,
           responseMimeType: 'application/json',
           responseSchema: SCHEMA,
+          // Reading rows off a screenshot needs no reasoning.
+          thinkingConfig: { thinkingLevel: 'low' },
         },
       }),
     },

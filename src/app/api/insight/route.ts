@@ -5,7 +5,7 @@ import { getSessionUser } from '@/lib/server-auth';
 import { sanitizeInsight } from '@/lib/insight-sanitize';
 import type { Digest } from '@/lib/digest';
 
-const MODEL = 'gemini-4-argon';
+const MODEL = 'gemini-3.8-flash';
 const WINDOW_MS = 5 * 60_000;
 const MAX_CALLS = 10;
 
@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
           contents: [{ role: 'user', parts: [{ text: JSON.stringify(digest) }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+          // Thinking counts toward maxOutputTokens: low keeps the 400 cap for the answer.
+          generationConfig: { temperature: 0.2, maxOutputTokens: 400, thinkingConfig: { thinkingLevel: 'low' } },
         }),
       },
     );
