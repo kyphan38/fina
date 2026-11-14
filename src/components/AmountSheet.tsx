@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
-import { pressKey, toVnd } from '@/lib/money';
+import { formatTyped, pressKey, toVnd } from '@/lib/money';
 import SheetShell from '@/components/SheetShell';
 
 /**
@@ -61,7 +61,7 @@ export default function AmountSheet({
         <div className="flex items-baseline justify-between pb-2">
           <span className="text-xs font-semibold">{title}</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
-            {buf || '0'}
+            {formatTyped(buf) || '0'}
           </span>
         </div>
       }
@@ -72,7 +72,7 @@ export default function AmountSheet({
           value={when}
           onChange={(e) => setWhen(e.target.value)}
           aria-label="Date and time"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
+          className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px]"
         />
       )}
 
@@ -82,7 +82,7 @@ export default function AmountSheet({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Note (optional)"
-        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+        className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
       />
       {error && <p className="mb-1.5 text-xs font-medium text-over">{error}</p>}
       <Numpad

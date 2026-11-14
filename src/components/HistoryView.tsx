@@ -12,7 +12,11 @@ import { useHistory } from '@/hooks/useHistory';
 import { useRowMotion } from '@/hooks/useRowMotion';
 import { cycleLabel } from '@/lib/cycle';
 import { formatVnd } from '@/lib/money';
-import { bucketAccent, hasAccent } from '@/lib/bucket-color';
+import { netSpending } from '@/lib/spending';
+import BucketDot from '@/components/BucketDot';
+import Page from '@/components/Page';
+import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
+import WordSelect from '@/components/WordSelect';
 import type { Transaction } from '@/types/fina';
 
 const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
@@ -29,17 +33,21 @@ export default function HistoryView() {
   const flip = useFlip(shown.map((t) => t.id));
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <HistoryTabs active="entries" />
-      {/* Filters and the import link only. The count and total sit at the end
-          of the list, so the page keeps two rows on top. */}
-      <header className="flex min-h-11 flex-wrap items-center gap-2">
-        <select
-          value={h.cycle}
-          onChange={(e) => h.setCycle(e.target.value)}
-          aria-label="Cycle"
-          className="rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-xs"
-        >
+    <Page
+      top={
+        <HistoryTabs
+          active="entries"
+          right={
+            <Link href="/import" className={WORD_GO}>
+              MoMo
+            </Link>
+          }
+        />
+      }
+    >
+      {/* Filters only. The count and total sit at the end of the list. */}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 pb-1">
+        <WordSelect value={h.cycle} onChange={(e) => h.setCycle(e.target.value)} aria-label="Cycle">
           {h.cycleIds.map((id) => {
             const { month, year } = cycleLabel(id);
             return (
@@ -48,13 +56,12 @@ export default function HistoryView() {
               </option>
             );
           })}
-        </select>
+        </WordSelect>
 
-        <select
+        <WordSelect
           value={h.bucketFilter ?? ''}
           onChange={(e) => h.setBucketFilter(e.target.value || null)}
           aria-label="Bucket filter"
-          className="rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-xs"
         >
           <option value="">All buckets</option>
           {h.buckets.map((b) => (
@@ -62,35 +69,30 @@ export default function HistoryView() {
               {b.name}
             </option>
           ))}
-        </select>
+        </WordSelect>
 
         {h.allocationCount > 0 && (
           <button
             type="button"
             onClick={() => h.setShowAllocations(!h.showAllocations)}
-            className="px-1 py-1.5 text-[11px] text-muted hover:text-ink active:text-ink"
+            className={WORD}
           >
-            {h.showAllocations ? 'Hide' : `+${h.allocationCount}`}
+            {h.showAllocations ? 'hide allocations' : `+${h.allocationCount} allocations`}
           </button>
         )}
-
-        <Link
-          href="/import"
-          className="ml-auto py-1.5 text-xs text-muted hover:text-ink active:text-ink after:ml-1 after:content-['›']"
-        >
-          MoMo
-        </Link>
       </header>
 
       {shown.length === 0 ? (
-        <p className="pt-6 text-sm text-muted">Nothing logged in this cycle.</p>
+        <p className="pt-6 text-[15px] text-muted">Nothing logged in this cycle.</p>
       ) : (
         groups.map(([day, txs]) => (
           <section key={day} className="pt-4">
-            <h2 className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+            <SectionTitle
+              action={<span className="font-normal text-faint">{formatVnd(netSpending(txs))}</span>}
+            >
               {day}
-            </h2>
-            <ul className="divide-y divide-line border-y border-line">
+            </SectionTitle>
+            <ul className="border-t border-line">
               {txs.map((t) => {
                 const b = h.byId.get(t.bucketId);
                 const pair = t.source === 'move' && t.moveId ? h.moves.get(t.moveId) : undefined;
@@ -105,38 +107,37 @@ export default function HistoryView() {
                   <li
                     key={t.id}
                     ref={flip(t.id)}
-                    className={goingIds.has(t.id) ? 'row-out' : rose.has(t.id) ? 'rise' : undefined}
+                    className={`border-b border-line ${
+                      goingIds.has(t.id) ? 'row-out' : rose.has(t.id) ? 'rise' : ''
+                    }`}
                     aria-hidden={goingIds.has(t.id) || undefined}
                   >
                     <button
                       type="button"
                       onClick={goingIds.has(t.id) ? undefined : () => setEditing(t)}
                       tabIndex={goingIds.has(t.id) ? -1 : undefined}
-                      className="flex w-full items-baseline gap-2.5 border-l-[3px] px-3 py-2.5 text-left"
-                      style={{
-                        borderLeftColor: hasAccent(t.bucketId)
-                          ? bucketAccent(t.bucketId)
-                          : 'transparent',
-                      }}
+                      className="grid w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-x-2 py-2 text-left min-[900px]:grid-cols-[64px_minmax(0,1fr)_auto]"
                     >
-                      <span className="w-10 shrink-0 text-[11px] text-faint min-[900px]:w-16">
+                      <span className="text-[13px] text-faint">
                         {new Date(t.occurredAt).toLocaleTimeString('en-GB', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </span>
-                      <span className="w-20 shrink-0 truncate text-[13px] min-[900px]:w-32">
-                        {pair ? 'Move' : (b?.name ?? t.bucketId)}
+                      <span className="flex min-w-0 items-center gap-2 text-[15px]">
+                        <BucketDot id={pair ? '' : t.bucketId} keepSpace />
+                        <span className="truncate">{pair ? 'Move' : (b?.name ?? t.bucketId)}</span>
                       </span>
-                      <span
-                        className={`shrink-0 text-[13px] font-medium ${isIn ? 'text-muted' : ''}`}
-                      >
+                      {/* Right-aligned so the amounts line up in one column. */}
+                      <span className={`text-right text-[15px] font-medium ${isIn ? 'text-muted' : ''}`}>
                         {isIn ? '+' : ''}
                         {formatVnd(t.amountVnd)}
                       </span>
-                      <span className="ml-auto truncate text-right text-[12px] text-muted">
-                        {note}
-                      </span>
+                      {note && (
+                        <span className="col-start-2 col-end-4 truncate pl-4 text-[13px] text-faint">
+                          {note}
+                        </span>
+                      )}
                     </button>
                   </li>
                 );
@@ -147,11 +148,11 @@ export default function HistoryView() {
       )}
 
       {h.rows.length > 0 && (
-        <div className="mt-4 flex justify-between px-1 text-xs">
+        <div className="mt-4 flex justify-between text-[13px]">
           <span className="text-muted">
             {h.rows.length} {h.rows.length === 1 ? 'entry' : 'entries'}
           </span>
-          <span className="font-medium">
+          <span className="font-semibold">
             <Settle value={h.total} settled={h.settled}>
               {formatVnd(h.total)}
             </Settle>
@@ -179,7 +180,7 @@ export default function HistoryView() {
           onClose={() => setEditing(null)}
         />
       )}
-    </div>
+    </Page>
   );
 }
 

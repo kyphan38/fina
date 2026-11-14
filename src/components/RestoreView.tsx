@@ -84,7 +84,7 @@ export default function RestoreView() {
 
   return (
     <section className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pt-6">
-      <h1 className="text-lg font-semibold">Restore</h1>
+      <h1 className="text-xl font-semibold">Restore</h1>
       <p className="mt-2 text-sm text-muted">
         Adds missing records only. Never overwrites.
       </p>
@@ -100,7 +100,7 @@ export default function RestoreView() {
       />
 
       {preview && (
-        <div className="mt-4 rounded-xl border border-line bg-surface px-4 py-3">
+        <div className="mt-4 rounded-[10px] border border-line bg-surface px-4 py-3">
           <p className="text-xs text-faint">
             Exported {new Date(preview.backup.exportedAt).toLocaleString('en-GB')}
           </p>
@@ -120,13 +120,13 @@ export default function RestoreView() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Type RESTORE"
-            className="mt-3 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-sm"
+            className="mt-3 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-sm"
           />
           <button
             type="button"
             disabled={confirm !== 'RESTORE' || busy}
             onClick={restore}
-            className="mt-2 w-full rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
+            className="mt-2 w-full rounded-[10px] bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
           >
             {busy ? 'Restoring…' : 'Restore'}
           </button>

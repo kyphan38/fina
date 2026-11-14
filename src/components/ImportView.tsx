@@ -356,7 +356,7 @@ export default function ImportView() {
             type="button"
             disabled={reading}
             onClick={() => fileRef.current?.click()}
-            className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-semibold disabled:opacity-40"
+            className="shrink-0 rounded-[10px] border border-line px-2 py-1 text-[11px] font-semibold disabled:opacity-40"
           >
             {reading ? 'Reading…' : '+ Screenshots'}
           </button>
@@ -372,7 +372,7 @@ export default function ImportView() {
               type="button"
               aria-pressed={merge === m.on}
               onClick={() => uid && run(() => setDraftMerge(uid, m.on))}
-              className={`flex-1 rounded-lg py-1.5 ${
+              className={`flex-1 rounded-[10px] py-1.5 ${
                 merge === m.on ? 'bg-ink font-semibold text-bg' : 'text-muted'
               }`}
             >
@@ -386,7 +386,7 @@ export default function ImportView() {
 
         {groups.map(([day, list]) => (
           <section key={day} className="pt-4">
-            <h2 className="flex px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+            <h2 className="flex px-1 pb-1.5 text-[13px] font-medium text-muted">
               {day}
               <span className="ml-auto font-medium normal-case tracking-normal">
                 {formatVnd(
@@ -394,7 +394,7 @@ export default function ImportView() {
                 )}
               </span>
             </h2>
-            <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+            <ul className="divide-y divide-line rounded-[10px] border border-line bg-surface">
               {list.map((r) => (
                 <RowItem
                   key={r.id}
@@ -417,10 +417,10 @@ export default function ImportView() {
 
         {removed.length > 0 && (
           <section className="pt-5">
-            <h2 className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+            <h2 className="px-1 pb-1.5 text-[13px] font-medium text-muted">
               Removed
             </h2>
-            <ul className="divide-y divide-line rounded-xl border border-dashed border-line">
+            <ul className="divide-y divide-line rounded-[10px] border border-dashed border-line">
               {removed.map((r) => (
                 <li key={r.id} className="flex items-center gap-2.5 px-3 py-2 text-[12px] text-faint">
                   <span className="w-[74px] shrink-0">
@@ -646,7 +646,7 @@ function AddRow({
           setBucketId(defaultBucket);
           setOpen(true);
         }}
-        className="mt-3 w-full rounded-xl border border-dashed border-line py-2 text-xs text-muted"
+        className="mt-3 w-full rounded-[10px] border border-dashed border-line py-2 text-xs text-muted"
       >
         + Add row
       </button>
@@ -654,7 +654,7 @@ function AddRow({
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-line bg-surface p-3">
+    <div className="mt-3 rounded-[10px] border border-line bg-surface p-3">
       <div className="flex gap-2">
         <input
           type="datetime-local"
@@ -722,7 +722,7 @@ function AddRow({
             setTitle('');
             setOpen(false);
           }}
-          className="flex-1 rounded-lg bg-ink py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+          className="flex-1 rounded-[10px] bg-ink py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
         >
           Add
         </button>

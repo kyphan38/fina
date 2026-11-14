@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
+import SectionTitle from '@/components/SectionTitle';
 
 const MESSAGE: Record<PushState, string> = {
   not_installed:
     'Add fina to your Home Screen from Safari first. iOS only delivers push to an installed app.',
   not_supported: 'This browser has no Push API.',
-  blocked: 'Notifications are blocked. Turn them back on in iOS Settings → Notifications → fina.',
+  blocked: 'Notifications are blocked. Turn them back on in iOS Settings › Notifications › fina.',
   no_key: 'Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY. Generate a Web Push certificate in Firebase.',
   off: 'Off',
   on: 'On',
@@ -31,12 +32,10 @@ export default function PushCard({ uid, quietDays }: { uid: string | null; quiet
   const canToggle = uid && (state === 'off' || state === 'on');
 
   return (
-    <section className="rounded-xl border border-line bg-surface px-4 py-3">
-      <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
-        Reminders
-      </h2>
+    <section className="border-t border-line pt-3">
+      <SectionTitle className="mb-1">Reminders</SectionTitle>
 
-      <p className="text-sm">
+      <p className="text-[15px]">
         {state === null ? 'Checking…' : MESSAGE[state]}
       </p>
 
@@ -57,15 +56,14 @@ export default function PushCard({ uid, quietDays }: { uid: string | null; quiet
               setBusy(false);
             }
           }}
-          className={`mt-3 rounded-lg px-4 py-2 text-sm font-semibold ${
-            state === 'on' ? 'border border-line' : 'bg-ink text-bg'
-          }`}
+          // Settings has no main action, so no filled button here.
+          className="mt-2 py-1 text-[15px] font-medium text-ink disabled:opacity-30"
         >
           {busy ? 'Working…' : state === 'on' ? 'Turn off' : 'Turn on'}
         </button>
       )}
 
-      <p className="mt-3 text-xs text-faint">
+      <p className="mt-2 text-[13px] text-faint">
         One push at 22:00 after {quietDays} quiet days.
       </p>
     </section>

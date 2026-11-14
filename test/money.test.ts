@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { evalAmount, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
+import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 
 test('toVnd - typed in thousands, stored as integer VND', () => {
   assert.equal(toVnd('25'), 25_000);
@@ -138,4 +138,17 @@ test('pressKey - no leading sign; two signs in a row replace, not append', () =>
 test('pressKey - the digit limit applies to the current amount, not the string', () => {
   assert.equal(pressKey('1234567+12', '3'), '1234567+123');
   assert.equal(pressKey('25+0', '5'), '25+5');
+});
+
+test('formatTyped - typed amount looks like a saved one', () => {
+  assert.equal(formatTyped('227.651'), '227,651');
+  assert.equal(formatTyped('1234.5'), '1.234,5');
+  assert.equal(formatTyped('25.'), '25,');
+  assert.equal(formatTyped('2000'), '2.000');
+  assert.equal(formatTyped('25+1000.5-4'), '25+1.000,5-4');
+  assert.equal(formatTyped(''), '');
+  // Same look as formatVnd for every finished amount.
+  for (const vnd of [155_360, 2_975_000, 227_651, 25_000, 1_234_500]) {
+    assert.equal(formatTyped(fromVnd(vnd)), formatVnd(vnd));
+  }
 });

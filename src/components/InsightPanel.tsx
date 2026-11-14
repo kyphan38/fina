@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { buildDigest } from '@/lib/digest';
 import { canAnalyze, type Signals } from '@/lib/signals';
 import { readInsight, saveInsight, type StoredInsight } from '@/lib/insights-store';
+import SectionTitle, { WORD } from '@/components/SectionTitle';
 
 /**
  * Runs the notes. Cached by `digestHash`, so reopening without changes sends
@@ -49,53 +50,52 @@ export default function InsightPanel({ uid, signals }: { uid: string; signals: S
 
   if (!ready) {
     return (
-      <p className="mt-5 text-xs text-muted">
+      <p className="mt-6 text-[13px] text-muted">
         Needs 3 closed cycles (now {signals.closedCount}).
       </p>
     );
   }
 
   return (
-    <section className="mt-5 rounded-xl border border-line bg-surface px-4 py-3">
-      <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+    <section className="mt-7">
+      <SectionTitle
+        className="mb-1.5"
+        action={
+          result && (
+            <button type="button" onClick={() => void run(true)} disabled={busy} className={WORD}>
+              refresh
+            </button>
+          )
+        }
+      >
         Notes
-        {result && (
-          <button
-            type="button"
-            onClick={() => void run(true)}
-            disabled={busy}
-            className="ml-auto text-[11px] uppercase tracking-[0.09em] text-faint"
-          >
-            Refresh
-          </button>
-        )}
-      </h2>
+      </SectionTitle>
 
       {result === null ? (
         <button
           type="button"
           onClick={() => void run(false)}
           disabled={busy}
-          className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-bg disabled:opacity-30"
+          className="rounded-[10px] bg-ink px-4 py-2.5 text-[15px] font-semibold text-bg disabled:opacity-30"
         >
           {busy ? 'Reading…' : 'Analyse this cycle'}
         </button>
       ) : result.lines.length === 0 ? (
-        <p className="text-sm text-muted">Nothing notable in this period.</p>
+        <p className="text-[15px] text-muted">Nothing notable in this period.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {result.lines.map((line, n) => (
-            <li key={n} className="text-sm leading-relaxed">
+            <li key={n} className="text-[15px] leading-relaxed">
               {line}
             </li>
           ))}
         </ul>
       )}
 
-      {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
+      {error && <p className="mt-2 text-[13px] font-medium text-over">{error}</p>}
 
       {result && result.droppedCount > 0 && (
-        <p className="mt-2.5 text-[11px] text-faint">
+        <p className="mt-2.5 text-[13px] text-faint">
           {result.droppedCount} sentence{result.droppedCount > 1 ? 's' : ''} removed (wrong
           number or advice).
         </p>

@@ -6,7 +6,7 @@ import Numpad from '@/components/Numpad';
 import { allocate, type Allocation } from '@/lib/generator';
 import { applyCyclePlan } from '@/lib/cycles';
 import { cycleLabel, cycleRange } from '@/lib/cycle';
-import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
+import { formatTyped, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { bucketAccent } from '@/lib/bucket-color';
 import type { Bucket } from '@/types/fina';
 import SheetShell from '@/components/SheetShell';
@@ -85,7 +85,7 @@ export default function GeneratorSheet({
         <div className="flex items-baseline justify-between pb-1">
           <span className="text-xs font-semibold">To divide</span>
           <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
-            {buf || '0'}
+            {formatTyped(buf) || '0'}
           </span>
         </div>
       }

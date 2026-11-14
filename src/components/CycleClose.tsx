@@ -52,13 +52,13 @@ export default function CycleClose({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="pt-4">
-        <h1 className="text-lg font-semibold">Cycle {month} ended</h1>
+        <h1 className="text-xl font-semibold">Cycle {month} ended</h1>
         <p className="mt-1 text-sm text-muted">
           Close it to start the next one.
         </p>
       </header>
 
-      <ul className="mt-4 flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3">
+      <ul className="mt-4 flex flex-col gap-2 rounded-[10px] border border-line bg-surface px-4 py-3">
         {monthly.map((b) => {
           const limit = cycle.limits[b.id];
           if (limit === undefined) return null;
@@ -94,7 +94,7 @@ export default function CycleClose({
 
       {surplus > 0 ? (
         <section className="mt-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
+          <p className="mb-2 text-[13px] font-medium text-muted">
             Move surplus to
           </p>
           <div className="flex gap-2">
@@ -115,14 +115,14 @@ export default function CycleClose({
         </section>
       ) : (
         surplus < 0 && (
-          <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-muted">
+          <p className="mt-4 rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-muted">
             Still {formatVnd(-surplus)} short after covers.
           </p>
         )
       )}
 
       {blocked && (
-        <p className="mt-4 rounded-xl border border-line bg-surface px-4 py-3 text-sm">
+        <p className="mt-4 rounded-[10px] border border-line bg-surface px-4 py-3 text-sm">
           {pendingCount} cover{pendingCount > 1 ? 's' : ''} wait on a bank transfer. Finish
           them first.
         </p>

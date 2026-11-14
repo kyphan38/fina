@@ -1,13 +1,17 @@
+import Page from '@/components/Page';
 import SettingsView from '@/components/SettingsView';
 import TopBar from '@/components/TopBar';
 
 export default function SettingsPage() {
   return (
-    <section className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none">
-      <TopBar settings>
-        <h1 className="text-lg font-semibold">Settings</h1>
-      </TopBar>
+    <Page
+      top={
+        <TopBar settings>
+          <h1 className="text-xl font-semibold">Settings</h1>
+        </TopBar>
+      }
+    >
       <SettingsView />
-    </section>
+    </Page>
   );
 }

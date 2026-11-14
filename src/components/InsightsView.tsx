@@ -6,7 +6,10 @@ import BarFill from '@/components/BarFill';
 import HistoryTabs from '@/components/HistoryTabs';
 import InsightPanel from '@/components/InsightPanel';
 import { useInsights, type CycleRow } from '@/hooks/useInsights';
-import { bucketAccent } from '@/lib/bucket-color';
+import BucketDot from '@/components/BucketDot';
+import Page from '@/components/Page';
+import SectionTitle from '@/components/SectionTitle';
+import WordSelect from '@/components/WordSelect';
 import { cycleLabel } from '@/lib/cycle';
 import { barScale } from '@/lib/motion';
 import { formatVnd } from '@/lib/money';
@@ -18,12 +21,11 @@ export default function InsightsView() {
 
   if (s.loading || s.rows.length === 0) {
     return (
-      <div>
-        <HistoryTabs active="trends" />
-        <p className="pt-6 text-sm text-muted">
+      <Page top={<HistoryTabs active="trends" />}>
+        <p className="pt-6 text-[15px] text-muted">
           {s.loading ? 'Loading…' : 'Nothing to show until a cycle exists.'}
         </p>
-      </div>
+      </Page>
     );
   }
 
@@ -32,12 +34,18 @@ export default function InsightsView() {
   const focusBucket = budgets.find((b) => b.id === focus) ?? budgets[0];
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-      <HistoryTabs active="trends" />
+    <Page top={<HistoryTabs active="trends" />}>
 
       <div className="min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-5">
       {buffer && (
-        <Block title="Buffer, last six cycles">
+        <Block
+          title={
+            <>
+              <BucketDot id="buffer" />
+              Buffer, last six cycles
+            </>
+          }
+        >
           <ul className="flex flex-col gap-1.5">
             {s.recent.map((r, n) => (
               <BufferRow key={n} row={r} limitVnd={buffer.standardVnd} />
@@ -48,20 +56,20 @@ export default function InsightsView() {
 
       {focusBucket && (
         <Block
-          title="Trend"
+          title={
+            <>
+              <BucketDot id={focusBucket.id} />
+              {focusBucket.name} per cycle
+            </>
+          }
           action={
-            <select
-              value={focusBucket.id}
-              onChange={(e) => setFocus(e.target.value)}
-              aria-label="Bucket"
-              className="ml-auto rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px]"
-            >
+            <WordSelect value={focusBucket.id} onChange={(e) => setFocus(e.target.value)} aria-label="Bucket">
               {budgets.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
                 </option>
               ))}
-            </select>
+            </WordSelect>
           }
         >
           <Trend rows={s.recent} bucket={focusBucket} />
@@ -71,27 +79,28 @@ export default function InsightsView() {
       </div>
 
       {s.uid && <InsightPanel uid={s.uid} signals={s.signals} />}
-    </div>
+    </Page>
   );
 }
 
 function BufferRow({ row, limitVnd }: { row: CycleRow | null; limitVnd: number }) {
-  if (!row) return <li className="text-xs text-faint">-</li>;
+  if (!row) return <li className="text-[13px] text-faint">-</li>;
   const used = row.byBucket.buffer ?? 0;
   const over = used > limitVnd;
 
   return (
-    <li className="flex items-center gap-2.5 text-xs">
+    <li className="flex items-center gap-2.5 text-[13px]">
       <span className="w-8 shrink-0 text-faint">{cycleLabel(row.id).month.slice(0, 3)}</span>
-      <span className="h-2 flex-1 rounded-full bg-sunk">
+      <span className="h-1 min-w-0 flex-1 rounded-full bg-sunk">
         <BarFill
           fraction={over ? 1 : barScale(used, limitVnd)}
           className="rounded-full"
-          color={over ? 'var(--over)' : 'var(--b6)'}
+          color={over ? 'var(--over)' : 'var(--faint)'}
         />
       </span>
-      <span className={`w-24 shrink-0 text-right ${over ? 'font-medium text-over' : 'text-muted'}`}>
-        {formatVnd(used)} / {formatVnd(limitVnd)}
+      {/* nowrap: a long number pushes the bar shorter instead of breaking in two. */}
+      <span className={`w-[7.5rem] shrink-0 whitespace-nowrap text-right ${over ? 'font-semibold text-over' : 'text-muted'}`}>
+        {over ? `${formatVnd(used - limitVnd)} over` : `${formatVnd(used)} / ${formatVnd(limitVnd)}`}
       </span>
     </li>
   );
@@ -109,30 +118,35 @@ function Trend({ rows, bucket }: { rows: (CycleRow | null)[]; bucket: Bucket }) 
           drops to minHeight - six equal bars look like a chart with no data.
           So month labels sit in their own row, aligned with the same flex-1
           and gap. */}
-      <div className="flex h-28 items-end gap-1.5">
+      <div className="relative flex h-32 items-end gap-1.5 border-b border-line">
         {rows.map((_, n) => (
           <span
             key={n}
-            className="flex-1 rounded-t-[3px]"
+            className={`flex-1 rounded-t-[3px] ${n === rows.length - 1 ? 'bg-ink' : 'bg-line'}`}
             style={{
               // Net spending can be negative (more refunds than spending). A
               // negative height is invalid and the bar disappears again.
               height: `${Math.max(0, (values[n] / peak) * 100)}%`,
               minHeight: values[n] > 0 ? 3 : 0,
-              background: bucketAccent(bucket.id),
             }}
           />
         ))}
+        {/* The standard amount as a dashed line, so "over" reads at a glance. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 border-t border-dashed border-faint"
+          style={{ bottom: `${(bucket.standardVnd / peak) * 100}%` }}
+        />
       </div>
       <div className="mt-1 flex gap-1.5">
         {rows.map((r, n) => (
-          <span key={n} className="flex-1 text-center text-[10px] text-faint">
+          <span key={n} className="flex-1 text-center text-[11px] text-faint">
             {r ? cycleLabel(r.id).month.slice(0, 3) : '-'}
           </span>
         ))}
       </div>
-      <p className="mt-2 text-[11px] text-faint">
-        Standard {formatVnd(bucket.standardVnd)}. Net of refunds.
+      <p className="mt-2 text-[13px] text-faint">
+        Dashed line: standard {formatVnd(bucket.standardVnd)}. Net of refunds.
       </p>
     </>
   );
@@ -143,16 +157,15 @@ function Block({
   action,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-5 rounded-xl border border-line bg-surface px-4 py-3">
-      <h2 className="mb-2.5 flex items-center text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+    <section className="mt-4 first:mt-1 min-[900px]:mt-2">
+      <SectionTitle action={action} className="mb-1.5">
         {title}
-        {action}
-      </h2>
+      </SectionTitle>
       {children}
     </section>
   );

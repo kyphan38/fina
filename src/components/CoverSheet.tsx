@@ -6,7 +6,7 @@ import Numpad from '@/components/Numpad';
 import { coverOptions, createCover } from '@/lib/covers';
 import { deleteTransaction } from '@/lib/transactions';
 import type { Transaction } from '@/types/fina';
-import { evalAmount, formatVnd, fromVnd, pressKey } from '@/lib/money';
+import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey } from '@/lib/money';
 import type { Bucket } from '@/types/fina';
 import SheetShell from '@/components/SheetShell';
 
@@ -144,13 +144,13 @@ export default function CoverSheet({
             <span className="flex flex-col items-end">
               {combining && (
                 <span className="max-w-[190px] truncate text-[11px] leading-tight text-faint">
-                  {buf}
+                  {formatTyped(buf)}
                 </span>
               )}
               <span
                 className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}
               >
-                {combining ? (draft === null ? '…' : formatVnd(draft)) : buf || '0'}
+                {combining ? (draft === null ? '…' : formatVnd(draft)) : formatTyped(buf) || '0'}
               </span>
             </span>
           </div>
@@ -191,7 +191,7 @@ export default function CoverSheet({
             <span className="text-xs text-muted">Move</span>
             <span className="flex items-baseline gap-2">
               <b className="text-sm font-semibold">{formatVnd(amountVnd)}</b>
-              <span className="text-[10px] uppercase tracking-wider text-faint">Adjust</span>
+              <span className="text-[11px] text-faint">Adjust</span>
             </span>
           </button>
 
@@ -221,7 +221,7 @@ export default function CoverSheet({
                 >
                   <span className="text-sm">
                     {o.bucket.name}
-                    <span className="ml-2 text-[10px] uppercase tracking-wider text-faint">
+                    <span className="ml-2 text-[11px] text-faint">
                       {o.bucket.bank}
                     </span>
                   </span>

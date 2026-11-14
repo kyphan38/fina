@@ -51,14 +51,14 @@ export default function SalaryView() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
       <header className="flex items-center justify-between border-b border-line pb-2.5 pt-3">
-        <h1 className="text-lg font-semibold">Salary</h1>
+        <h1 className="text-xl font-semibold">Salary</h1>
         <button
           type="button"
           onClick={() => {
             gateStore.lock();
             setRows([]);
           }}
-          className="text-[11px] uppercase tracking-[0.09em] text-faint"
+          className="text-[13px] text-faint hover:text-ink"
         >
           Lock
         </button>
@@ -206,8 +206,8 @@ function Chart({ rows }: { rows: Salary[] }) {
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-5 rounded-xl border border-line bg-surface px-4 py-3">
-      <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+    <section className="mt-5 rounded-[10px] border border-line bg-surface px-4 py-3">
+      <h2 className="mb-2.5 text-[13px] font-medium text-muted">
         {title}
       </h2>
       {children}

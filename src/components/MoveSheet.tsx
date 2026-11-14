@@ -10,7 +10,7 @@ import type { Bucket, Transaction } from '@/types/fina';
 import SheetShell from '@/components/SheetShell';
 
 const SELECT =
-  'min-w-0 flex-1 rounded-[9px] border border-line bg-surface-2 px-2 py-2 text-[13px]';
+  'min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-2 text-[13px]';
 
 /** Move money between two BIDV funds. Same bank, so no real transfer is needed. */
 export default function MoveSheet({
@@ -151,7 +151,7 @@ export function MoveDetailSheet({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="flex-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
+            className="flex-1 rounded-[10px] bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
           >
             {busy ? 'Deleting…' : 'Delete both sides'}
           </button>
@@ -159,7 +159,7 @@ export function MoveDetailSheet({
           <button
             type="button"
             onClick={() => setConfirm(true)}
-            className="flex-1 rounded-lg border border-line py-2.5 text-sm"
+            className="flex-1 rounded-[10px] border border-line py-2.5 text-sm"
           >
             Delete move
           </button>
@@ -167,7 +167,7 @@ export function MoveDetailSheet({
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 rounded-lg border border-line py-2.5 text-sm"
+          className="flex-1 rounded-[10px] border border-line py-2.5 text-sm"
         >
           Close
         </button>

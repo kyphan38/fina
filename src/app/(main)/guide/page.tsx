@@ -19,7 +19,7 @@ export default function GuidePage() {
   return (
     <article className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-16 pt-6 text-sm leading-relaxed">
       <header className="flex items-baseline justify-between">
-        <h1 className="text-lg font-semibold">Hướng dẫn</h1>
+        <h1 className="text-xl font-semibold">Hướng dẫn</h1>
         <Link href="/settings" className="text-xs text-muted hover:text-ink active:text-ink">
           ← Settings
         </Link>
@@ -218,7 +218,7 @@ function Section({ id, children }: { id: (typeof SECTIONS)[number]['id']; childr
   const n = SECTIONS.findIndex((s) => s.id === id);
   return (
     <section id={id} className="mt-10 scroll-mt-4 border-t border-line pt-3">
-      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
+      <h2 className="mb-3 text-[13px] font-medium text-muted">
         {n + 1} · {SECTIONS[n].title}
       </h2>
       <div className="flex flex-col gap-3">{children}</div>

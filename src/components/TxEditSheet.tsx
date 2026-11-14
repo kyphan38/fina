@@ -3,10 +3,13 @@
 import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
-import { formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
+import { formatTyped, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
 import { deleteTransaction, updateTransaction } from '@/lib/transactions';
 import type { Bucket, Transaction } from '@/types/fina';
 import SheetShell from '@/components/SheetShell';
+import BucketDot from '@/components/BucketDot';
+import DirectionToggle from '@/components/DirectionToggle';
+import { WORD } from '@/components/SectionTitle';
 
 /** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
 function toLocalInput(ms: number): string {
@@ -60,34 +63,33 @@ export default function TxEditSheet({
       z={20}
       dim={30}
       locked={busy}
-      className="max-h-[92dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-2xl border-t border-line bg-surface px-4 pt-3"
+      className="max-h-[92dvh] overflow-y-auto overflow-x-hidden overscroll-x-none rounded-t-[10px] border-t border-line bg-surface px-4 pt-3"
       header={
         <div className="flex items-baseline justify-between pb-2">
-          <span className="text-xs font-semibold">Edit entry</span>
-          <span className="flex items-baseline gap-2">
-            <button
-              type="button"
-              onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
-              aria-label={direction === 'in' ? 'Money in' : 'Money out'}
-              className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${
-                direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
-              }`}
-            >
-            {direction === 'in' ? '+' : '−'}
-          </button>
-          <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
-            {buf || '0'}
+          <span className="text-[15px] font-semibold">Edit entry</span>
+          <span className="flex items-baseline gap-3.5">
+            {/* Same words as Log: the numpad has a − key, so no − here. */}
+            <DirectionToggle
+              direction={direction}
+              onFlip={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
+            />
+            <span className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}>
+              {formatTyped(buf) || '0'}
+            </span>
           </span>
-        </span>
-      </div>
+        </div>
     }
   >
 
+      <span className="relative mb-1.5 flex items-center">
+        <span className="pointer-events-none absolute left-3 flex">
+          <BucketDot id={bucketId} />
+        </span>
       <select
         value={bucketId}
         onChange={(e) => setBucketId(e.target.value)}
         aria-label="Bucket"
-        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
+        className="w-full rounded-md border border-line bg-surface-2 py-2 pr-3 pl-7 text-[13px]"
       >
         {buckets.map((b) => (
           <option key={b.id} value={b.id}>
@@ -95,23 +97,24 @@ export default function TxEditSheet({
           </option>
         ))}
       </select>
+      </span>
 
       <input
         type="datetime-local"
         value={when}
         onChange={(e) => setWhen(e.target.value)}
         aria-label="Date and time"
-        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px]"
+        className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px]"
       />
 
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="Note (optional)"
-        className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
+        placeholder="Note"
+        className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint"
       />
 
-      {error && <p className="mb-2 text-xs font-medium text-over">{error}</p>}
+      {error && <p className="mb-2 text-[13px] font-medium text-over">{error}</p>}
 
       <Numpad
         onKey={(k) => setBuf((cur) => pressKey(cur, k))}
@@ -131,11 +134,7 @@ export default function TxEditSheet({
       />
 
       <div className="mb-3 flex gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 py-2 text-center text-xs text-muted"
-        >
+        <button type="button" onClick={onClose} className={`${WORD} flex-1 py-2 text-center`}>
           Cancel
         </button>
         <button
@@ -146,11 +145,12 @@ export default function TxEditSheet({
               ? run(() => deleteTransaction(uid, tx, beforeKind))
               : setConfirmDelete(true)
           }
-          className={`flex-1 rounded-lg py-2 text-center text-xs ${
-            confirmDelete ? 'bg-over font-semibold text-bg' : 'text-over'
+          // One filled button per sheet (Save), so the second tap is ink words.
+          className={`flex-1 py-2 text-center text-[13px] ${
+            confirmDelete ? 'font-semibold text-over' : 'text-faint hover:text-ink active:text-ink'
           }`}
         >
-          {confirmDelete ? `Delete ${formatVnd(tx.amountVnd)} - tap again` : 'Delete'}
+          {confirmDelete ? `Tap again to delete ${formatVnd(tx.amountVnd)}` : 'Delete'}
         </button>
       </div>
     </SheetShell>

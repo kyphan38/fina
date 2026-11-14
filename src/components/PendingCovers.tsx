@@ -65,7 +65,7 @@ export default function PendingCovers() {
         <button
           type="button"
           onClick={copy}
-          className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs"
+          className="rounded-[10px] border border-line bg-surface px-3 py-1.5 text-xs"
         >
           {copied ? 'Copied' : `Copy ${cover.amountVnd.toLocaleString('vi-VN')}`}
         </button>
@@ -81,7 +81,7 @@ export default function PendingCovers() {
               setBusy(false);
             }
           }}
-          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+          className="rounded-[10px] bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
         >
           {returned ? 'Transferred' : 'Done'}
         </button>

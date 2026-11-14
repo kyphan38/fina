@@ -11,9 +11,11 @@ import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import { themeStore, type Theme } from '@/lib/prefs';
 import PushCard from '@/components/PushCard';
+import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
 import GoalsCard from '@/components/GoalsCard';
 import { isGoal } from '@/lib/goals';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
+import BucketDot from '@/components/BucketDot';
 import type { Bucket } from '@/types/fina';
 
 export default function SettingsView() {
@@ -88,19 +90,15 @@ export default function SettingsView() {
   return (
     <div className="mt-5 flex flex-col gap-8">
       <Card title="Signed in as">
-        <p className="text-sm">{user?.email ?? '-'}</p>
-        <button
-          type="button"
-          onClick={signOut}
-          className="mt-3 py-1 text-sm text-muted hover:text-ink active:text-ink"
-        >
+        <p className="text-[15px]">{user?.email ?? '-'}</p>
+        <button type="button" onClick={signOut} className={`${WORD} mt-2 py-1`}>
           Sign out
         </button>
       </Card>
 
       <Card title="Theme">
         {/* The current choice is bold, the others are faint and clickable. */}
-        <div className="flex gap-4 text-sm" role="radiogroup" aria-label="Theme">
+        <div className="flex gap-4 text-[15px]" role="radiogroup" aria-label="Theme">
           {(['system', 'light', 'dark'] as const satisfies readonly Theme[]).map((t) => (
             <button
               key={t}
@@ -117,27 +115,27 @@ export default function SettingsView() {
       </Card>
 
       <Card title="Standard amounts">
-        <p className="mb-3 text-sm text-muted">
+        <p className="mb-2 text-[13px] text-muted">
           Defaults for each new cycle. For one month only, use Generator.
         </p>
 
         {buckets.length === 0 ? (
           <>
-            <p className="mb-3 text-sm text-muted">
+            <p className="mb-3 text-[15px] text-muted">
               No buckets yet. Creates the 12 starting ones.
             </p>
             <button
               type="button"
               onClick={initialize}
               disabled={busy || !uid}
-              className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-bg disabled:opacity-30"
+              className="rounded-[10px] bg-ink px-4 py-2.5 text-[15px] font-semibold text-bg disabled:opacity-30"
             >
               {busy ? 'Writing…' : 'Initialize buckets'}
             </button>
           </>
         ) : (
           <>
-          <p className="mb-2 text-[11px] text-faint">Tap a name to edit.</p>
+          <p className="text-[13px] text-faint">Tap a name to edit.</p>
           <ul className="flex flex-col divide-y divide-line">
             {/* Goals have their own card below. */}
             {buckets.filter((b) => !isGoal(b)).map((b) => (
@@ -149,17 +147,16 @@ export default function SettingsView() {
                     aria-expanded={openHint === b.id}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    <span className="truncate text-sm">{b.name}</span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-faint">
-                      {b.bank}
-                    </span>
+                    <BucketDot id={b.id} keepSpace />
+                    <span className="truncate text-[15px]">{b.name}</span>
+                    <span className="shrink-0 text-[11px] text-faint">{b.bank}</span>
                   </button>
                   <input
                     defaultValue={fromVnd(b.standardVnd)}
                     inputMode="decimal"
                     aria-label={`${b.name} standard`}
                     onBlur={(e) => saveStandard(b, e.target.value)}
-                    className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-sm"
+                    className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-[15px]"
                   />
                 </div>
 
@@ -171,64 +168,22 @@ export default function SettingsView() {
           </ul>
           </>
         )}
-        {msg && <p className="mt-3 text-xs text-muted">{msg}</p>}
+        {msg && <p className="mt-3 text-[13px] text-muted">{msg}</p>}
       </Card>
 
       {uid && buckets.length > 0 && <GoalsCard uid={uid} buckets={buckets} />}
 
-      <Card title="Cold start">
-        {times.length === 0 ? (
-          <p className="text-sm text-muted">
-            No measurement yet. Open the Log tab once.
-          </p>
-        ) : (
-          <>
-            <p className="text-sm">
-              <b className="text-lg font-semibold">{(times[0].ms / 1000).toFixed(2)}s</b>{' '}
-              <span className="text-muted">
-                last · {times[0].network ? 'from network' : 'from cache'}
-              </span>
-            </p>
-            <ul className="mt-2 flex flex-col gap-0.5 text-xs text-muted">
-              {times.map((t) => (
-                <li key={t.at} className="flex justify-between">
-                  <span>{(t.ms / 1000).toFixed(2)}s</span>
-                  <span className="text-faint">
-                    {t.network ? 'network' : 'cache'} ·{' '}
-                    {new Date(t.at).toLocaleTimeString('en-GB', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-faint">
-              Target: 1.50s warm, 2.50s cold.{skipped > 0 ? ` ${skipped} runs dropped.` : ''}
-            </p>
-            <button
-              type="button"
-              onClick={clearStartupTimes}
-              className="mt-3 py-1.5 text-xs text-muted hover:text-ink active:text-ink"
-            >
-              Reset
-            </button>
-          </>
-        )}
-      </Card>
-
       <PushCard uid={uid} quietDays={REMINDER_QUIET_DAYS} />
 
       <Card title="Backup">
-        <p className="mb-3 text-sm text-muted">
-          Export is your only backup.
-        </p>
-        <div className="flex gap-2">
+        <p className="text-[15px]">Export is your only backup.</p>
+        {/* Words, not a filled button: Settings has no main action. */}
+        <div className="mt-2 flex items-baseline gap-5 text-[15px]">
           <button
             type="button"
             disabled={!uid || exporting}
             onClick={() => exportAs('json')}
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-bg disabled:opacity-30"
+            className="py-1 font-medium text-ink disabled:opacity-30"
           >
             {exporting ? 'Reading…' : 'Export JSON'}
           </button>
@@ -236,32 +191,33 @@ export default function SettingsView() {
             type="button"
             disabled={!uid || exporting}
             onClick={() => exportAs('csv')}
-            className="px-2 py-2 text-sm text-muted hover:text-ink active:text-ink disabled:opacity-30"
+            className="py-1 font-medium text-ink disabled:opacity-30"
           >
             Export CSV
           </button>
-        </div>
-        {stale !== null && stale >= 35 && (
-          <p className="mt-3 text-xs font-medium text-over">Last export was {stale} days ago.</p>
-        )}
-        <p className="mt-3 text-xs text-faint">
-          <Link href="/settings/restore" className="hover:text-ink active:text-ink after:ml-1 after:content-['›']">
+          <Link href="/settings/restore" className={WORD_GO}>
             Restore
           </Link>
-        </p>
+        </div>
+        {stale !== null && stale >= 35 && (
+          <p className="mt-2 text-[13px] font-medium text-over">Last export was {stale} days ago.</p>
+        )}
       </Card>
 
       {/* No tab in the bottom bar and no hint of what it holds: someone holding
           the phone while the app is open never sees the word "salary".
           That page locks itself with a password. */}
-      <p className="flex gap-5 text-xs text-muted">
-        <Link href="/guide" className="hover:text-ink active:text-ink after:ml-1 after:content-['›']">
-          Hướng dẫn
+      <p className="flex gap-5">
+        <Link href="/guide" className={WORD_GO}>
+          Guide
         </Link>
-        <Link href="/salary" className="text-faint hover:text-ink active:text-ink after:ml-1 after:content-['›']">
+        <Link href="/salary" className={WORD_GO}>
           More
         </Link>
       </p>
+
+      {/* A tool for the owner, not a setting: one faint line, details on tap. */}
+      <ColdStart times={times} skipped={skipped} />
     </div>
   );
 }
@@ -312,7 +268,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
 
   if (!editing) {
     return (
-      <div className="relative mt-2 flex items-start gap-3 rounded-lg bg-ink px-3 py-2 text-[12px] text-bg">
+      <div className="relative mt-2 flex items-start gap-3 rounded-[10px] bg-ink px-3 py-2 text-[12px] text-bg">
         <span aria-hidden className="absolute -top-1 left-4 h-2 w-2 rotate-45 bg-ink" />
         <span className={`min-w-0 flex-1 ${bucket.hint ? '' : 'opacity-60'}`}>
           {bucket.hint ?? 'No description'}
@@ -350,7 +306,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+          className="rounded-[10px] bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
@@ -374,10 +330,52 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-line pt-3">
-      <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
-        {title}
-      </h2>
+      <SectionTitle className="mb-1">{title}</SectionTitle>
       {children}
+    </section>
+  );
+}
+
+function ColdStart({
+  times,
+  skipped,
+}: {
+  times: ReturnType<typeof startupStore.get>;
+  skipped: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const last = times[0];
+  return (
+    <section className="-mt-4 text-[13px] text-faint">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className={WORD}>
+        Cold start{' '}
+        {last ? `${(last.ms / 1000).toFixed(2)}s · ${last.network ? 'network' : 'cache'}` : 'not measured'}
+      </button>
+      {open && (
+        <div className="mt-2">
+          {times.length === 0 ? (
+            <p>No measurement yet. Open the Log tab once.</p>
+          ) : (
+            <ul className="flex flex-col gap-0.5">
+              {times.map((t) => (
+                <li key={t.at} className="flex justify-between">
+                  <span className="text-muted">{(t.ms / 1000).toFixed(2)}s</span>
+                  <span>
+                    {t.network ? 'network' : 'cache'} ·{' '}
+                    {new Date(t.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2">
+            Target: 1.50s warm, 2.50s cold.{skipped > 0 ? ` ${skipped} runs dropped.` : ''}
+          </p>
+          <button type="button" onClick={clearStartupTimes} className={`${WORD} mt-1 py-1`}>
+            Reset
+          </button>
+        </div>
+      )}
     </section>
   );
 }

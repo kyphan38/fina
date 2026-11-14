@@ -58,6 +58,21 @@ export function formatVnd(vnd: number): string {
   });
 }
 
+/**
+ * What the user is typing, in the same look as `formatVnd`: '227.651' ->
+ * '227,651', '1234.5' -> '1.234,5'. The numpad types '.' as the decimal mark,
+ * but every saved amount shows ',' - one number must not change look on save.
+ * Keeps a trailing mark ('25.' -> '25,') and the + / - between amounts.
+ */
+export function formatTyped(input: string): string {
+  return input.replace(/\d*(\.\d*)?/g, (term) => {
+    if (term === '') return term;
+    const [whole, decimals] = term.split('.');
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return decimals === undefined ? grouped : `${grouped},${decimals}`;
+  });
+}
+
 /** The amount being typed - the part after the last plus/minus. */
 function lastTerm(s: string): string {
   const at = Math.max(s.lastIndexOf('+'), s.lastIndexOf('-'));

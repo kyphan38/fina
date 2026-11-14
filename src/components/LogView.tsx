@@ -7,13 +7,16 @@ import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
 import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
-import { evalAmount, formatVnd, pressKey } from '@/lib/money';
+import { evalAmount, formatTyped, formatVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction } from '@/lib/transactions';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
 import Settle from '@/components/Settle';
 import ToastBar, { type ToastData } from '@/components/ToastBar';
 import TopBar from '@/components/TopBar';
+import BucketDot from '@/components/BucketDot';
+import DirectionToggle from '@/components/DirectionToggle';
+import SectionTitle, { WORD } from '@/components/SectionTitle';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
 import type { Bucket, Transaction } from '@/types/fina';
@@ -222,7 +225,7 @@ export default function LogView() {
     return (
       <div>
         <TopBar>
-          <h1 className="text-lg font-semibold">Log</h1>
+          <h1 className="text-xl font-semibold">Log</h1>
         </TopBar>
         <p className="pt-3 text-sm text-muted">
           No buckets yet. Open <span className="font-medium text-ink">Settings</span> and tap{' '}
@@ -238,19 +241,22 @@ export default function LogView() {
     <div className="flex h-full flex-col">
       {/* Same two rows as Summary: cycle name and gear, then day and money left. */}
       <TopBar>
-        <h1 className="text-lg font-semibold">{month}</h1>
+        <h1 className="text-xl font-semibold">Log</h1>
       </TopBar>
       <div className="flex min-h-0 flex-1 flex-col min-[900px]:flex-row min-[900px]:gap-7">
       <div className="flex min-h-0 flex-1 flex-col">
-      <p className="flex min-h-11 shrink-0 items-center justify-between text-xs text-muted">
-        <span>Day {day} of {total}</span>
+      {/* Quiet on purpose: the amount being typed is the one big number here. */}
+      <p className="flex min-h-10 shrink-0 items-center justify-between gap-3 text-[13px] text-muted">
         <span>
-          Monthly left{' '}
-          <b className="ml-1 text-[17px] font-semibold text-ink">
+          {month.slice(0, 3)} · day {day} of {total}
+        </span>
+        <span>
+          <b className="font-semibold text-ink">
             <Settle value={monthlyLeft} settled={settled}>
               {formatVnd(monthlyLeft)}
             </Settle>
-          </b>
+          </b>{' '}
+          left
         </span>
       </p>
 
@@ -280,12 +286,9 @@ export default function LogView() {
             type="button"
             onClick={toggleFunds}
             aria-expanded={fundsOpen}
-            className="ml-auto flex items-center gap-1.5 text-[11px] uppercase tracking-[0.09em] text-faint min-[900px]:hidden"
+            className={`${WORD} min-[900px]:hidden`}
           >
-            {fundsOpen ? 'Hide' : 'Show'}
-            <span className={`inline-block transition-transform duration-200 ${fundsOpen ? '' : '-rotate-90'}`}>
-              ▼
-            </span>
+            {fundsOpen ? 'hide' : 'show'}
           </button>
         }
       >
@@ -305,9 +308,7 @@ export default function LogView() {
           </div>
           {goals.length > 0 && (
             <>
-              <h3 className="px-1 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
-                Goals
-              </h3>
+              <SectionTitle className="pt-2">Goals</SectionTitle>
               <div className="grid grid-cols-3 gap-1.5">
                 {goals.map((b) => (
                   <BucketTile
@@ -331,35 +332,27 @@ export default function LogView() {
         <div className="flex items-baseline justify-between gap-2.5 px-1 pb-2">
           {/* No hint here: the entry screen is the most crowded, and hints only
               matter while configuring. They live in Settings. */}
-          <span className={`min-w-0 flex-1 truncate text-xs ${selected ? 'font-semibold' : 'text-faint'}`}>
-            {selected ? selected.name : 'Pick a bucket'}
+          <span
+            className={`flex min-w-0 flex-1 items-center gap-2 text-[15px] ${selected ? 'font-medium' : 'text-faint'}`}
+          >
+            {selected && <BucketDot id={selected.id} />}
+            <span className="truncate">{selected ? selected.name : 'Pick a bucket'}</span>
           </span>
-          <span className="flex shrink-0 items-baseline gap-2">
-            {/* OUT/IN words, not −/+: the numpad now has + and − keys for
+          <span className="flex shrink-0 items-baseline gap-3.5">
+            {/* out / in words, not −/+: the numpad has + and − keys for
                 adding amounts, and one screen cannot give one symbol two
                 meanings. */}
-            <button
-              type="button"
-              onClick={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))}
-              aria-label={direction === 'in' ? 'Money in' : 'Money out'}
-              className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide transition-colors duration-150 ${
-                direction === 'in' ? 'border-ink bg-ink text-bg' : 'border-line text-faint'
-              }`}
-            >
-              {direction === 'in' ? 'IN' : 'OUT'}
-            </button>
+            <DirectionToggle direction={direction} onFlip={() => setDirection((d) => (d === 'out' ? 'in' : 'out'))} />
             <span className="flex flex-col items-end">
               {combining && (
                 <span className="max-w-[190px] truncate text-[11px] leading-tight text-faint">
-                  {buf}
+                  {formatTyped(buf)}
                 </span>
               )}
               <span
-                className={`text-[34px] leading-none font-medium [@media(max-height:720px)]:text-[27px] ${
-                  buf ? '' : 'text-faint'
-                }`}
+                className={`text-[30px] leading-none font-medium ${buf ? '' : 'text-faint'}`}
               >
-                {combining ? (amountVnd === null ? '…' : formatVnd(amountVnd)) : buf || '0'}
+                {combining ? (amountVnd === null ? '…' : formatVnd(amountVnd)) : formatTyped(buf) || '0'}
               </span>
             </span>
           </span>
@@ -368,9 +361,9 @@ export default function LogView() {
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Note (optional)"
+          placeholder="Note"
           enterKeyHint="done"
-          className="mb-1.5 w-full rounded-[9px] border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"
+          className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"
         />
 
         <Numpad onKey={onKey} onSave={save} canSave={canSave} ops keyboard={false} />
@@ -421,12 +414,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="pt-3">
-      <h2 className="flex items-center px-1 pb-2 text-[11px] font-semibold uppercase tracking-[0.09em] text-faint">
-        {title}
-        {action}
-      </h2>
+    <section className="pt-2">
+      <SectionTitle action={action}>{title}</SectionTitle>
       {children}
     </section>
   );
 }
+

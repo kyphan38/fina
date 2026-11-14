@@ -1,5 +1,6 @@
 'use client';
 
+import SectionTitle from '@/components/SectionTitle';
 import { useEffect, useState } from 'react';
 
 import { updateBucket } from '@/lib/buckets';
@@ -48,7 +49,7 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
 
   return (
     <section className="border-t border-line pt-3">
-      <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">Goals</h2>
+      <SectionTitle className="mb-1">Goals</SectionTitle>
 
       {goals.length > 0 && (
         <ul className="flex flex-col divide-y divide-line">
@@ -253,7 +254,7 @@ function NewGoalForm({
               standardVnd: standardVnd ?? 0,
             })
           }
-          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+          className="rounded-[10px] bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
         >
           Add
         </button>
@@ -272,7 +273,7 @@ function NewGoalForm({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex min-w-0 flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wider text-faint">{label}</span>
+      <span className="text-[11px] text-faint">{label}</span>
       {children}
     </label>
   );

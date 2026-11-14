@@ -4,7 +4,7 @@ import BarFill from '@/components/BarFill';
 import Settle from '@/components/Settle';
 import { barScale } from '@/lib/motion';
 import { formatVnd } from '@/lib/money';
-import { bucketAccent } from '@/lib/bucket-color';
+import BucketDot from '@/components/BucketDot';
 import type { Bucket } from '@/types/fina';
 
 /**
@@ -47,11 +47,12 @@ export default function BucketTile({
         isFund ? 'border-dashed' : ''
       } ${selected ? 'border-ink bg-ink' : 'border-line bg-surface-2'}`}
     >
-      <span className={`block text-[12.5px] font-medium ${selected ? 'text-bg' : ''}`}>
-        {bucket.name}
+      <span className={`flex items-center gap-1.5 text-[13px] font-medium ${selected ? 'text-bg' : ''}`}>
+        <BucketDot id={bucket.id} />
+        <span className="truncate">{bucket.name}</span>
       </span>
       <span
-        className={`block text-[11.5px] ${
+        className={`block text-[13px] ${
           selected ? 'text-bg' : over ? 'font-medium text-over' : 'text-muted'
         }`}
       >
@@ -63,9 +64,9 @@ export default function BucketTile({
         <BarFill
           fraction={over ? 1 : fraction}
           settled={settled}
-          // Over the limit, strong ink beats the identity color: what matters
-          // then is "over", not "which bucket".
-          color={selected ? 'var(--bg)' : over ? 'var(--over)' : bucketAccent(bucket.id)}
+          // The bucket's color lives in the dot; the bar is gray, and ink when
+          // over the limit, so "over" is the one thing that stands out.
+          color={selected ? 'var(--bg)' : over ? 'var(--over)' : 'var(--faint)'}
         />
       </span>
     </button>

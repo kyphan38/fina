@@ -41,7 +41,7 @@ export default function ToastBar({
       key={shown.id}
       role="status"
       aria-hidden={leaving || undefined}
-      className={`absolute inset-x-0 bottom-full mb-1.5 flex items-center gap-3 rounded-[9px] bg-ink px-3.5 py-2.5 text-[12.5px] text-bg ${
+      className={`absolute inset-x-0 bottom-full mb-1.5 flex items-center gap-3 rounded-md bg-ink px-3.5 py-2.5 text-[12.5px] text-bg ${
         // A fading toast must not take a tap meant for its old Undo.
         leaving ? 'fade-out pointer-events-none' : 'rise'
       }`}

@@ -10,7 +10,7 @@ import type { Bucket } from '@/types/fina';
 import SheetShell from '@/components/SheetShell';
 
 const SELECT =
-  'w-full rounded-[9px] border border-line bg-surface-2 px-2 py-2 text-[13px]';
+  'w-full rounded-md border border-line bg-surface-2 px-2 py-2 text-[13px]';
 
 /** Close a goal after the purchase: settle its balance to zero, then mark it done. */
 export default function CloseGoalSheet({
@@ -95,14 +95,14 @@ export default function CloseGoalSheet({
           type="button"
           onClick={run}
           disabled={busy || Boolean(blocked)}
-          className="flex-1 rounded-lg bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
+          className="flex-1 rounded-[10px] bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
         >
           {busy ? 'Closing…' : 'Close goal'}
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 rounded-lg border border-line py-2.5 text-sm"
+          className="flex-1 rounded-[10px] border border-line py-2.5 text-sm"
         >
           Cancel
         </button>
