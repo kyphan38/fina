@@ -8,19 +8,14 @@ import { useIndicator } from "@/hooks/useIndicator";
 /**
  * 3 fixed tabs. Log is the default because it is why the app exists.
  * Trends live inside History, Settings behind the gear top right.
- * Icons are hand-drawn SVG, no icon library - every KB downloaded is
- * waiting time at cold start (rule #12).
+ * fina's own nav (DESIGN.md "Nav: one signature per app"): sans words, no
+ * icons, a short line under the open tab. logi marks on the top edge.
  */
 const TABS = [
-  { href: "/log", label: "Log", d: "M12 5v14M5 12h14", also: [] },
-  {
-    href: "/summary",
-    label: "Summary",
-    d: "M4 19V9M10 19V5M16 19v-6M4 19h16",
-    // Settings and its pages light up the gear instead.
-    also: ["/salary"],
-  },
-  { href: "/history", label: "History", d: "M4 6h16M4 12h16M4 18h10", also: ["/insights", "/import"] },
+  { href: "/log", label: "Log", also: [] },
+  // Settings and its pages light up the gear instead.
+  { href: "/summary", label: "Summary", also: ["/salary"] },
+  { href: "/history", label: "History", also: ["/insights", "/import"] },
 ] as const;
 
 const under = (pathname: string, href: string) =>
@@ -42,9 +37,9 @@ export default function BottomNav() {
         <li
           ref={indicator}
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 left-0 flex justify-center"
+          className="pointer-events-none absolute bottom-2 left-0 flex justify-center"
         >
-          <span className="h-0.5 w-10 rounded-full bg-ink" />
+          <span className="h-0.5 w-5 rounded-full bg-ink" />
         </li>
         {TABS.map((tab) => {
           const active = tab === current;
@@ -53,23 +48,10 @@ export default function BottomNav() {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[10px] tracking-wide ${
-                  active ? "text-ink" : "text-faint"
+                className={`flex min-h-12 items-center justify-center text-[13px] transition-colors ${
+                  active ? "font-medium text-ink" : "text-faint hover:text-ink active:text-ink"
                 }`}
               >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={active ? 2 : 1.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d={tab.d} />
-                </svg>
                 {tab.label}
               </Link>
             </li>
