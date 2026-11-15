@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { getSessionUser } from '@/lib/server-auth';
+import { QUOTA_MESSAGE, isQuotaStatus } from '@/lib/ai-quota';
 import { overLimit } from '@/lib/rate-limit';
 import { sanitizeRows, type RawRow } from '@/lib/momo-import';
 
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ images: perImage });
   } catch (err) {
     console.error('[momo-import] model call failed:', (err as Error).message);
+    if (isQuotaStatus((err as Error).message)) return fail(QUOTA_MESSAGE, 402);
     return fail('Could not read the screenshots. Try again.', 502);
   }
 }

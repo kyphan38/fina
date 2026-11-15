@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { overLimit } from '@/lib/rate-limit';
 import { getSessionUser } from '@/lib/server-auth';
+import { QUOTA_MESSAGE, isQuotaStatus } from '@/lib/ai-quota';
 import { sanitizeInsight } from '@/lib/insight-sanitize';
 import type { Digest } from '@/lib/digest';
 
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Log the error name only. The digest is never logged in production.
     console.error('[insight] model call failed:', (err as Error).message);
+    if (isQuotaStatus((err as Error).message)) return fail(QUOTA_MESSAGE, 402);
     return fail('Could not reach the model.', 502);
   }
 
