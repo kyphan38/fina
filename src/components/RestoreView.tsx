@@ -2,15 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { doc, getDocs, writeBatch, collection } from 'firebase/firestore';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase-client';
-import type { Backup } from '@/lib/backup';
+import { countMissing, restoreBackup, type Backup } from '@/lib/backup';
+import { BACKUP_COLLECTIONS as COLLECTIONS, parseBackup } from '@/lib/restore';
 
 type Preview = { backup: Backup; missing: Record<string, number> };
-
-const COLLECTIONS = ['buckets', 'transactions', 'cycles', 'covers'] as const;
 
 /**
  * Hidden page - only Settings links here.
@@ -32,18 +29,8 @@ export default function RestoreView() {
     if (!uid) return;
     setMsg(null);
     try {
-      const backup: Backup = JSON.parse(await file.text());
-      if (backup.app !== 'fina') throw new Error('not fina');
-
-      const missing: Record<string, number> = {};
-      for (const name of COLLECTIONS) {
-        const existing = new Set(
-          (await getDocs(collection(db, 'users', uid, name))).docs.map((d) => d.id),
-        );
-        const rows = (backup[name] ?? []) as { id: string }[];
-        missing[name] = rows.filter((r) => !existing.has(r.id)).length;
-      }
-      setPreview({ backup, missing });
+      const backup = parseBackup(await file.text());
+      setPreview({ backup, missing: await countMissing(uid, backup) });
     } catch {
       setMsg('That file is not a fina export.');
     }
@@ -54,24 +41,7 @@ export default function RestoreView() {
     setBusy(true);
     setMsg(null);
     try {
-      let added = 0;
-      for (const name of COLLECTIONS) {
-        const existing = new Set(
-          (await getDocs(collection(db, 'users', uid, name))).docs.map((d) => d.id),
-        );
-        const rows = ((preview.backup[name] ?? []) as Record<string, unknown>[]).filter(
-          (r) => !existing.has(String(r.id)),
-        );
-        for (let i = 0; i < rows.length; i += 400) {
-          const batch = writeBatch(db);
-          for (const r of rows.slice(i, i + 400)) {
-            const { id, ...rest } = r;
-            batch.set(doc(db, 'users', uid, name, String(id)), rest);
-            added++;
-          }
-          await batch.commit();
-        }
-      }
+      const added = await restoreBackup(uid, preview.backup);
       setMsg(`Restored ${added} documents. Nothing was overwritten.`);
       setPreview(null);
       setConfirm('');

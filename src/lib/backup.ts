@@ -1,8 +1,9 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 
 import { db } from '@/lib/firebase-client';
 import { cycleLabel } from '@/lib/cycle';
 import { fromVnd } from '@/lib/money';
+import { BACKUP_COLLECTIONS, chunks, missingRows, type BackupCollection } from '@/lib/restore';
 
 export interface Backup {
   app: 'fina';
@@ -32,6 +33,39 @@ export async function buildBackup(uid: string): Promise<Backup> {
     readAll(uid, 'covers'),
   ]);
   return { app: 'fina', version: 1, exportedAt: Date.now(), uid, buckets, transactions, cycles, covers };
+}
+
+const existingIds = async (uid: string, name: BackupCollection) =>
+  new Set((await getDocs(collection(db, 'users', uid, name))).docs.map((d) => d.id));
+
+/** How many rows of each collection a restore would add. */
+export async function countMissing(uid: string, backup: Backup): Promise<Record<BackupCollection, number>> {
+  const out = {} as Record<BackupCollection, number>;
+  for (const name of BACKUP_COLLECTIONS) {
+    out[name] = missingRows(backup, name, await existingIds(uid, name)).length;
+  }
+  return out;
+}
+
+/**
+ * Adds the rows whose id is missing. Never overwrites or deletes, so running it
+ * twice is safe. Returns how many documents were written.
+ */
+export async function restoreBackup(uid: string, backup: Backup): Promise<number> {
+  let added = 0;
+  for (const name of BACKUP_COLLECTIONS) {
+    const rows = missingRows(backup, name, await existingIds(uid, name));
+    for (const part of chunks(rows)) {
+      const batch = writeBatch(db);
+      for (const r of part) {
+        const { id, ...rest } = r;
+        batch.set(doc(db, 'users', uid, name, String(id)), rest);
+        added++;
+      }
+      await batch.commit();
+    }
+  }
+  return added;
 }
 
 const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
