@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import BucketTile from '@/components/BucketTile';
 import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
 import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
-import { evalAmount, formatTyped, formatVnd, pressKey } from '@/lib/money';
-import { addTransaction, deleteTransaction } from '@/lib/transactions';
+import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey } from '@/lib/money';
+import { addTransaction, deleteTransaction, listTransactionsBetween } from '@/lib/transactions';
+import { SUGGEST_DAYS, topAmounts } from '@/lib/suggest';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
 import Settle from '@/components/Settle';
@@ -62,6 +63,27 @@ export default function LogView() {
   );
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Last 60 days, read once after the screen is up, for the amount buttons.
+  // Not a live listener: a few hundred docs on every open is not worth it.
+  const [history, setHistory] = useState<{ txs: Transaction[]; at: number }>({ txs: [], at: 0 });
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    const now = Date.now();
+    listTransactionsBetween(uid, now - SUGGEST_DAYS * 86_400_000, now)
+      .then((txs) => {
+        if (!cancelled) setHistory({ txs, at: now });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+  const suggestions = useMemo(
+    () => (selectedId ? topAmounts(history.txs, selectedId, history.at) : []),
+    [history, selectedId],
+  );
 
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -162,6 +184,8 @@ export default function LogView() {
         setToast(null);
         setUndo(null);
       }, 6000);
+
+      setHistory((h) => ({ ...h, txs: [...h.txs, saved] }));
 
       // Keep the selected bucket - you often log several in a row.
       setBuf('');
@@ -356,6 +380,20 @@ export default function LogView() {
               </span>
             </span>
           </span>
+        </div>
+
+        {/* Fixed height, so picking a bucket never moves the numpad. */}
+        <div className="flex h-7 items-center gap-1.5 px-1 pb-1.5" aria-label="Often logged">
+          {suggestions.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setBuf(fromVnd(v))}
+              className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
+            >
+              {formatVnd(v)}
+            </button>
+          ))}
         </div>
 
         <input
