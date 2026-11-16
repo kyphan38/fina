@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { updateBucket } from '@/lib/buckets';
 import { createGoal, setGoalsMonthly, swapGoalOrder, watchGoalsMonthly } from '@/lib/goal-store';
-import { DEFAULT_GOALS_MONTHLY_VND, openGoals, parseMonth, savingMonthlyTotal } from '@/lib/goals';
+import { DEFAULT_GOALS_MONTHLY_VND, isGoal, monthLabel, openGoals, parseMonth, planPurchase, savingMonthlyTotal } from '@/lib/goals';
 import { formatVnd, fromVnd, toVnd } from '@/lib/money';
 import type { Bucket, Goal } from '@/types/fina';
 
@@ -29,6 +29,7 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
   const goals = openGoals(buckets);
   const [budget, setBudget] = useState(DEFAULT_GOALS_MONTHLY_VND);
   const [adding, setAdding] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => watchGoalsMonthly(uid, setBudget), [uid]);
@@ -133,7 +134,19 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
         </ul>
       )}
 
-      {adding ? (
+      {planning ? (
+        <PlanPurchase
+          funds={buckets.filter((b) => b.active && b.kind === 'fund' && b.bank === 'BIDV' && !isGoal(b))}
+          freePerMonthVnd={Math.max(0, budget - used)}
+          onCancel={() => setPlanning(false)}
+          onMakeGoal={(input) =>
+            run(async () => {
+              await createGoal(uid, buckets, input);
+              setPlanning(false);
+            })
+          }
+        />
+      ) : adding ? (
         <NewGoalForm
           onCancel={() => setAdding(false)}
           onAdd={(input) =>
@@ -144,13 +157,22 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
           }
         />
       ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="mt-2 py-1.5 text-xs text-muted hover:text-ink active:text-ink"
-        >
-          New goal
-        </button>
+        <div className="mt-2 flex gap-4">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="py-1.5 text-xs text-muted hover:text-ink active:text-ink"
+          >
+            New goal
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlanning(true)}
+            className="py-1.5 text-xs text-muted hover:text-ink active:text-ink"
+          >
+            Plan a purchase
+          </button>
+        </div>
       )}
 
       <div className="mt-3 flex items-center gap-3 border-t border-line pt-3">
@@ -174,6 +196,116 @@ export default function GoalsCard({ uid, buckets }: { uid: string; buckets: Buck
 
       {error && <p className="mt-2 text-xs font-medium text-over">{error}</p>}
     </section>
+  );
+}
+
+/** F10: what a purchase takes - funds that already cover it, or saving per month - and a goal from it. */
+function PlanPurchase({
+  funds,
+  freePerMonthVnd,
+  onMakeGoal,
+  onCancel,
+}: {
+  funds: Bucket[];
+  freePerMonthVnd: number;
+  onMakeGoal: (input: { name: string; targetVnd: number; targetMonth: string | null; standardVnd: number }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [month, setMonth] = useState('');
+  // Captured once: the plan is about this moment.
+  const [now] = useState(() => new Date());
+
+  const priceVnd = toVnd(price);
+  const targetMonth = parseMonth(month);
+  const plan =
+    priceVnd !== null && targetMonth !== undefined
+      ? planPurchase({ priceVnd, month: targetMonth, now, funds, freePerMonthVnd })
+      : null;
+  // The goal saves what the chosen month needs, or the free budget when no month is set.
+  const goalMonth = targetMonth ?? plan?.byMonth ?? null;
+  const goalPerMonth = plan ? (plan.perMonthVnd ?? Math.min(freePerMonthVnd, priceVnd ?? 0)) : 0;
+  const canGoal = plan !== null && name.trim() !== '' && goalMonth !== null && goalPerMonth > 0;
+
+  return (
+    <div className="mt-2 border-t border-line pt-3">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="What to buy"
+        aria-label="Purchase name"
+        autoFocus
+        className="w-full rounded-md border border-line bg-surface-2 px-2 py-1 text-sm"
+      />
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Field label="Price">
+          <input
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            inputMode="decimal"
+            placeholder="-"
+            aria-label="Purchase price"
+            className={INPUT}
+          />
+        </Field>
+        <Field label="By month">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            aria-label="Purchase month"
+            className={INPUT}
+          />
+        </Field>
+      </div>
+      {plan && priceVnd !== null && (
+        <ul className="mt-2.5 flex flex-col gap-1 text-xs text-muted">
+          {plan.enoughNow.length > 0 ? (
+            plan.enoughNow.map((f) => (
+              <li key={f.name}>
+                {f.name} can pay now ({formatVnd(f.balanceVnd)}).
+              </li>
+            ))
+          ) : (
+            <li>No fund covers it yet.</li>
+          )}
+          {plan.perMonthVnd !== null && targetMonth && (
+            <li>
+              Save {formatVnd(plan.perMonthVnd)} a month to have it by {monthLabel(targetMonth)}.
+            </li>
+          )}
+          {plan.byMonth ? (
+            <li>
+              With the free goals budget ({formatVnd(freePerMonthVnd)} a month): {monthLabel(plan.byMonth)}.
+            </li>
+          ) : (
+            <li>The goals budget has nothing free.</li>
+          )}
+        </ul>
+      )}
+      <div className="mt-2.5 flex gap-2">
+        <button
+          type="button"
+          disabled={!canGoal}
+          onClick={() =>
+            canGoal &&
+            priceVnd !== null &&
+            onMakeGoal({ name: name.trim(), targetVnd: priceVnd, targetMonth: goalMonth, standardVnd: goalPerMonth })
+          }
+          className="rounded-[10px] bg-ink px-3 py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
+        >
+          Make it a goal
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="py-1.5 text-xs text-muted hover:text-ink active:text-ink"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 

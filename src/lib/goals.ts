@@ -151,3 +151,32 @@ export function closePlan(b: Bucket): ClosePlan {
   if (b.balanceVnd < 0) return { kind: 'short', amountVnd: -b.balanceVnd };
   return { kind: 'empty' };
 }
+
+/**
+ * F10 "plan a purchase": which funds could pay for it now, what a chosen month
+ * needs per month, and when the free part of the goals budget would get there.
+ * Months follow the allocation dates (the 25th), like needPerMonth.
+ */
+export function planPurchase(args: {
+  priceVnd: number;
+  /** 'YYYY-MM' or null. */
+  month: string | null;
+  now: Date;
+  funds: readonly Pick<Bucket, 'name' | 'balanceVnd'>[];
+  /** Goals budget not yet taken by saving goals. */
+  freePerMonthVnd: number;
+}): { enoughNow: { name: string; balanceVnd: number }[]; perMonthVnd: number | null; byMonth: string | null } {
+  const { priceVnd, month, now, funds, freePerMonthVnd } = args;
+  const enoughNow = funds
+    .filter((f) => f.balanceVnd >= priceVnd)
+    .map((f) => ({ name: f.name, balanceVnd: f.balanceVnd }));
+  const perMonthVnd = month ? Math.ceil(priceVnd / monthsLeft(month, now) / 1000) * 1000 : null;
+  let byMonth: string | null = null;
+  if (freePerMonthVnd > 0) {
+    const n = Math.ceil(priceVnd / freePerMonthVnd);
+    const { y, m } = firstAllocation(now);
+    const total = y * 12 + (m - 1) + (n - 1);
+    byMonth = `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+  }
+  return { enoughNow, perMonthVnd, byMonth };
+}

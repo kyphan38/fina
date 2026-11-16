@@ -12,6 +12,7 @@ import {
   nextGoalOrder,
   openGoals,
   parseMonth,
+  planPurchase,
   savingMonthlyTotal,
 } from '@/lib/goals';
 import { SEED_BUCKETS, type Bucket, type Goal } from '@/types/fina';
@@ -108,4 +109,19 @@ test('closePlan - leftover goes out, an overspend is covered, zero just closes',
   assert.deepEqual(closePlan({ ...phone, balanceVnd: 300_000 }), { kind: 'leftover', amountVnd: 300_000 });
   assert.deepEqual(closePlan({ ...phone, balanceVnd: -200_000 }), { kind: 'short', amountVnd: 200_000 });
   assert.deepEqual(closePlan({ ...phone, balanceVnd: 0 }), { kind: 'empty' });
+});
+
+test('plan a purchase: funds that cover it, per month for a chosen month, month at the free budget', () => {
+  // 10 Nov: the next allocation is 25 Nov, so Nov counts as the first month.
+  const now = new Date(2026, 10, 10);
+  const funds = [
+    { name: 'Purchases', balanceVnd: 9_000_000 },
+    { name: 'Travel', balanceVnd: 2_000_000 },
+  ];
+  const p = planPurchase({ priceVnd: 6_000_000, month: '2027-04', now, funds, freePerMonthVnd: 1_000_000 });
+  assert.deepEqual(p.enoughNow, [{ name: 'Purchases', balanceVnd: 9_000_000 }]);
+  assert.equal(p.perMonthVnd, 1_000_000, '6 months: Nov to Apr');
+  assert.equal(p.byMonth, '2027-04', '6 months of 1.000 from Nov');
+  const none = planPurchase({ priceVnd: 6_000_000, month: null, now, funds: [], freePerMonthVnd: 0 });
+  assert.deepEqual(none, { enoughNow: [], perMonthVnd: null, byMonth: null });
 });
