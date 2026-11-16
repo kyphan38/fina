@@ -373,7 +373,8 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-line pt-3">
+    // The first card sits under the top bar's own line: no second line there.
+    <section className="border-t border-line pt-3 first:border-t-0 first:pt-0">
       <SectionTitle className="mb-1">{title}</SectionTitle>
       {children}
     </section>
