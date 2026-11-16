@@ -1,59 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
-import { checkPassword, gateStore } from '@/lib/gate';
+import { useAuth } from '@/contexts/AuthContext';
+import { gateStore } from '@/lib/gate';
+import { passkeySupported, savedCredential, setUpPasskey, verifyPasskey } from '@/lib/passkey';
+
+const noop = () => () => {};
 
 /**
- * Gate in front of Salary.
- *
- * Never says "wrong password" faster or slower depending on the case, and
- * never shows a password hint. Anyone opening the app sees only an empty field.
+ * Gate in front of Salary: Face ID / Touch ID with a device passkey.
+ * A device without one sets it up first (that also asks for Face ID).
  */
 export default function SalaryGate() {
-  const [value, setValue] = useState('');
+  const { user } = useAuth();
+  const supported = useSyncExternalStore(noop, passkeySupported, () => false);
+  const [cred, setCred] = useState<string | null>(() => (typeof window === 'undefined' ? null : savedCredential()));
   const [busy, setBusy] = useState(false);
-  const [wrong, setWrong] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (busy) return;
+  const run = async (fn: () => Promise<boolean>) => {
     setBusy(true);
-    setWrong(false);
-    const ok = await checkPassword(value);
-    if (ok) {
-      gateStore.unlock();
-      return;
-    }
-    setValue('');
-    setWrong(true);
+    setFailed(false);
+    const ok = await fn();
     setBusy(false);
+    if (ok) gateStore.unlock();
+    else setFailed(true);
   };
+
+  const setUp = () =>
+    run(async () => {
+      const ok = await setUpPasskey(user?.uid ?? 'fina', user?.email ?? '');
+      setCred(savedCredential());
+      return ok;
+    });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-16">
-      <form onSubmit={submit} className="w-full max-w-[280px]">
-        <label htmlFor="gate" className="block text-center text-xs text-faint">
-          Locked
-        </label>
-        <input
-          id="gate"
-          type="password"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          autoComplete="off"
-          autoFocus
-          className="mt-2 w-full rounded-[10px] border border-line bg-surface-2 px-3 py-2.5 text-center text-sm"
-        />
-        <button
-          type="submit"
-          disabled={busy || value === ''}
-          className="mt-2 w-full rounded-[10px] bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
-        >
-          {busy ? 'Checking…' : 'Unlock'}
-        </button>
-        {wrong && <p className="mt-2 text-center text-xs font-medium text-over">Nope.</p>}
-      </form>
+      <div className="w-full max-w-[280px] text-center">
+        <p className="text-xs text-faint">Locked</p>
+        {!supported ? (
+          <p className="mt-2 text-sm text-muted">Face ID is not available here.</p>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => (cred ? run(() => verifyPasskey(cred)) : setUp())}
+              className="mt-2 w-full rounded-[10px] bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-30"
+            >
+              {busy ? 'Checking…' : cred ? 'Unlock' : 'Set up Face ID'}
+            </button>
+            {failed && <p className="mt-2 text-xs font-medium text-over">Not unlocked.</p>}
+            {cred && failed && (
+              <button type="button" onClick={setUp} className="mt-1 text-xs text-faint hover:text-ink">
+                set up again
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

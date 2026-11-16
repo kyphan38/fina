@@ -1,62 +1,13 @@
 // ============================================================
-// fina - Salary screen lock
+// fina - Salary screen lock state
 //
-// This is a SCREEN GUARD, not security. It stops someone holding the phone
-// with the app open, and nothing more. Anyone with your Google account can
-// still read salary straight from Firestore without this screen. Stopping
-// that too would need data encrypted with a key that is not in the app.
-//
-// The password is NOT in the source: only a salt and a PBKDF2 hash. Reading
-// the repo does not reveal the password, only allows guessing one by one -
-// and 310,000 iterations make each guess much more expensive.
+// A SCREEN GUARD, not security: it stops someone holding the phone with the
+// app open. Unlocking is Face ID / Touch ID (lib/passkey.ts) since 2026-11-16;
+// the old typed password is gone.
 // ============================================================
-
-const SALT_HEX = '172594abc49406d53d8a4d437589de7f';
-const ITERATIONS = 310_000;
-const EXPECTED_HEX = 'b26beb93bccb8e9e9b35993a092491d9b754923800da3b95789234ebb02474a3';
 
 /** The unlock lives in THIS tab only. Closing the tab locks it. */
 const SESSION_KEY = 'fina.salary.unlocked';
-
-function toHex(buf: ArrayBuffer): string {
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-function fromHex(hex: string): ArrayBuffer {
-  const buf = new ArrayBuffer(hex.length / 2);
-  const view = new Uint8Array(buf);
-  for (let i = 0; i < view.length; i++) view[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  return buf;
-}
-
-/**
- * Compares in time that does NOT depend on content. `===` on strings exits at
- * the first different character; here that is nearly harmless, but doing it
- * right once means no exception to remember.
- */
-function equal(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-export async function checkPassword(input: string): Promise<boolean> {
-  if (input === '') return false;
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(input),
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: fromHex(SALT_HEX), iterations: ITERATIONS, hash: 'SHA-256' },
-    key,
-    256,
-  );
-  return equal(toHex(bits), EXPECTED_HEX);
-}
 
 /**
  * Unlock state as an external store, like `prefs.ts`: reading sessionStorage
