@@ -94,6 +94,11 @@ export default function SettingsView() {
 
   return (
     <div className="mt-5 flex flex-col gap-8">
+      {/* First line on purpose: the guide must be easy to find (owner, 2026-11-16). */}
+      <Link href="/guide" className={`${WORD_GO} self-start`}>
+        Guide
+      </Link>
+
       <Card title="Signed in as">
         <p className="text-[15px]">{user?.email ?? '-'}</p>
         <button type="button" onClick={signOut} className={`${WORD} mt-2 py-1`}>
@@ -226,9 +231,6 @@ export default function SettingsView() {
       {/* No tab in the bottom bar. Labeled plainly (owner, 2026-11-16: show, do not
           hide); the page itself opens with Face ID. */}
       <p className="flex gap-5">
-        <Link href="/guide" className={WORD_GO}>
-          Guide
-        </Link>
         <Link href="/salary" className={WORD_GO}>
           Salary
         </Link>

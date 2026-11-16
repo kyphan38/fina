@@ -7,12 +7,13 @@ const SECTIONS = [
   { id: 'model', title: 'Cách app nghĩ về tiền' },
   { id: 'log', title: 'Ghi chi tiêu' },
   { id: 'cover', title: 'Khi bucket bị vượt' },
+  { id: 'recurring', title: 'Khoản định kỳ' },
   { id: 'history', title: 'History' },
   { id: 'summary', title: 'Summary' },
   { id: 'payday', title: 'Ngày lương: đóng sổ và chia lương' },
   { id: 'debt', title: 'Mượn và trả nợ' },
   { id: 'widget', title: 'Widget' },
-  { id: 'settings', title: 'Settings và sao lưu' },
+  { id: 'settings', title: 'Settings, bucket và sao lưu' },
 ] as const;
 
 export default function GuidePage() {
@@ -78,7 +79,15 @@ export default function GuidePage() {
               Số tiền tính theo <B>nghìn đồng</B>: <Code>45</Code> = 45.000đ, <Code>1,5</Code> = 1.500đ.
             </>,
             <>
-              Có thể cộng trừ trong một lần ghi: <Code>25+30-4</Code> = 51.000đ.
+              Có thể cộng trừ trong một lần ghi: <Code>25+30-4</Code> = 51.000đ. Phép tính được lưu lại và hiện mờ
+              dưới số tiền trong History.
+            </>,
+            <>
+              Hàng nút nhỏ trên ô Note: <B>số tiền hay dùng</B> của bucket đang chọn (ghi ít nhất 2 lần trong 60
+              ngày). Chạm vào ô Note thì hàng này đổi thành <B>note hay viết</B>. Bấm một nút để điền.
+            </>,
+            <>
+              Bấm vào số <B>left</B> ở trên cùng để xem tổng tiền đang có ở BIDV (quỹ và goals). Bấm lại để quay về.
             </>,
             <>
               Nút <B>OUT / IN</B>. OUT là chi tiền. IN là <B>tiền vào lại</B> (hoàn tiền, bạn bè trả lại,
@@ -113,6 +122,23 @@ export default function GuidePage() {
         />
       </Section>
 
+      <Section id="recurring">
+        <P>
+          Tiền nhà, điện thoại, gói tháng... Thêm ở <B>Settings → Recurring</B>: tên, bucket, số tiền, ngày trong
+          tháng.
+        </P>
+        <List
+          items={[
+            <>Đến ngày đó, đầu màn Log hiện một dòng, ví dụ &quot;Rent 3.000 · log · skip&quot;.</>,
+            <>
+              <B>log</B> điền sẵn bucket, số tiền và note. Bạn bấm Save như bình thường (vẫn có cover và Undo).
+            </>,
+            <><B>skip</B> ẩn khoản đó đến chu kỳ sau, không ghi gì.</>,
+            <>App không bao giờ tự ghi.</>,
+          ]}
+        />
+      </Section>
+
       <Section id="history">
         <List
           items={[
@@ -121,10 +147,15 @@ export default function GuidePage() {
               sửa bucket, OUT/IN, ngày giờ, ghi chú, hoặc xoá.
             </>,
             <>
+              <B>search</B>: tìm trên mọi chu kỳ. Gõ chữ để tìm theo note hoặc tên bucket (không cần dấu). Gõ số để
+              tìm theo số tiền, ví dụ <Code>35</Code> = 35.000đ. Có tổng tiền ở cuối.
+            </>,
+            <>
               <B>MoMo</B>: nhập lịch sử MoMo, kiểm tra từng dòng rồi mới lưu. Nếu sau khi lưu có bucket bị vượt, app hỏi lấy tiền từ đâu cho từng bucket.
             </>,
             <>
-              <B>Trends</B>: Buffer 6 chu kỳ gần nhất, xu hướng của từng bucket, và nhận xét do AI viết.
+              <B>Trends</B>: Buffer 6 chu kỳ gần nhất, xu hướng của từng bucket, <B>Last N cycles</B> (trung bình,
+              chu kỳ cao nhất và tổng của từng bucket, chỉ tính chu kỳ đã đóng), và nhận xét do AI viết.
             </>,
           ]}
         />
@@ -134,9 +165,9 @@ export default function GuidePage() {
         <Rows
           rows={[
             ['Notes', 'Ghi chú tự do, mặc định đóng. Khi đóng vẫn hiện dòng đầu tiên. Dùng để ghi nợ và những việc cần nhớ.'],
-            ['VCB - Monthly', 'Đã dùng / hạn mức của từng bucket. Edit limits chỉ sửa chu kỳ này.'],
+            ['VCB - Monthly', 'Đã dùng / hạn mức của từng bucket. Edit limits chỉ sửa chu kỳ này. "out by 22": Food hoặc Utilities sẽ hết tiền vào ngày 22 nếu cứ chi như hiện tại.'],
             ['BIDV - Funds', 'Số dư từng quỹ. Dấu + để nạp thêm tiền, Move để chuyển tiền giữa các quỹ (không tính là chi tiêu).'],
-            ['Goals', 'Quỹ có mục tiêu: cần bao nhiêu mỗi tháng, đang nhanh hay chậm. Close khi đã mua xong.'],
+            ['Goals', 'Quỹ có mục tiêu: cần bao nhiêu mỗi tháng, đang nhanh hay chậm. Close khi đã mua xong. Tạo goal ở Settings → Goals; "Plan a purchase" cho biết quỹ nào đủ tiền ngay hoặc cần để dành bao nhiêu mỗi tháng.'],
             ['VPS', 'Ghi lại mỗi lần nạp ETF.'],
             ['Plan next cycle', 'Mở Generator để chia lương.'],
           ]}
@@ -153,6 +184,10 @@ export default function GuidePage() {
             </>,
             <>
               <B>Chia lương.</B> Plan next cycle → nhập số tiền cần chia → kiểm tra từng dòng → Apply.
+            </>,
+            <>
+              Nếu goals cần nhiều hơn ngân sách goals, bấm <B>fit to budget</B>: chia theo thứ tự ưu tiên của goals
+              (goal đầu đủ trước). Vẫn sửa tay được trước khi Apply.
             </>,
             <>
               Apply làm ba việc cùng lúc: ghi khoản lương, chốt hạn mức VCB, và nạp tiền vào từng quỹ BIDV.
@@ -195,17 +230,34 @@ export default function GuidePage() {
           Widget Scriptable trên màn hình chính hiện: ngày trong chu kỳ, tiền <B>còn lại</B> (tổng hạn mức trừ
           số đã tiêu), số đã tiêu, mức có thể tiêu mỗi ngày, và từng bucket VCB.
         </P>
+        <P>
+          Widget nhỏ hiện thêm 2 bucket gần hết hạn mức nhất. Widget vừa hiện 6 bucket; nếu có hơn 6 thì hiện 6
+          bucket gần hết nhất.
+        </P>
         <P>Một bucket hiện số âm nghĩa là tiền vào (IN) nhiều hơn tiền chi.</P>
+        <P>
+          Sau khi app cập nhật widget, dán lại file <Code>scriptable/fina-widget.js</Code> vào app Scriptable.
+        </P>
       </Section>
 
       <Section id="settings">
         <List
           items={[
             <>Theme, Standard của từng bucket, và mô tả bucket (bấm vào tên để sửa).</>,
+            <>
+              <B>add monthly bucket</B>: thêm một bucket VCB (ví dụ Parents). Có hiệu lực ngay chu kỳ này. Bấm vào
+              tên bucket → <B>Hide</B> để ẩn: bucket biến mất khỏi Log và Generator, giao dịch cũ vẫn còn. Bucket
+              ẩn hiện mờ trong Settings, bấm <B>show</B> để bật lại. Quỹ còn tiền thì không ẩn được.
+            </>,
+            <>
+              <B>Salary</B> (cuối Settings): màn lương, mở bằng Face ID. Lần đầu trên một thiết bị thì bấm Set up
+              Face ID.
+            </>,
             <>Nhắc nhở: thông báo lúc 22:00 nếu đã hai ngày không ghi gì. Cần cài app ra màn hình chính.</>,
             <>
-              <B>Sao lưu:</B> Export JSON (toàn bộ) hoặc CSV. App nhắc nếu đã hơn 35 ngày chưa export.
-              Restore chỉ thêm những gì còn thiếu, không ghi đè, không xoá.
+              <B>Sao lưu:</B> Google Cloud tự sao lưu mỗi ngày (giữ 7 ngày). Export JSON hoặc CSV là bản của riêng
+              bạn; app nhắc nếu đã hơn 35 ngày chưa export. Restore chỉ thêm những gì còn thiếu, không ghi đè,
+              không xoá.
             </>,
           ]}
         />
