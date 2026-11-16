@@ -10,6 +10,7 @@ import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction, listTransactionsBetween } from '@/lib/transactions';
 import { SUGGEST_DAYS, topAmounts } from '@/lib/suggest';
+import { bidvBalance } from '@/lib/bidv';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
 import Settle from '@/components/Settle';
@@ -106,6 +107,8 @@ export default function LogView() {
   };
 
   const all: Bucket[] = [...monthly, ...funds, ...goals];
+  const [showBidv, setShowBidv] = useState(false);
+  const bidvTotal = bidvBalance([...funds, ...goals]);
 
   // From here the numpad is on screen and accepts taps.
   const ready = !loading && all.length > 0;
@@ -146,6 +149,10 @@ export default function LogView() {
         amountVnd,
         trimmed || null,
         direction,
+        undefined,
+        undefined,
+        // firestore.rules caps the sum at 100 characters; a longer one is just not kept.
+        combining && buf.length <= 100 ? buf : null,
       );
 
       const isFund = selected.kind === 'fund';
@@ -274,14 +281,33 @@ export default function LogView() {
         <span>
           {month.slice(0, 3)} · day {day} of {total}
         </span>
-        <span>
-          <b className="font-semibold text-ink">
-            <Settle value={monthlyLeft} settled={settled}>
-              {formatVnd(monthlyLeft)}
-            </Settle>
-          </b>{' '}
-          left
-        </span>
+        {/* Tap to swap "left" for the money sitting in BIDV (funds + goals); tap again to go back. */}
+        <button
+          type="button"
+          onClick={() => setShowBidv((v) => !v)}
+          aria-pressed={showBidv}
+          aria-label={showBidv ? 'Show money left this cycle' : 'Show money in BIDV'}
+        >
+          {showBidv ? (
+            <>
+              BIDV{' '}
+              <b className="font-semibold text-ink">
+                <Settle value={bidvTotal} settled={settled}>
+                  {formatVnd(bidvTotal)}
+                </Settle>
+              </b>
+            </>
+          ) : (
+            <>
+              <b className="font-semibold text-ink">
+                <Settle value={monthlyLeft} settled={settled}>
+                  {formatVnd(monthlyLeft)}
+                </Settle>
+              </b>{' '}
+              left
+            </>
+          )}
+        </button>
       </p>
 
       {/* Only this area scrolls. More buckets never push Save away. */}

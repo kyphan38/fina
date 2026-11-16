@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
   increment,
@@ -36,6 +37,7 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
         ? 'in'
         : 'out',
     note: (data.note as string | null) ?? null,
+    ...(typeof data.expr === 'string' && data.expr ? { expr: data.expr } : {}),
     // Forgetting 'allocation' here counts every salary split into funds as
     // spending (actually SUBTRACTS it, since they have direction 'in'), and the
     // Cash flow table shows Out −6.685 when it is really +3.815.
@@ -83,6 +85,8 @@ export async function addTransaction(
   direction: TxDirection = 'out',
   occurredAt: number = Date.now(),
   source: TxSource = 'web',
+  /** The numpad sum ('25+30-5'), when the amount was typed as one. */
+  expr: string | null = null,
 ): Promise<{ id: string; occurredAt: number }> {
   const ref = doc(txCol(uid));
   const now = Date.now();
@@ -98,6 +102,7 @@ export async function addTransaction(
     amountVnd,
     direction,
     note: note && note.length > 0 ? note : null,
+    ...(expr ? { expr } : {}),
     source,
     createdAt: now,
     updatedAt: now,
@@ -287,6 +292,8 @@ export async function updateTransaction(
     amountVnd: patch.amountVnd,
     direction: patch.direction,
     note: patch.note && patch.note.length > 0 ? patch.note : null,
+    // The saved sum no longer adds up to a changed amount.
+    ...(patch.amountVnd !== before.amountVnd ? { expr: deleteField() } : {}),
     updatedAt: now,
   });
 

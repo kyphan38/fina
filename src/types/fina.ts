@@ -109,6 +109,11 @@ export interface Transaction {
   amountVnd: number;
   direction: TxDirection;
   note: string | null;
+  /**
+   * What was typed on the numpad when it was a sum, in thousands: '25+30-5'.
+   * Only kept while the amount is unchanged (an edit of the amount drops it).
+   */
+  expr?: string;
   source: TxSource;
   /**
    * Only on transactions imported from MoMo screenshots: the dedup key of each

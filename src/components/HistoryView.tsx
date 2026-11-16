@@ -11,7 +11,7 @@ import { useFlip } from '@/hooks/useFlip';
 import { useHistory } from '@/hooks/useHistory';
 import { useRowMotion } from '@/hooks/useRowMotion';
 import { cycleLabel } from '@/lib/cycle';
-import { formatVnd } from '@/lib/money';
+import { formatTyped, formatVnd } from '@/lib/money';
 import { netSpending } from '@/lib/spending';
 import BucketDot from '@/components/BucketDot';
 import Page from '@/components/Page';
@@ -134,9 +134,14 @@ export default function HistoryView() {
                         {formatVnd(t.amountVnd)}
                       </span>
                       {note && (
-                        <span className="col-start-2 col-end-4 truncate pl-4 text-[13px] text-faint">
+                        <span
+                          className={`col-start-2 truncate pl-4 text-[13px] text-faint ${t.expr ? 'col-end-3' : 'col-end-4'}`}
+                        >
                           {note}
                         </span>
+                      )}
+                      {t.expr && (
+                        <span className="col-start-3 text-right text-[12px] text-faint">{formatTyped(t.expr)}</span>
                       )}
                     </button>
                   </li>

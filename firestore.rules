@@ -70,7 +70,8 @@ service cloud.firestore {
         && (d.source != 'move' || ('moveId' in d.keys() && d.moveId is string))
         && (!('moveId' in d.keys()) || d.moveId is string)
         // Dedup keys from a MoMo screenshot import - plain strings, no names.
-        && (!('importKeys' in d.keys()) || (d.importKeys is list && d.importKeys.size() <= 200));
+        && (!('importKeys' in d.keys()) || (d.importKeys is list && d.importKeys.size() <= 200))
+        && (!('expr' in d.keys()) || (d.expr is string && d.expr.size() <= 100));
     }
 
     function validCover(d) {
