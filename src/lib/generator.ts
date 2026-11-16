@@ -96,3 +96,22 @@ export function allocate(
     etfPercent: pct(etfVnd),
   };
 }
+
+/**
+ * F7 "fit to budget": share the goals budget in priority order (the goals'
+ * order). The first goals get what they asked for; the next get what is left,
+ * then nothing. Returns an amount for every goal.
+ */
+export function fitGoalsToBudget(
+  goals: readonly { id: string; amountVnd: number }[],
+  budgetVnd: number,
+): Record<string, number> {
+  let left = Math.max(0, budgetVnd);
+  const out: Record<string, number> = {};
+  for (const g of goals) {
+    const give = Math.min(Math.max(0, g.amountVnd), left);
+    out[g.id] = give;
+    left -= give;
+  }
+  return out;
+}

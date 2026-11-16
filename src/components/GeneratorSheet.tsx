@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import Numpad from '@/components/Numpad';
-import { allocate, type Allocation } from '@/lib/generator';
+import { allocate, type Allocation, fitGoalsToBudget } from '@/lib/generator';
 import { applyCyclePlan } from '@/lib/cycles';
 import { cycleLabel, cycleRange } from '@/lib/cycle';
 import { formatTyped, formatVnd, fromVnd, pressKey, toVnd } from '@/lib/money';
@@ -109,9 +109,28 @@ export default function GeneratorSheet({
             <Row key={a.bucket.id} a={a} edits={edits} setEdits={setEdits} />
           ))}
           {r.goalsTotalVnd > goalsBudgetVnd && (
-            <li className="pt-0.5 text-[11px] font-medium text-down">
-              {formatVnd(r.goalsTotalVnd - goalsBudgetVnd)} over the goals budget (
-              {formatVnd(goalsBudgetVnd)})
+            <li className="flex items-baseline justify-between gap-3 pt-0.5 text-[11px] font-medium text-down">
+              <span>
+                {formatVnd(r.goalsTotalVnd - goalsBudgetVnd)} over the goals budget (
+                {formatVnd(goalsBudgetVnd)})
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  // r.goals is already in priority order (openGoals sorts by order).
+                  const fit = fitGoalsToBudget(
+                    r.goals.map((a) => ({ id: a.bucket.id, amountVnd: a.amountVnd })),
+                    goalsBudgetVnd,
+                  );
+                  setEdits((prev) => ({
+                    ...prev,
+                    ...Object.fromEntries(Object.entries(fit).map(([id, v]) => [id, fromVnd(v)])),
+                  }));
+                }}
+                className="shrink-0 text-ink"
+              >
+                fit to budget
+              </button>
             </li>
           )}
         </Group>

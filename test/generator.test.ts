@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { allocate } from '@/lib/generator';
+import { allocate, fitGoalsToBudget } from '@/lib/generator';
 import { SEED_BUCKETS, type Bucket, type Goal } from '@/types/fina';
 
 const base: Bucket[] = SEED_BUCKETS.map((s) => ({
@@ -54,4 +54,15 @@ test('a goal without a target has no need and is never flagged', () => {
   const v = allocate(40_000_000, buckets, { 'goal-vehicle': 0 }, before).goals[1];
   assert.equal(v.needVnd, null);
   assert.equal(v.belowNeed, false);
+});
+
+test('fit to budget: goals in priority order, the first ones first', () => {
+  const goals = [
+    { id: 'phone', amountVnd: 1_929_000 },
+    { id: 'vehicle', amountVnd: 1_500_000 },
+    { id: 'trip', amountVnd: 800_000 },
+  ];
+  assert.deepEqual(fitGoalsToBudget(goals, 3_000_000), { phone: 1_929_000, vehicle: 1_071_000, trip: 0 });
+  assert.deepEqual(fitGoalsToBudget(goals, 10_000_000), { phone: 1_929_000, vehicle: 1_500_000, trip: 800_000 });
+  assert.deepEqual(fitGoalsToBudget(goals, 0), { phone: 0, vehicle: 0, trip: 0 });
 });
