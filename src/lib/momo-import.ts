@@ -353,3 +353,30 @@ export function appendRows(existing: ImportRow[], incoming: ImportRow[]): Import
   }
   return out;
 }
+
+// ---- Display helpers for the import table ----
+
+const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
+
+/** hh:mm in local time. */
+export const timeOf = (ms: number) =>
+  new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+/** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
+export function toLocalInput(ms: number): string {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Rows grouped by day label ("Sun 15 Nov"), in the order given. */
+export function groupByDay(rows: ImportRow[]): [string, ImportRow[]][] {
+  const map = new Map<string, ImportRow[]>();
+  for (const r of rows) {
+    const key = new Date(r.occurredAt).toLocaleDateString('en-GB', DAY_FMT);
+    const list = map.get(key);
+    if (list) list.push(r);
+    else map.set(key, [r]);
+  }
+  return [...map.entries()];
+}

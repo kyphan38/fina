@@ -1,6 +1,6 @@
 # PLAN-refactor (fina)
 
-Trạng thái: Phase 1 xong (2026-11-15), test 228/228, build OK. Phase 2 chưa làm.
+Trạng thái: Phase 1 và 2 xong (Phase 2: 2026-11-16, branch `refactor/import-view`). Test 232/232, build OK. Chưa thử bằng tay (Import cần đăng nhập + Gemini).
 
 Mục tiêu nhỏ: đưa phần khôi phục backup ra khỏi component, và chia `ImportView.tsx` (743 dòng).
 
@@ -32,6 +32,8 @@ Xong khi: `grep "firebase/firestore" src/components` không còn kết quả.
 3. Phần state chính (draft, overflows, reading, saving) có thể chuyển sang hook `useImportDraft` nếu file vẫn trên 300 dòng.
 
 Mục tiêu: `ImportView.tsx` dưới 300 dòng.
+
+Kết quả: ImportView 743 -> 238 dòng. State và logic ở `hooks/useImportDraft.ts`. Component con ở `components/import/` (Header, RowItem, NoteInput, AddRow, RemovedList, ImportFooter). `groupByDay`, `toLocalInput`, `timeOf` ở `lib/momo-import.ts` (có test). `shrink` ở `lib/shrink-image.ts`.
 
 ## Để sau
 

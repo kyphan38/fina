@@ -6,11 +6,14 @@ import {
   buildDrafts,
   checkAgainstExisting,
   flagOf,
+  groupByDay,
   importKey,
   mergeScreenshots,
   parseAmountText,
   parseWhen,
   sanitizeRows,
+  timeOf,
+  toLocalInput,
   type ImportRow,
   type RawRow,
 } from '@/lib/momo-import';
@@ -203,4 +206,25 @@ test('appendRows - a key with a second copy is added, with a new unique id', () 
   const added = appendRows(first, more);
   assert.equal(added.length, 1);
   assert.notEqual(added[0].id, first[0].id);
+});
+
+test('toLocalInput pads to yyyy-mm-ddThh:mm in local time', () => {
+  assert.equal(toLocalInput(new Date(2026, 0, 5, 7, 3).getTime()), '2026-01-05T07:03');
+});
+
+test('timeOf shows 24-hour hh:mm', () => {
+  assert.equal(timeOf(new Date(2026, 10, 15, 21, 5).getTime()), '21:05');
+});
+
+test('groupByDay keeps the given order and one group per day', () => {
+  const at = (d: number, h: number) => new Date(2026, 10, d, h).getTime();
+  const row = (id: string, occurredAt: number) => ({ id, occurredAt }) as unknown as ImportRow;
+  const groups = groupByDay([row('a', at(15, 21)), row('b', at(15, 9)), row('c', at(14, 20))]);
+  assert.deepEqual(
+    groups.map(([day, list]) => [day, list.map((r) => r.id)]),
+    [
+      ['Sun 15 Nov', ['a', 'b']],
+      ['Sat 14 Nov', ['c']],
+    ],
+  );
 });

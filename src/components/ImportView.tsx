@@ -1,246 +1,50 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
 
 import CoverSheet from '@/components/CoverSheet';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLogData } from '@/hooks/useLogData';
-import { bucketAccent } from '@/lib/bucket-color';
-import { formatVnd, toVnd } from '@/lib/money';
-import {
-  DEFAULT_BUCKET,
-  buildDrafts,
-  checkAgainstExisting,
-  importKey,
-  mergeScreenshots,
-  type ImportRow,
-  type RawRow,
-} from '@/lib/momo-import';
-import {
-  DraftGoneError,
-  activeRows,
-  addDraftRow,
-  addToDraft,
-  discardDraft,
-  patchDraftRow,
-  saveDraft,
-  setDraftMerge,
-  watchImportDraft,
-  type DraftRow,
-  type ImportDraftDoc,
-} from '@/lib/import-draft';
-import { batchOverflows, type BatchOverflow } from '@/lib/overflow';
-import { listTransactionsBetween } from '@/lib/transactions';
-import type { Bucket } from '@/types/fina';
+import AddRow from '@/components/import/AddRow';
+import ImportFooter from '@/components/import/ImportFooter';
+import ImportHeader from '@/components/import/ImportHeader';
+import RemovedList from '@/components/import/RemovedList';
+import RowItem from '@/components/import/RowItem';
+import { MAX_IMAGES, useImportDraft } from '@/hooks/useImportDraft';
+import { addDraftRow, setDraftMerge } from '@/lib/import-draft';
+import { formatVnd } from '@/lib/money';
+import { groupByDay } from '@/lib/momo-import';
 
-const MAX_IMAGES = 5;
-/** Sharp enough to read text, yet each image is only a few hundred KB. */
-const MAX_WIDTH = 900;
-/** A hand-entered transaction may be a few hours off the MoMo time. */
-const LOOKUP_MARGIN_MS = 3 * 60 * 60_000;
-
-const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
-const timeOf = (ms: number) =>
-  new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
-/** Shrink images on the client. An iPhone original is 2-3 MB; sending 5 is slow and costly. */
-async function shrink(file: File): Promise<{ mimeType: string; data: string }> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_WIDTH / bmp.width);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  bmp.close();
-  const url = canvas.toDataURL('image/jpeg', 0.85);
-  return { mimeType: 'image/jpeg', data: url.slice(url.indexOf(',') + 1) };
-}
-
-/** yyyy-mm-ddThh:mm for <input type="datetime-local"> in local time. */
-function toLocalInput(ms: number): string {
-  const d = new Date(ms);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-const codeOf = (err: unknown) => (err as { code?: string })?.code ?? 'unknown';
-
-/**
- * The review table lives in Firestore (lib/import-draft.ts), not component
- * state: upload on the phone and the laptop sees it at once, and back. The
- * component only keeps what belongs to this device - reading images,
- * saving, errors.
- */
+/** Review MoMo screenshots as a table, then save them as entries. State: useImportDraft. */
 export default function ImportView() {
-  const { user } = useAuth();
-  const uid = user?.uid ?? null;
-
-  // Same live cycle state as Log, so an import that runs a bucket over can
-  // ask where the money came from, like a single entry does.
-  const live = useLogData();
-  const buckets = live.buckets;
-  const [overflows, setOverflows] = useState<BatchOverflow[]>([]);
-  // undefined = first load, null = no unfinished table.
-  const [draft, setDraft] = useState<ImportDraftDoc | null | undefined>(undefined);
-  const [reading, setReading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [savedCount, setSavedCount] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  // The table vanished because THIS device saved/discarded it: no message needed.
-  const closingHere = useRef(false);
-  const hadDraft = useRef(false);
-
-  useEffect(() => {
-    if (!uid) return;
-    return watchImportDraft(uid, (d) => {
-      if (!d && hadDraft.current && !closingHere.current) {
-        setNotice('The table was saved or discarded on another device.');
-      }
-      if (d) setNotice(null);
-      hadDraft.current = Boolean(d);
-      closingHere.current = false;
-      setDraft(d);
-    });
-  }, [uid]);
-
-  // ETF only receives money when salary is split - never the target of a
-  // MoMo expense. Same reason as the Log grid.
-  const choices = useMemo(
-    () => buckets.filter((b) => b.active && b.id !== 'etf'),
-    [buckets],
-  );
-  const byId = useMemo(() => new Map(buckets.map((b) => [b.id, b])), [buckets]);
-  const fallbackBucket =
-    choices.find((b) => b.id === DEFAULT_BUCKET)?.id ?? choices[0]?.id ?? DEFAULT_BUCKET;
-
-  const rows = useMemo(() => (draft ? activeRows(draft) : []), [draft]);
-  const removed = useMemo(
-    () =>
-      draft
-        ? Object.values(draft.rows)
-            .filter((r) => r.removed)
-            .sort((a, b) => b.occurredAt - a.occurredAt)
-        : [],
-    [draft],
-  );
-  const merge = draft?.merge ?? true;
-
-  const read = async (files: File[]) => {
-    if (!uid || files.length === 0) return;
-    if (files.length > MAX_IMAGES) {
-      setError(`Pick at most ${MAX_IMAGES} screenshots at a time.`);
-      return;
-    }
-    setError(null);
-    setNotice(null);
-    setSavedCount(null);
-    setReading(true);
-    try {
-      const images = await Promise.all(files.map(shrink));
-      const res = await fetch('/api/momo-import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? 'Could not read the screenshots.');
-
-      const merged = mergeScreenshots(body.images as RawRow[][], new Date());
-      const fresh = merged.rows.map((r) => ({ ...r, bucketId: fallbackBucket }));
-
-      let kept = fresh;
-      let imported: ImportRow[] = [];
-      if (fresh.length > 0) {
-        const times = fresh.map((r) => r.occurredAt);
-        const existing = await listTransactionsBetween(
-          uid,
-          Math.min(...times) - LOOKUP_MARGIN_MS,
-          Math.max(...times) + LOOKUP_MARGIN_MS,
-        );
-        ({ kept, imported } = checkAgainstExisting(fresh, existing));
-      }
-
-      const incoming: DraftRow[] = [
-        ...kept.map((r) => ({ ...r, removed: null })),
-        ...imported.map((r) => ({ ...r, removed: 'imported' as const })),
-      ];
-      await addToDraft(uid, incoming, {
-        overlap: merged.overlapCount,
-        unreadable: merged.unreadable,
-      });
-    } catch (err) {
-      setError((err as Error).message || 'Could not read the screenshots.');
-    } finally {
-      setReading(false);
-      if (fileRef.current) fileRef.current.value = '';
-    }
-  };
-
-  // Every action writes straight to Firestore. The listener returns this
-  // device's pending write at once, so the screen does not wait for the network.
-  const run = (fn: () => Promise<void>) => {
-    fn().catch((err) => setError(`Could not update (${codeOf(err)}).`));
-  };
-  const patch = (id: string, change: Partial<Pick<DraftRow, 'bucketId' | 'note' | 'removed'>>) =>
-    uid && run(() => patchDraftRow(uid, id, change));
-
-  const drafts = useMemo(() => buildDrafts(rows, merge), [rows, merge]);
-
-  const totals = useMemo(() => {
-    const out = new Map<string, number>();
-    for (const d of drafts) {
-      const signed = d.direction === 'in' ? -d.amountVnd : d.amountVnd;
-      out.set(d.bucketId, (out.get(d.bucketId) ?? 0) + signed);
-    }
-    return [...out.entries()].sort((a, b) => b[1] - a[1]);
-  }, [drafts]);
-
-  const save = async () => {
-    if (!uid || drafts.length === 0) return;
-    setSaving(true);
-    setError(null);
-    closingHere.current = true;
-    // State BEFORE the write: after it, the listener may already hold the
-    // new entries and count them twice.
-    const before = {
-      cycle: live.cycle,
-      buckets: live.buckets,
-      limitOf: live.limitOf,
-      usedBefore: Object.fromEntries(
-        live.monthly.map((b) => [b.id, (live.spent[b.id] ?? 0) + (live.covered[b.id] ?? 0)]),
-      ),
-    };
-    try {
-      const written = await saveDraft(uid, byId);
-      setSavedCount(written.length);
-      setOverflows(batchOverflows({ written, ...before }));
-    } catch (err) {
-      closingHere.current = false;
-      setError(
-        err instanceof DraftGoneError
-          ? 'This table was already saved on another device.'
-          : `Could not save (${codeOf(err)}).`,
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const discard = () => {
-    if (!uid) return;
-    if (!confirmDiscard) {
-      setConfirmDiscard(true);
-      return;
-    }
-    setConfirmDiscard(false);
-    closingHere.current = true;
-    run(() => discardDraft(uid));
-  };
-
+  const {
+    uid,
+    live,
+    buckets,
+    overflows,
+    setOverflows,
+    draft,
+    reading,
+    saving,
+    savedCount,
+    setSavedCount,
+    error,
+    notice,
+    confirmDiscard,
+    setConfirmDiscard,
+    fileRef,
+    choices,
+    byId,
+    fallbackBucket,
+    rows,
+    removed,
+    merge,
+    read,
+    run,
+    patch,
+    drafts,
+    totals,
+    save,
+    discard,
+  } = useImportDraft();
   const filePicker = (
     <input
       ref={fileRef}
@@ -255,7 +59,7 @@ export default function ImportView() {
   if (draft === undefined) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-        <Header />
+        <ImportHeader />
         <p className="pt-6 text-sm text-muted">Loading…</p>
       </div>
     );
@@ -285,7 +89,7 @@ export default function ImportView() {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
         {coverSheet}
-        <Header />
+        <ImportHeader />
         <p className="pt-6 text-sm">
           Saved {savedCount} {savedCount === 1 ? 'entry' : 'entries'}.
         </p>
@@ -311,7 +115,7 @@ export default function ImportView() {
   if (!draft) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-6">
-        <Header />
+        <ImportHeader />
         <div className="pt-6">
           {notice && <p className="mb-3 text-xs text-up">{notice}</p>}
           <p className="text-sm text-muted">
@@ -342,7 +146,7 @@ export default function ImportView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none pb-4">
-        <Header />
+        <ImportHeader />
 
         <div className="flex items-center gap-2 pt-3">
           <p className="min-w-0 flex-1 text-[11px] text-faint">
@@ -415,329 +219,20 @@ export default function ImportView() {
           onAdd={(row) => uid && run(() => addDraftRow(uid, { ...row, removed: null }))}
         />
 
-        {removed.length > 0 && (
-          <section className="pt-5">
-            <h2 className="px-1 pb-1.5 text-[13px] font-medium text-muted">
-              Removed
-            </h2>
-            <ul className="divide-y divide-line rounded-[10px] border border-dashed border-line">
-              {removed.map((r) => (
-                <li key={r.id} className="flex items-center gap-2.5 px-3 py-2 text-[12px] text-faint">
-                  <span className="w-[74px] shrink-0">
-                    {timeOf(r.occurredAt)} · {new Date(r.occurredAt).getDate()}/
-                    {new Date(r.occurredAt).getMonth() + 1}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {r.removed === 'imported' && (
-                      <b className="font-semibold text-muted">Already imported · </b>
-                    )}
-                    {r.title}
-                  </span>
-                  <span className="shrink-0">
-                    {r.direction === 'in' ? '+' : ''}
-                    {formatVnd(r.amountVnd)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => patch(r.id, { removed: null })}
-                    className="shrink-0 font-semibold text-ink"
-                  >
-                    Add back
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <RemovedList rows={removed} onAddBack={(id) => patch(id, { removed: null })} />
       </div>
 
-      <footer className="shrink-0 border-t border-line pb-3 pt-2.5">
-        {totals.length > 0 && (
-          <ul className="flex flex-wrap gap-x-3 gap-y-1 px-1 pb-2 text-xs">
-            {totals.map(([id, vnd]) => (
-              <li key={id} className="flex items-center gap-1.5">
-                <i
-                  aria-hidden
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: bucketAccent(id) }}
-                />
-                {byId.get(id)?.name ?? id}
-                <b className="font-semibold">{formatVnd(vnd)}</b>
-              </li>
-            ))}
-          </ul>
-        )}
-        {error && <p className="pb-2 text-xs font-medium text-over">{error}</p>}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={discard}
-            onBlur={() => setConfirmDiscard(false)}
-            className={`rounded-[10px] border px-4 py-3 text-sm ${
-              confirmDiscard ? 'border-over bg-over font-semibold text-bg' : 'border-line text-muted'
-            }`}
-          >
-            {confirmDiscard ? 'Tap again' : 'Discard'}
-          </button>
-          <button
-            type="button"
-            disabled={drafts.length === 0 || saving}
-            onClick={save}
-            className="flex-1 rounded-[10px] bg-ink py-3 text-sm font-semibold text-bg disabled:opacity-30"
-          >
-            {saving
-              ? 'Saving…'
-              : `Save ${drafts.length} ${drafts.length === 1 ? 'entry' : 'entries'}`}
-          </button>
-        </div>
-      </footer>
+      <ImportFooter
+        totals={totals}
+        byId={byId}
+        error={error}
+        entries={drafts.length}
+        saving={saving}
+        confirmDiscard={confirmDiscard}
+        onDiscard={discard}
+        onDiscardBlur={() => setConfirmDiscard(false)}
+        onSave={save}
+      />
     </div>
   );
-}
-
-function Header() {
-  return (
-    <header className="flex items-center gap-2 border-b border-line pb-2.5 pt-3">
-      <Link href="/history" className="text-xs text-muted">
-        ← History
-      </Link>
-      <span className="ml-auto text-xs font-semibold">Import from MoMo</span>
-    </header>
-  );
-}
-
-function RowItem({
-  row,
-  choices,
-  byId,
-  onPatch,
-  onRemove,
-}: {
-  row: ImportRow;
-  choices: Bucket[];
-  byId: Map<string, Bucket>;
-  onPatch: (change: Partial<ImportRow>) => void;
-  onRemove: () => void;
-}) {
-  const isIn = row.direction === 'in';
-  const warning =
-    row.flag === 'self'
-      ? 'Money back to your own bank - probably not spending.'
-      : row.flag === 'income'
-        ? 'Money in - saved as IN.'
-        : row.flag === 'manual' && row.lookalike
-          ? `Looks like ${byId.get(row.lookalike.bucketId)?.name ?? row.lookalike.bucketId} ${formatVnd(row.amountVnd)} you logged at ${timeOf(row.lookalike.occurredAt)}.`
-          : null;
-
-  return (
-    <li
-      className="group border-l-[3px] px-3 py-2"
-      style={{ borderLeftColor: bucketAccent(row.bucketId) }}
-    >
-      <div className="flex items-baseline gap-2">
-        <span className="min-w-0 flex-1 truncate text-[13px]">{row.title || '·'}</span>
-        <span className={`shrink-0 text-[13px] font-medium ${isIn ? 'text-muted' : ''}`}>
-          {isIn ? '+' : ''}
-          {formatVnd(row.amountVnd)}
-        </span>
-        {/* With a mouse, only shown on hover. Phones have no hover, so it is
-            always shown, just faint to reduce clutter. */}
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`Remove ${row.title} ${formatVnd(row.amountVnd)}`}
-          className="-mr-1 shrink-0 px-1 text-[15px] leading-none text-faint hover:text-over focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-        >
-          ×
-        </button>
-      </div>
-      <div className="mt-1 flex items-center gap-2">
-        <span className="w-10 shrink-0 text-[11px] text-faint">{timeOf(row.occurredAt)}</span>
-        <select
-          value={row.bucketId}
-          onChange={(e) => onPatch({ bucketId: e.target.value })}
-          aria-label="Bucket"
-          className="w-[108px] shrink-0 rounded-md border border-line bg-surface-2 px-1.5 py-1 text-xs"
-        >
-          {choices.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-        <NoteInput value={row.note} onCommit={(note) => onPatch({ note })} />
-      </div>
-      {warning && <p className="mt-1 text-[11px] text-up">{warning}</p>}
-    </li>
-  );
-}
-
-/**
- * Note field typed on this device; written to Firestore only after half a
- * second of no typing, or on blur. Writing every key costs a write per
- * letter, and the other device's copy could overwrite half-typed text.
- * When not typing, always shows the latest version from Firestore.
- */
-function NoteInput({ value, onCommit }: { value: string; onCommit: (note: string) => void }) {
-  const [text, setText] = useState(value);
-  const [editing, setEditing] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const commit = (next: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    if (next !== value) onCommit(next);
-  };
-
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
-
-  return (
-    <input
-      value={editing ? text : value}
-      onFocus={() => {
-        setText(value);
-        setEditing(true);
-      }}
-      onChange={(e) => {
-        const next = e.target.value;
-        setText(next);
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(() => commit(next), 500);
-      }}
-      onBlur={() => {
-        setEditing(false);
-        commit(text);
-      }}
-      placeholder="Note"
-      enterKeyHint="done"
-      className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-xs placeholder:text-faint"
-    />
-  );
-}
-
-/** Add a missed MoMo row by hand (cut off at an image edge, or not captured). */
-function AddRow({
-  defaultBucket,
-  choices,
-  onAdd,
-}: {
-  defaultBucket: string;
-  choices: Bucket[];
-  onAdd: (row: ImportRow) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [when, setWhen] = useState('');
-  const [amount, setAmount] = useState('');
-  const [title, setTitle] = useState('');
-  const [bucketId, setBucketId] = useState(defaultBucket);
-
-  const amountVnd = toVnd(amount);
-  const occurredAt = when ? new Date(when).getTime() : NaN;
-  const valid = amountVnd !== null && Number.isFinite(occurredAt);
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setWhen(toLocalInput(Date.now()));
-          setBucketId(defaultBucket);
-          setOpen(true);
-        }}
-        className="mt-3 w-full rounded-[10px] border border-dashed border-line py-2 text-xs text-muted"
-      >
-        + Add row
-      </button>
-    );
-  }
-
-  return (
-    <div className="mt-3 rounded-[10px] border border-line bg-surface p-3">
-      <div className="flex gap-2">
-        <input
-          type="datetime-local"
-          value={when}
-          onChange={(e) => setWhen(e.target.value)}
-          aria-label="Date and time"
-          className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1.5 text-xs"
-        />
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          placeholder="Amount (k)"
-          aria-label="Amount in thousands"
-          className="w-24 rounded-md border border-line bg-surface-2 px-2 py-1.5 text-right text-xs placeholder:text-faint"
-        />
-      </div>
-      <div className="mt-2 flex gap-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Who (not saved)"
-          className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1.5 text-xs placeholder:text-faint"
-        />
-        <select
-          value={bucketId}
-          onChange={(e) => setBucketId(e.target.value)}
-          aria-label="Bucket"
-          className="w-[108px] rounded-md border border-line bg-surface-2 px-1.5 py-1.5 text-xs"
-        >
-          {choices.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mt-2 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="flex-1 py-1.5 text-xs text-muted"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={!valid}
-          onClick={() => {
-            const key = importKey(occurredAt, 'out', amountVnd!);
-            onAdd({
-              // Random: two devices adding by hand at once must not share an id.
-              id: `manual-${crypto.randomUUID()}`,
-              key,
-              occurredAt,
-              title: title.trim(),
-              amountVnd: amountVnd!,
-              direction: 'out',
-              bucketId,
-              note: '',
-              flag: null,
-              lookalike: null,
-            });
-            setAmount('');
-            setTitle('');
-            setOpen(false);
-          }}
-          className="flex-1 rounded-[10px] bg-ink py-1.5 text-xs font-semibold text-bg disabled:opacity-30"
-        >
-          Add
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function groupByDay(rows: ImportRow[]): [string, ImportRow[]][] {
-  const map = new Map<string, ImportRow[]>();
-  for (const r of rows) {
-    const key = new Date(r.occurredAt).toLocaleDateString('en-GB', DAY_FMT);
-    const list = map.get(key);
-    if (list) list.push(r);
-    else map.set(key, [r]);
-  }
-  return [...map.entries()];
 }
