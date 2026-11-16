@@ -13,6 +13,7 @@ import { themeStore, type Theme } from '@/lib/prefs';
 import PushCard from '@/components/PushCard';
 import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
 import GoalsCard from '@/components/GoalsCard';
+import RecurringCard from '@/components/RecurringCard';
 import { isGoal } from '@/lib/goals';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import BucketDot from '@/components/BucketDot';
@@ -187,6 +188,8 @@ export default function SettingsView() {
       </Card>
 
       {uid && buckets.length > 0 && <GoalsCard uid={uid} buckets={buckets} />}
+
+      {uid && buckets.length > 0 && <RecurringCard uid={uid} buckets={buckets} />}
 
       <PushCard uid={uid} quietDays={REMINDER_QUIET_DAYS} />
 

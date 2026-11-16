@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import BucketTile from '@/components/BucketTile';
 import Numpad from '@/components/Numpad';
@@ -8,8 +8,11 @@ import { useLogData } from '@/hooks/useLogData';
 import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey } from '@/lib/money';
-import { addTransaction, deleteTransaction, listTransactionsBetween } from '@/lib/transactions';
-import { SUGGEST_DAYS, topAmounts, topNotes } from '@/lib/suggest';
+import { addTransaction, deleteTransaction } from '@/lib/transactions';
+import { useLogSuggestions } from '@/hooks/useLogSuggestions';
+import { useRecurringDue } from '@/hooks/useRecurringDue';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
+import RecurringDue from '@/components/RecurringDue';
 import { bidvBalance } from '@/lib/bidv';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
@@ -65,30 +68,11 @@ export default function LogView() {
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Last 60 days, read once after the screen is up, for the amount buttons.
-  // Not a live listener: a few hundred docs on every open is not worth it.
-  const [history, setHistory] = useState<{ txs: Transaction[]; at: number }>({ txs: [], at: 0 });
-  useEffect(() => {
-    if (!uid) return;
-    let cancelled = false;
-    const now = Date.now();
-    listTransactionsBetween(uid, now - SUGGEST_DAYS * 86_400_000, now)
-      .then((txs) => {
-        if (!cancelled) setHistory({ txs, at: now });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [uid]);
-  const suggestions = useMemo(
-    () => (selectedId ? topAmounts(history.txs, selectedId, history.at) : []),
-    [history, selectedId],
-  );
-  const noteSuggestions = useMemo(
-    () => (selectedId ? topNotes(history.txs, selectedId, history.at) : []),
-    [history, selectedId],
-  );
+  const { amounts: suggestions, notes: noteSuggestions, remember } = useLogSuggestions(uid, selectedId);
+  const { now } = useCurrentCycle();
+  const { due: recurringDue, markDone } = useRecurringDue(uid, cycle, now);
+  // A recurring item put in the form by "log"; it is marked done once Save succeeds.
+  const [pendingRecurring, setPendingRecurring] = useState<string | null>(null);
   // While the note field has focus, the same row offers notes instead of amounts.
   const [noteFocused, setNoteFocused] = useState(false);
 
@@ -198,7 +182,11 @@ export default function LogView() {
         setUndo(null);
       }, 6000);
 
-      setHistory((h) => ({ ...h, txs: [...h.txs, saved] }));
+      remember(saved);
+      if (pendingRecurring) {
+        markDone(pendingRecurring);
+        setPendingRecurring(null);
+      }
 
       // Keep the selected bucket - you often log several in a row.
       setBuf('');
@@ -315,6 +303,18 @@ export default function LogView() {
           )}
         </button>
       </p>
+
+      <RecurringDue
+        items={recurringDue}
+        onLog={(item) => {
+          setSelectedId(item.bucketId);
+          setBuf(fromVnd(item.amountVnd));
+          setNote(item.name);
+          setDirection('out');
+          setPendingRecurring(item.id);
+        }}
+        onSkip={(item) => markDone(item.id)}
+      />
 
       {/* Only this area scrolls. More buckets never push Save away. */}
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none">
