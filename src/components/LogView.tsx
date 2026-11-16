@@ -13,6 +13,7 @@ import { useLogSuggestions } from '@/hooks/useLogSuggestions';
 import { useRecurringDue } from '@/hooks/useRecurringDue';
 import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import RecurringDue from '@/components/RecurringDue';
+import SuggestRow from '@/components/SuggestRow';
 import { bidvBalance } from '@/lib/bidv';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
@@ -414,32 +415,13 @@ export default function LogView() {
           </span>
         </div>
 
-        {/* Fixed height, so picking a bucket never moves the numpad. */}
-        <div className="flex h-7 items-center gap-1.5 overflow-hidden px-1 pb-1.5" aria-label="Often logged">
-          {noteFocused && noteSuggestions.length > 0
-            ? noteSuggestions.map((text) => (
-                <button
-                  key={text}
-                  type="button"
-                  // Keep focus in the note: a blur would swap the row back before the tap lands.
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={() => setNote(text)}
-                  className="max-w-[40%] shrink-0 truncate rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
-                >
-                  {text}
-                </button>
-              ))
-            : suggestions.map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setBuf(fromVnd(v))}
-                  className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
-                >
-                  {formatVnd(v)}
-                </button>
-              ))}
-        </div>
+        <SuggestRow
+          showNotes={noteFocused}
+          amounts={suggestions}
+          notes={noteSuggestions}
+          onAmount={(v) => setBuf(fromVnd(v))}
+          onNote={setNote}
+        />
 
         <input
           value={note}
