@@ -223,15 +223,14 @@ export default function SettingsView() {
         )}
       </Card>
 
-      {/* No tab in the bottom bar and no hint of what it holds: someone holding
-          the phone while the app is open never sees the word "salary".
-          That page locks itself with a password. */}
+      {/* No tab in the bottom bar. Labeled plainly (owner, 2026-11-16: show, do not
+          hide); the page itself opens with Face ID. */}
       <p className="flex gap-5">
         <Link href="/guide" className={WORD_GO}>
           Guide
         </Link>
         <Link href="/salary" className={WORD_GO}>
-          More
+          Salary
         </Link>
       </p>
 
