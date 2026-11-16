@@ -36,3 +36,32 @@ export function topAmounts(
     .slice(0, count)
     .map(([amount]) => amount);
 }
+
+/**
+ * Up to `count` notes, most often written first (case and spaces ignored), for
+ * the same bucket and window as topAmounts. Shows the most recent spelling.
+ */
+export function topNotes(
+  txs: readonly Pick<Transaction, 'bucketId' | 'note' | 'direction' | 'source' | 'occurredAt'>[],
+  bucketId: string,
+  now: number,
+  count = SUGGEST_COUNT,
+  days = SUGGEST_DAYS,
+): string[] {
+  const since = now - days * DAY_MS;
+  const stats = new Map<string, { n: number; last: number; text: string }>();
+  for (const t of txs) {
+    if (t.bucketId !== bucketId || t.direction === 'in' || t.occurredAt < since || !t.note) continue;
+    if (t.source !== 'web' && t.source !== 'import') continue;
+    const text = t.note.trim().replace(/\s+/g, ' ');
+    if (!text) continue;
+    const key = text.toLowerCase();
+    const s = stats.get(key) ?? { n: 0, last: 0, text };
+    stats.set(key, { n: s.n + 1, last: Math.max(s.last, t.occurredAt), text: t.occurredAt >= s.last ? text : s.text });
+  }
+  return [...stats.values()]
+    .filter((s) => s.n >= 2)
+    .sort((a, b) => b.n - a.n || b.last - a.last)
+    .slice(0, count)
+    .map((s) => s.text);
+}

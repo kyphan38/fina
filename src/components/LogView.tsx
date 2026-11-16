@@ -9,7 +9,7 @@ import { useLogKeyboard } from '@/hooks/useLogKeyboard';
 import { cycleLabel, cycleProgress } from '@/lib/cycle';
 import { evalAmount, formatTyped, formatVnd, fromVnd, pressKey } from '@/lib/money';
 import { addTransaction, deleteTransaction, listTransactionsBetween } from '@/lib/transactions';
-import { SUGGEST_DAYS, topAmounts } from '@/lib/suggest';
+import { SUGGEST_DAYS, topAmounts, topNotes } from '@/lib/suggest';
 import { bidvBalance } from '@/lib/bidv';
 import { overflowOf } from '@/lib/overflow';
 import CoverSheet, { type CoverRequest } from '@/components/CoverSheet';
@@ -85,6 +85,12 @@ export default function LogView() {
     () => (selectedId ? topAmounts(history.txs, selectedId, history.at) : []),
     [history, selectedId],
   );
+  const noteSuggestions = useMemo(
+    () => (selectedId ? topNotes(history.txs, selectedId, history.at) : []),
+    [history, selectedId],
+  );
+  // While the note field has focus, the same row offers notes instead of amounts.
+  const [noteFocused, setNoteFocused] = useState(false);
 
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -409,22 +415,37 @@ export default function LogView() {
         </div>
 
         {/* Fixed height, so picking a bucket never moves the numpad. */}
-        <div className="flex h-7 items-center gap-1.5 px-1 pb-1.5" aria-label="Often logged">
-          {suggestions.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setBuf(fromVnd(v))}
-              className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
-            >
-              {formatVnd(v)}
-            </button>
-          ))}
+        <div className="flex h-7 items-center gap-1.5 overflow-hidden px-1 pb-1.5" aria-label="Often logged">
+          {noteFocused && noteSuggestions.length > 0
+            ? noteSuggestions.map((text) => (
+                <button
+                  key={text}
+                  type="button"
+                  // Keep focus in the note: a blur would swap the row back before the tap lands.
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => setNote(text)}
+                  className="max-w-[40%] shrink-0 truncate rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
+                >
+                  {text}
+                </button>
+              ))
+            : suggestions.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setBuf(fromVnd(v))}
+                  className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-muted hover:text-ink"
+                >
+                  {formatVnd(v)}
+                </button>
+              ))}
         </div>
 
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
+          onFocus={() => setNoteFocused(true)}
+          onBlur={() => setNoteFocused(false)}
           placeholder="Note"
           enterKeyHint="done"
           className="mb-1.5 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[13px] placeholder:text-faint [@media(max-height:720px)]:py-1.5"

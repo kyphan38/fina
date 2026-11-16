@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { topAmounts } from '@/lib/suggest';
+import { topAmounts, topNotes } from '@/lib/suggest';
 
 const NOW = Date.UTC(2026, 10, 15);
 const DAY = 86_400_000;
@@ -37,4 +37,12 @@ test('only this bucket, only spending, only typed or imported, only the last 60 
 
 test('no history gives no buttons', () => {
   assert.deepEqual(topAmounts([], 'food', NOW), []);
+});
+
+test('notes: most often written first, case and spaces ignored, latest spelling shown', () => {
+  const n = (note: string | null, daysAgo: number, bucketId = 'food') => ({
+    bucketId, note, direction: 'out' as const, source: 'web' as const, occurredAt: NOW - daysAgo * DAY,
+  });
+  const txs = [n('cơm trưa', 5), n('Cơm  trưa', 1), n('cà phê', 2), n('cà phê', 3), n('cà phê', 4), n('once', 1), n(null, 1), n('cơm trưa', 2, 'coffee')];
+  assert.deepEqual(topNotes(txs, 'food', NOW), ['cà phê', 'Cơm trưa']);
 });
