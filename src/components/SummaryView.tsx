@@ -15,7 +15,8 @@ import BucketDot from '@/components/BucketDot';
 import SheetShell from '@/components/SheetShell';
 import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
 import { useSummary } from '@/hooks/useSummary';
-import { cycleLabel, cycleProgress } from '@/lib/cycle';
+import { cycleLabel, cycleProgress, cycleRange } from '@/lib/cycle';
+import { runOutAt } from '@/lib/run-out';
 import BarFill from '@/components/BarFill';
 import Settle from '@/components/Settle';
 import { barScale } from '@/lib/motion';
@@ -143,6 +144,16 @@ export default function SummaryView() {
               coveredVnd={s.covered[b.id] ?? 0}
               limit={s.limits[b.id]}
               settled={s.settled}
+              runOut={
+                b.evenlySpent && s.limits[b.id] !== undefined
+                  ? runOutAt({
+                      usedVnd: (s.spent[b.id] ?? 0) + (s.covered[b.id] ?? 0),
+                      limitVnd: s.limits[b.id],
+                      ...cycleRange(s.cycleId),
+                      now: s.now,
+                    })
+                  : null
+              }
             />
           ))}
         </ul>
@@ -383,6 +394,7 @@ function BudgetRow({
   spentVnd,
   coveredVnd,
   limit,
+  runOut,
   settled,
 }: {
   bucket: Bucket;
@@ -390,6 +402,8 @@ function BudgetRow({
   /** Amount taken from this bucket to cover another. */
   coveredVnd: number;
   limit: number | undefined;
+  /** When it runs out at the current pace (F3), or null. */
+  runOut?: number | null;
   settled: boolean;
 }) {
   // Buffer drawn to cover elsewhere is still "used", even with no transaction.
@@ -405,6 +419,9 @@ function BudgetRow({
         <span className="flex min-w-0 items-center gap-2">
           <BucketDot id={bucket.id} />
           <span className="truncate">{bucket.name}</span>
+          {runOut != null && !over && (
+            <span className="shrink-0 text-[12px] text-faint">out by {new Date(runOut).getDate()}</span>
+          )}
         </span>
         <span className="whitespace-nowrap">
           <Settle value={shown} settled={settled}>
