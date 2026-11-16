@@ -5,6 +5,7 @@ import { useState } from 'react';
 import BarFill from '@/components/BarFill';
 import HistoryTabs from '@/components/HistoryTabs';
 import InsightPanel from '@/components/InsightPanel';
+import LastCycles from '@/components/LastCycles';
 import { useInsights, type CycleRow } from '@/hooks/useInsights';
 import BucketDot from '@/components/BucketDot';
 import Page from '@/components/Page';
@@ -77,6 +78,8 @@ export default function InsightsView() {
       )}
 
       </div>
+
+      <LastCycles rows={s.rows} buckets={s.buckets} />
 
       {s.uid && <InsightPanel uid={s.uid} signals={s.signals} />}
     </Page>
