@@ -133,16 +133,30 @@ function leftRatio(d) {
   return d.limitVnd > 0 ? d.leftVnd / d.limitVnd : 0;
 }
 
+/** Buckets with a limit, the most used (by share of the limit) first. */
+function closestToLimit(d) {
+  return d.buckets
+    .filter((b) => b.limitVnd)
+    .slice()
+    .sort((a, b) => b.usedVnd / b.limitVnd - a.usedVnd / a.limitVnd);
+}
+
 function small(w, d, stale) {
   header(w, d, stale);
   w.addSpacer();
   text(w, 'Left', 11, muted);
   const big = text(w, k(d.leftVnd), 30, ink, 'bold');
   big.minimumScaleFactor = 0.6;
-  text(w, `/ ${k(d.limitVnd)}k`, 11, muted);
-  w.addSpacer();
+  w.addSpacer(4);
   w.addImage(bar(126, d.limitVnd > 0 ? d.spentVnd / d.limitVnd : 0)).imageSize = new Size(126, 6);
   w.addSpacer(6);
+  // The two buckets closest to their limit: what to watch today.
+  closestToLimit(d)
+    .slice(0, 2)
+    .forEach((b) => {
+      const left = b.limitVnd - b.usedVnd;
+      text(w, `${b.name} ${left < 0 ? `${k(-left)} over` : `${k(left)} left`}`, 11, left < 0 ? ink : muted, left < 0 ? 'bold' : 'regular');
+    });
   text(w, `~${k(d.perDayVnd)} / day left`, 11, muted);
 }
 
@@ -167,7 +181,8 @@ function medium(w, d, stale) {
   const right = row.addStack();
   right.layoutVertically();
   right.addSpacer();
-  const list = d.buckets.slice(0, 6);
+  // Up to 6 rows: all buckets in their usual order, or the 6 closest to their limit when there are more.
+  const list = d.buckets.length <= 6 ? d.buckets : closestToLimit(d).slice(0, 6);
   list.forEach((b, i) => {
     const line = right.addStack();
     line.layoutHorizontally();
