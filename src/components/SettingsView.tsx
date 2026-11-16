@@ -16,6 +16,9 @@ import GoalsCard from '@/components/GoalsCard';
 import { isGoal } from '@/lib/goals';
 import { REMINDER_QUIET_DAYS } from '@/types/fina';
 import BucketDot from '@/components/BucketDot';
+import { BUCKET_NAME_MAX, hideBlocker } from '@/lib/bucket-admin';
+import { addMonthlyBucket } from '@/lib/bucket-store';
+import { useCurrentCycle } from '@/hooks/useCurrentCycle';
 import type { Bucket } from '@/types/fina';
 
 export default function SettingsView() {
@@ -146,19 +149,29 @@ export default function SettingsView() {
                     type="button"
                     onClick={() => setOpenHint(openHint === b.id ? null : b.id)}
                     aria-expanded={openHint === b.id}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    className={`flex min-w-0 flex-1 items-center gap-2 text-left ${b.active ? '' : 'opacity-50'}`}
                   >
                     <BucketDot id={b.id} keepSpace />
                     <span className="truncate text-[15px]">{b.name}</span>
-                    <span className="shrink-0 text-[11px] text-faint">{b.bank}</span>
+                    <span className="shrink-0 text-[11px] text-faint">{b.active ? b.bank : 'hidden'}</span>
                   </button>
-                  <input
-                    defaultValue={fromVnd(b.standardVnd)}
-                    inputMode="decimal"
-                    aria-label={`${b.name} standard`}
-                    onBlur={(e) => saveStandard(b, e.target.value)}
-                    className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-[15px]"
-                  />
+                  {b.active ? (
+                    <input
+                      defaultValue={fromVnd(b.standardVnd)}
+                      inputMode="decimal"
+                      aria-label={`${b.name} standard`}
+                      onBlur={(e) => saveStandard(b, e.target.value)}
+                      className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-[15px]"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => uid && void updateBucket(uid, b.id, { active: true })}
+                      className={WORD}
+                    >
+                      show
+                    </button>
+                  )}
                 </div>
 
                 {/* The bubble points up at the name just tapped. Only shown when
@@ -167,6 +180,7 @@ export default function SettingsView() {
               </li>
             ))}
           </ul>
+          {uid && <AddMonthlyBucket uid={uid} buckets={buckets} />}
           </>
         )}
         {msg && <p className="mt-3 text-[13px] text-muted">{msg}</p>}
@@ -242,6 +256,20 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
     el.setSelectionRange(el.value.length, el.value.length);
   }, [editing]);
 
+  // Hiding keeps every transaction; Log, Generator and Summary skip the bucket.
+  const hide = async () => {
+    const blocked = hideBlocker(bucket);
+    if (blocked) {
+      setError(blocked);
+      return;
+    }
+    try {
+      await updateBucket(uid, bucket.id, { active: false });
+    } catch (err) {
+      setError(`Could not hide (${(err as { code?: string })?.code ?? 'unknown'}).`);
+    }
+  };
+
   const startEdit = () => {
     setDraft(bucket.hint ?? '');
     setError(null);
@@ -269,7 +297,7 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
 
   if (!editing) {
     return (
-      <div className="relative mt-2 flex items-start gap-3 rounded-[10px] bg-ink px-3 py-2 text-[12px] text-bg">
+      <div className="relative mt-2 flex flex-wrap items-start gap-3 rounded-[10px] bg-ink px-3 py-2 text-[12px] text-bg">
         <span aria-hidden className="absolute -top-1 left-4 h-2 w-2 rotate-45 bg-ink" />
         <span className={`min-w-0 flex-1 ${bucket.hint ? '' : 'opacity-60'}`}>
           {bucket.hint ?? 'No description'}
@@ -282,6 +310,17 @@ function HintBubble({ uid, bucket }: { uid: string; bucket: Bucket }) {
         >
           Edit
         </button>
+        {bucket.active && (
+          <button
+            type="button"
+            onClick={hide}
+            aria-label={`Hide ${bucket.name}`}
+            className="shrink-0 font-medium"
+          >
+            Hide
+          </button>
+        )}
+        {error && <span className="basis-full">{error}</span>}
       </div>
     );
   }
@@ -378,5 +417,73 @@ function ColdStart({
         </div>
       )}
     </section>
+  );
+}
+
+/** "add monthly bucket": a VCB bucket that counts from this cycle (e.g. money for parents). */
+function AddMonthlyBucket({ uid, buckets }: { uid: string; buckets: Bucket[] }) {
+  const { cycle } = useCurrentCycle();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [standard, setStandard] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={`${WORD} mt-2`}>
+        add monthly bucket
+      </button>
+    );
+  }
+
+  const vnd = toVnd(standard);
+  const canAdd = name.trim().length > 0 && vnd !== null && !saving;
+  const add = async () => {
+    if (!canAdd || vnd === null) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await addMonthlyBucket(uid, buckets, { name, standardVnd: vnd }, cycle);
+      setOpen(false);
+      setName('');
+      setStandard('');
+    } catch (err) {
+      setError(`Could not add (${(err as { code?: string })?.code ?? 'unknown'}).`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={BUCKET_NAME_MAX}
+          placeholder="Name"
+          aria-label="New bucket name"
+          className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-[15px]"
+        />
+        <input
+          value={standard}
+          onChange={(e) => setStandard(e.target.value)}
+          inputMode="decimal"
+          placeholder="Standard"
+          aria-label="New bucket standard"
+          className="w-24 shrink-0 rounded-md border border-line bg-surface-2 px-2 py-1 text-right text-[15px]"
+        />
+      </div>
+      <div className="flex items-baseline gap-4">
+        <button type="button" onClick={add} disabled={!canAdd} className={`${WORD} disabled:opacity-30`}>
+          {saving ? 'adding…' : 'add'}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className={WORD}>
+          cancel
+        </button>
+        {error && <span className="text-[13px] text-over">{error}</span>}
+      </div>
+    </div>
   );
 }
