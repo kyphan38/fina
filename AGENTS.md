@@ -1,5 +1,14 @@
 # Agent instructions (fina)
 
+## Code layout: keep files small
+
+- A file over about 500 lines is split before a feature is added to it: move a part of
+  the UI to its own component, a pure function to its own module (with a test), or a block
+  of state and actions to its own hook.
+- Pure logic (no React, no Firebase) lives in its own module and has unit tests.
+- Firestore calls live in `src/lib/` (for example `backup.ts`, `transactions.ts`), not in
+  components. A screen's state can move to a hook in `src/hooks/` (see `useImportDraft`).
+
 ## Git: no co-author
 
 Never add `Co-Authored-By:` (or any other author line) to a commit message
