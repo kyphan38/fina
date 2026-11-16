@@ -191,7 +191,8 @@ export default function SettingsView() {
       <PushCard uid={uid} quietDays={REMINDER_QUIET_DAYS} />
 
       <Card title="Backup">
-        <p className="text-[15px]">Export is your only backup.</p>
+        {/* Google Cloud keeps a daily Firestore backup for 7 days (since 2026-11-15). */}
+        <p className="text-[15px]">Backed up daily. Export keeps your own copy.</p>
         {/* Words, not a filled button: Settings has no main action. */}
         <div className="mt-2 flex items-baseline gap-5 text-[15px]">
           <button
