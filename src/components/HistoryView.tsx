@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import HistoryTabs from '@/components/HistoryTabs';
 import Settle from '@/components/Settle';
@@ -13,6 +13,8 @@ import { useRowMotion } from '@/hooks/useRowMotion';
 import { cycleLabel } from '@/lib/cycle';
 import { formatTyped, formatVnd } from '@/lib/money';
 import { netSpending } from '@/lib/spending';
+import { listTransactionsBetween } from '@/lib/transactions';
+import { searchTxs } from '@/lib/tx-search';
 import BucketDot from '@/components/BucketDot';
 import Page from '@/components/Page';
 import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
@@ -24,6 +26,34 @@ const DAY_FMT: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', 
 export default function HistoryView() {
   const h = useHistory();
   const [editing, setEditing] = useState<Transaction | null>(null);
+  // F5: "search" reads every typed or imported entry once, then filters as you type.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [all, setAll] = useState<Transaction[] | null>(null);
+  const [reloadAll, setReloadAll] = useState(0);
+  useEffect(() => {
+    if (!searchOpen || !h.uid) return;
+    let cancelled = false;
+    listTransactionsBetween(h.uid, 0, Date.now())
+      .then((txs) => {
+        if (!cancelled) setAll(txs.filter((t) => t.source === 'web' || t.source === 'import'));
+      })
+      .catch(() => {
+        if (!cancelled) setAll([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchOpen, h.uid, reloadAll]);
+  const found = useMemo(
+    () => searchTxs(all ?? [], query, (id) => h.byId.get(id)?.name ?? id),
+    [all, query, h.byId],
+  );
+  const closeEditor = () => {
+    setEditing(null);
+    // An edit made from the results must show in them.
+    if (searchOpen) setReloadAll((n) => n + 1);
+  };
 
   // Rows a live update adds or removes animate; a new cycle or filter swaps the list.
   const scope = `${h.cycle}|${h.bucketFilter ?? ''}|${h.showAllocations}`;
@@ -80,9 +110,40 @@ export default function HistoryView() {
             {h.showAllocations ? 'hide allocations' : `+${h.allocationCount} allocations`}
           </button>
         )}
+        <button
+          type="button"
+          aria-expanded={searchOpen}
+          onClick={() => {
+            setSearchOpen((v) => !v);
+            setQuery('');
+          }}
+          className={WORD}
+        >
+          {searchOpen ? 'close search' : 'search'}
+        </button>
       </header>
+      {searchOpen && (
+        <input
+          autoFocus
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Note or amount"
+          aria-label="Search all entries"
+          enterKeyHint="search"
+          className="mt-2 w-full rounded-md border border-line bg-surface-2 px-3 py-2 text-[15px] placeholder:text-faint"
+        />
+      )}
 
-      {shown.length === 0 ? (
+      {searchOpen ? (
+        <SearchResults
+          loading={all === null}
+          query={query}
+          found={found}
+          bucketName={(id) => h.byId.get(id)?.name ?? id}
+          onOpen={setEditing}
+        />
+      ) : shown.length === 0 ? (
         <p className="pt-6 text-[15px] text-muted">Nothing logged in this cycle.</p>
       ) : (
         groups.map(([day, txs]) => (
@@ -152,7 +213,7 @@ export default function HistoryView() {
         ))
       )}
 
-      {h.rows.length > 0 && (
+      {!searchOpen && h.rows.length > 0 && (
         <div className="mt-4 flex justify-between text-[13px]">
           <span className="text-muted">
             {h.rows.length} {h.rows.length === 1 ? 'entry' : 'entries'}
@@ -172,7 +233,7 @@ export default function HistoryView() {
             (x): x is Transaction => Boolean(x),
           )}
           byId={h.byId}
-          onClose={() => setEditing(null)}
+          onClose={closeEditor}
         />
       )}
 
@@ -182,7 +243,7 @@ export default function HistoryView() {
           tx={editing}
           buckets={h.buckets}
           beforeKind={h.byId.get(editing.bucketId)?.kind ?? 'budget'}
-          onClose={() => setEditing(null)}
+          onClose={closeEditor}
         />
       )}
     </Page>
@@ -198,4 +259,61 @@ function groupByDay(rows: Transaction[]): [string, Transaction[]][] {
     else map.set(key, [t]);
   }
   return [...map.entries()];
+}
+
+const SEARCH_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: '2-digit' };
+
+/** Matches across every cycle, newest first, with the total of what they cost. */
+function SearchResults({
+  loading,
+  query,
+  found,
+  bucketName,
+  onOpen,
+}: {
+  loading: boolean;
+  query: string;
+  found: ReturnType<typeof searchTxs>;
+  bucketName: (id: string) => string;
+  onOpen: (t: Transaction) => void;
+}) {
+  if (loading) return <p className="pt-6 text-[15px] text-muted">Reading…</p>;
+  if (!query.trim()) return null;
+  if (found.rows.length === 0) return <p className="pt-6 text-[15px] text-muted">No match.</p>;
+  return (
+    <>
+      <ul className="flex flex-col pt-3">
+        {found.rows.map((t) => (
+          <li key={t.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(t)}
+              className="grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-x-2 py-2 text-left"
+            >
+              <span className="text-[13px] text-faint">
+                {new Date(t.occurredAt).toLocaleDateString('en-GB', SEARCH_DATE)}
+              </span>
+              <span className="flex min-w-0 items-center gap-2 text-[15px]">
+                <BucketDot id={t.bucketId} keepSpace />
+                <span className="truncate">{bucketName(t.bucketId)}</span>
+              </span>
+              <span className={`text-right text-[15px] font-medium ${t.direction === 'in' ? 'text-muted' : ''}`}>
+                {t.direction === 'in' ? '+' : ''}
+                {formatVnd(t.amountVnd)}
+              </span>
+              {t.note && (
+                <span className="col-start-2 col-end-4 truncate pl-4 text-[13px] text-faint">{t.note}</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex justify-between text-[13px]">
+        <span className="text-muted">
+          {found.more ? `First ${found.rows.length}` : `${found.rows.length} ${found.rows.length === 1 ? 'entry' : 'entries'}`}
+        </span>
+        <span className="font-semibold">{formatVnd(found.total)}</span>
+      </div>
+    </>
+  );
 }
