@@ -8,6 +8,7 @@ import AmountSheet from '@/components/AmountSheet';
 import MoveSheet from '@/components/MoveSheet';
 import CloseGoalSheet from '@/components/CloseGoalSheet';
 import NotesBlock from '@/components/NotesBlock';
+import PeopleBlock from '@/components/people/PeopleBlock';
 import PaydayButton from '@/components/PaydayButton';
 import TopBar from '@/components/TopBar';
 import Page from '@/components/Page';
@@ -240,6 +241,8 @@ export default function SummaryView() {
           Plan next cycle
         </button>
       </p>
+
+      {s.uid && <PeopleBlock uid={s.uid} buckets={s.buckets} />}
 
       {s.uid && <NotesBlock uid={s.uid} />}
 

@@ -68,6 +68,7 @@ export function widgetData(args: {
 
   const spent: Record<string, number> = {};
   for (const tx of txs) {
+    if (tx.personId) continue;
     const signed = tx.direction === 'in' ? -tx.amountVnd : tx.amountVnd;
     spent[tx.bucketId] = (spent[tx.bucketId] ?? 0) + signed;
   }

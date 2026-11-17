@@ -14,6 +14,8 @@ export interface Backup {
   transactions: Record<string, unknown>[];
   cycles: Record<string, unknown>[];
   covers: Record<string, unknown>[];
+  /** Missing in exports made before People (PLAN-people.md). */
+  people?: Record<string, unknown>[];
 }
 
 const readAll = async (uid: string, name: string) => {
@@ -26,13 +28,14 @@ const readAll = async (uid: string, name: string) => {
  * so export reads every collection, not just transactions.
  */
 export async function buildBackup(uid: string): Promise<Backup> {
-  const [buckets, transactions, cycles, covers] = await Promise.all([
+  const [buckets, transactions, cycles, covers, people] = await Promise.all([
     readAll(uid, 'buckets'),
     readAll(uid, 'transactions'),
     readAll(uid, 'cycles'),
     readAll(uid, 'covers'),
+    readAll(uid, 'people'),
   ]);
-  return { app: 'fina', version: 1, exportedAt: Date.now(), uid, buckets, transactions, cycles, covers };
+  return { app: 'fina', version: 1, exportedAt: Date.now(), uid, buckets, transactions, cycles, covers, people };
 }
 
 const existingIds = async (uid: string, name: BackupCollection) =>
@@ -76,6 +79,7 @@ const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
  */
 export function toCsv(backup: Backup): string {
   const names = new Map(backup.buckets.map((b) => [b.id as string, String(b.name ?? b.id)]));
+  const people = new Map((backup.people ?? []).map((p) => [p.id as string, String(p.name ?? p.id)]));
   const head = ['Cycle', 'Month', 'Year', 'Date', 'Bucket', 'Bank', 'Amount', 'Note'];
 
   const rows = [...backup.transactions]
@@ -96,7 +100,7 @@ export function toCsv(backup: Backup): string {
         month,
         year,
         new Date(Number(t.occurredAt)).toISOString(),
-        names.get(String(t.bucketId)) ?? String(t.bucketId),
+        t.personId ? `People: ${people.get(String(t.personId)) ?? String(t.personId)}` : (names.get(String(t.bucketId)) ?? String(t.bucketId)),
         String(t.bank ?? ''),
         fromVnd(Number(t.amountVnd ?? 0)),
         String(t.note ?? ''),

@@ -11,7 +11,7 @@ const SECTIONS = [
   { id: 'history', title: 'History' },
   { id: 'summary', title: 'Summary' },
   { id: 'payday', title: 'Ngày lương: đóng sổ và chia lương' },
-  { id: 'debt', title: 'Mượn và trả nợ' },
+  { id: 'debt', title: 'People: mượn, ứng, chi hộ' },
   { id: 'widget', title: 'Widget' },
   { id: 'settings', title: 'Settings, bucket và sao lưu' },
 ] as const;
@@ -90,8 +90,8 @@ export default function GuidePage() {
               Bấm vào số <B>left</B> ở trên cùng để xem tổng tiền đang có ở BIDV (quỹ và goals). Bấm lại để quay về.
             </>,
             <>
-              Nút <B>OUT / IN</B>. OUT là chi tiền. IN là <B>tiền vào lại</B> (hoàn tiền, bạn bè trả lại,
-              mượn tiền). IN sẽ trừ vào số đã tiêu của bucket đó.
+              Nút <B>OUT / IN</B>. OUT là chi tiền. IN là <B>tiền vào lại</B> (hoàn tiền, bạn bè trả lại).
+              IN sẽ trừ vào số đã tiêu của bucket đó. Tiền mượn thì ghi ở People, không ghi IN vào bucket.
             </>,
             <>Ghi chú không bắt buộc, nhưng nên ghi cho khoản lớn hoặc khoản lạ.</>,
             <>
@@ -147,6 +147,10 @@ export default function GuidePage() {
               sửa bucket, OUT/IN, ngày giờ, ghi chú, hoặc xoá.
             </>,
             <>
+              Dòng People mặc định bị ẩn, tổng chỉ tính chi tiêu. Bấm <B>+N people</B> để hiện. Trong bộ lọc có
+              nhóm <B>People</B>: chọn một người thì chỉ hiện các dòng của người đó, cuối danh sách là số dư hiện tại.
+            </>,
+            <>
               <B>search</B>: tìm trên mọi chu kỳ. Gõ chữ để tìm theo note hoặc tên bucket (không cần dấu). Gõ số để
               tìm theo số tiền, ví dụ <Code>35</Code> = 35.000đ. Có tổng tiền ở cuối.
             </>,
@@ -164,7 +168,8 @@ export default function GuidePage() {
       <Section id="summary">
         <Rows
           rows={[
-            ['Notes', 'Ghi chú tự do, mặc định đóng. Khi đóng vẫn hiện dòng đầu tiên. Dùng để ghi nợ và những việc cần nhớ.'],
+            ['People', 'Ai đang nợ ai: chỉ những người có số dư khác 0. Người đã xong hiện mờ ở dòng "settled". Bấm vào một người để xem lịch sử, Count as spending, hoặc Archive. Dòng "Bank holds ... more than the buckets" cho biết tài khoản ngân hàng có nhiều (hoặc ít) hơn tổng các bucket bao nhiêu, vì tiền của người khác.'],
+            ['Notes', 'Ghi chú tự do, mặc định đóng. Khi đóng vẫn hiện dòng đầu tiên. Dùng cho những việc cần nhớ.'],
             ['VCB - Monthly', 'Đã dùng / hạn mức của từng bucket. Edit limits chỉ sửa chu kỳ này. "out by 22": Food hoặc Utilities sẽ hết tiền vào ngày 22 nếu cứ chi như hiện tại.'],
             ['BIDV - Funds', 'Số dư từng quỹ. Dấu + để nạp thêm tiền, Move để chuyển tiền giữa các quỹ (không tính là chi tiêu).'],
             ['Goals', 'Quỹ có mục tiêu: cần bao nhiêu mỗi tháng, đang nhanh hay chậm. Close khi đã mua xong. Tạo goal ở Settings → Goals; "Plan a purchase" cho biết quỹ nào đủ tiền ngay hoặc cần để dành bao nhiêu mỗi tháng.'],
@@ -204,25 +209,43 @@ export default function GuidePage() {
 
       <Section id="debt">
         <P>
-          App chưa có mục &quot;Nợ&quot; riêng. Cách làm dưới đây giúp app luôn khớp với tài khoản ngân hàng.
+          <B>People</B> là tiền đi qua tay nhưng không phải chi tiêu của bạn: mượn, cho mượn, ứng tiền khám chờ bảo
+          hiểm hoàn, ứng giùm team, giữ tiền chung cho chuyến đi. Khoản ghi vào People{' '}
+          <B>không bao giờ</B> tính vào hạn mức, tổng chi, Trends, widget hay AI.
         </P>
         <Rows
           rows={[
-            ['Khi mượn', 'Ghi IN vào đúng bucket hoặc quỹ đã dùng tiền mượn, ghi chú "Mượn <ai> <bao nhiêu>". Dùng tab Log, đừng dùng dấu + ở Summary.'],
-            ['Khi tiêu', 'Ghi OUT như bình thường.'],
-            ['Ghi nhớ', 'Thêm một dòng vào Notes ở Summary: ai, bao nhiêu, ngày nào.'],
-            ['Khi trả', 'Ghi OUT vào cùng bucket đã ghi IN, ghi chú "Trả <ai>". Xoá dòng đó trong Notes.'],
+            ['Số dư', 'Mỗi người có một số dư. Dương (+): họ nợ bạn. Âm (-): bạn nợ họ, hoặc đang giữ tiền của họ. 0: xong.'],
+            ['Tạo người', 'Ở Log, hàng People dưới Funds, bấm "+ person", gõ tên (Mẹ, DV, Team, Bảo hiểm, Trip Đà Lạt).'],
+            ['OUT', 'Tiền đi tới họ: cho mượn, ứng giùm, chi hộ, trả nợ. Dòng tên đổi thành "to Mẹ". Số dư tăng.'],
+            ['IN', 'Tiền từ họ tới: mượn, được hoàn, họ trả, họ chuyển tiền chung. Dòng tên đổi thành "from Mẹ". Số dư giảm.'],
+            ['Tài khoản', 'Khi chọn một người, chọn thêm VCB, BIDV hoặc Cash (tiền mặt), để đối chiếu ngân hàng cho đúng.'],
           ]}
         />
-        <P>
-          <B>Ngày lương, nếu trả nợ:</B> trong Generator (hoặc Edit limits), cộng số tiền trả nợ vào hạn mức
-          của bucket đó. Ví dụ: Beauty 1.000 + trả nợ 7.000 = 8.000. Như vậy khoản OUT trả nợ không làm bucket
-          bị vượt. Sau đó mới chia phần còn lại vào các quỹ.
-        </P>
-        <P>
-          Đừng ghi IN vào một bucket khác với bucket đã tiêu. Tổng vẫn đúng, nhưng một bucket sẽ bị âm, còn
-          bucket kia trông như sắp hết tiền.
-        </P>
+        <List
+          items={[
+            <>
+              <B>Mượn rồi tiêu:</B> ghi IN ở người cho mượn. Tiêu thì ghi OUT vào bucket như bình thường. Tiền mượn
+              không làm hạn mức rộng ra: tiêu quá thì bucket hiện vượt. Khi trả, ghi OUT ở người đó, không phải chi
+              tiêu, nên tháng trả nợ bucket không bị vượt.
+            </>,
+            <>
+              <B>Bảo hiểm hoàn thiếu:</B> ứng 1.200 (OUT ở Bảo hiểm), được hoàn 1.000 (IN). Còn +200. Ở Summary bấm
+              vào Bảo hiểm → <B>Count as spending</B>, chọn bucket (ví dụ Health). App ghi 200 là chi tiêu của chu
+              kỳ hiện tại và đưa số dư về 0. Hai dòng này đi cùng nhau: xoá một dòng thì dòng kia cũng bị xoá.
+            </>,
+            <>
+              <B>Giữ tiền chung cho chuyến đi:</B> team chuyển 10.000 (IN ở Trip). Mỗi lần chi hộ ghi OUT ở Trip.
+              Phần của bạn ghi vào quỹ Travel như chi tiêu bình thường. Cuối chuyến số dư về 0 là khớp.
+            </>,
+            <>
+              Một dòng People không sửa được. Muốn sửa thì xoá ở History rồi ghi lại.
+            </>,
+            <>
+              Khi số dư về 0, bấm vào người đó ở Summary → <B>Archive</B> để ẩn khỏi Log.
+            </>,
+          ]}
+        />
       </Section>
 
       <Section id="widget">

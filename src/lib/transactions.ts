@@ -19,6 +19,7 @@ import { cycleOf } from '@/lib/cycle';
 import { bucketsCol } from '@/lib/buckets';
 import { coversOfTx } from '@/lib/covers';
 import { balanceDeltas, type TxShape } from '@/lib/tx-edit';
+import { deletePersonTx, deleteSettle } from '@/lib/people-store';
 import type { Bucket, Transaction, TxDirection, TxSource } from '@/types/fina';
 
 export const txCol = (uid: string) => collection(db, 'users', uid, 'transactions');
@@ -50,6 +51,8 @@ function toTx(id: string, data: Record<string, unknown>): Transaction {
         : 'web',
     importKeys: Array.isArray(data.importKeys) ? data.importKeys.map(String) : undefined,
     moveId: typeof data.moveId === 'string' ? data.moveId : undefined,
+    ...(typeof data.personId === 'string' && data.personId ? { personId: data.personId } : {}),
+    ...(typeof data.settleId === 'string' && data.settleId ? { settleId: data.settleId } : {}),
     createdAt: Number(data.createdAt ?? 0),
     updatedAt: Number(data.updatedAt ?? 0),
   };
@@ -240,6 +243,8 @@ export function spentByBucket(txs: Transaction[]): Record<string, number> {
   for (const tx of txs) {
     // Moving Purchases to Phone is not Purchases spending it.
     if (tx.source === 'move') continue;
+    // A person is not a bucket.
+    if (tx.personId) continue;
     const signed = tx.direction === 'in' ? -tx.amountVnd : tx.amountVnd;
     out[tx.bucketId] = (out[tx.bucketId] ?? 0) + signed;
   }
@@ -334,6 +339,9 @@ export async function deleteTransaction(
   tx: Transaction,
   kind: Bucket['kind'],
 ): Promise<void> {
+  // Both entries of "Count as spending" go together.
+  if (tx.settleId) return deleteSettle(uid, tx.settleId);
+  if (tx.personId) return deletePersonTx(uid, tx);
   const deltas = balanceDeltas(
     { bucketId: tx.bucketId, kind, amountVnd: tx.amountVnd, direction: tx.direction },
     null,
@@ -375,4 +383,11 @@ export async function listTransactionsBetween(
     query(txCol(uid), where('occurredAt', '>=', fromMs), where('occurredAt', '<=', toMs)),
   );
   return snap.docs.map((d) => toTx(d.id, d.data()));
+}
+
+/** All entries of one person, any cycle, newest first. One single-field query. */
+export function watchPersonTxs(uid: string, personId: string, cb: (txs: Transaction[]) => void): () => void {
+  return onSnapshot(query(txCol(uid), where('personId', '==', personId)), (snap) =>
+    cb(snap.docs.map((d) => toTx(d.id, d.data())).sort((a, b) => b.occurredAt - a.occurredAt)),
+  );
 }

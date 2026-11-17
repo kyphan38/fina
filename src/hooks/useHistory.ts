@@ -12,6 +12,8 @@ import { listCycles } from '@/lib/cycles';
 import { watchCycleTransactions } from '@/lib/transactions';
 import { netSpending } from '@/lib/spending';
 import { collapseMoves, pairMoves } from '@/lib/moves';
+import { usePeople } from '@/hooks/usePeople';
+import { historyRows, PERSON_FILTER } from '@/lib/people';
 import type { Bucket, Transaction } from '@/types/fina';
 
 export function useHistory() {
@@ -33,6 +35,9 @@ export function useHistory() {
   // Day-25 allocations and fund moves are noise day to day. Hidden by
   // default; show them to reconcile.
   const [showAllocations, setShowAllocations] = useState(false);
+  // People entries are not spending: hidden unless shown or filtered by a person.
+  const [showPeople, setShowPeople] = useState(false);
+  const people = usePeople(uid);
   // Row animations wait for both listeners to have answered once.
   const { settled, mark } = useFirstSnapshots(2);
 
@@ -80,11 +85,14 @@ export function useHistory() {
     [collapsed],
   );
 
+  const peopleCount = useMemo(() => collapsed.filter((t) => t.personId).length, [collapsed]);
+
   const rows = useMemo(() => {
     let filtered = showAllocations
       ? collapsed
       : collapsed.filter((t) => t.source !== 'allocation' && t.source !== 'move');
-    if (bucketFilter) {
+    filtered = historyRows(filtered, bucketFilter, showPeople);
+    if (bucketFilter && !bucketFilter.startsWith(PERSON_FILTER)) {
       filtered = filtered.filter((t) => {
         if (t.bucketId === bucketFilter) return true;
         // Filtering by the source fund must still find the move (the row is the target side).
@@ -93,7 +101,7 @@ export function useHistory() {
       });
     }
     return [...filtered].sort((a, b) => b.occurredAt - a.occurredAt);
-  }, [collapsed, moves, bucketFilter, showAllocations]);
+  }, [collapsed, moves, bucketFilter, showAllocations, showPeople]);
 
   /**
    * Net total of what is REALLY spending.
@@ -114,6 +122,10 @@ export function useHistory() {
     setBucketFilter,
     showAllocations,
     setShowAllocations,
+    showPeople,
+    setShowPeople,
+    peopleCount,
+    people,
     allocationCount,
     moves,
     rows,

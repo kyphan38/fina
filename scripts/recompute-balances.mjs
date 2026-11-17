@@ -71,13 +71,29 @@ for (const d of buckets.docs) {
   console.log(`${want === have ? 'ok  ' : 'OFF '} ${d.id.padEnd(12)} stored ${f(have).padStart(10)}  computed ${f(want).padStart(10)}`);
 }
 
-if (fixes.length === 0) {
+// People (PLAN-people.md): out raises a balance, in lowers it.
+const people = await db.collection(`users/${UID}/people`).get();
+const owed = {};
+for (const d of txs.docs) {
+  const t = d.data();
+  if (typeof t.personId !== 'string') continue;
+  owed[t.personId] = (owed[t.personId] ?? 0) + (t.direction === 'in' ? -1 : 1) * t.amountVnd;
+}
+const peopleFixes = [];
+for (const d of people.docs) {
+  const want = owed[d.id] ?? 0;
+  const have = Number(d.data().balanceVnd ?? 0);
+  if (want !== have) peopleFixes.push([d.id, have, want]);
+  console.log(`${want === have ? 'ok  ' : 'OFF '} person ${String(d.data().name).padEnd(12)} stored ${f(have).padStart(10)}  computed ${f(want).padStart(10)}`);
+}
+
+if (fixes.length === 0 && peopleFixes.length === 0) {
   console.log('\nEvery balance matches.');
   process.exit(0);
 }
 
 if (!COMMIT) {
-  console.log(`\n${fixes.length} funds off. Add --commit to rewrite.`);
+  console.log(`\n${fixes.length} funds and ${peopleFixes.length} people off. Add --commit to rewrite.`);
   process.exit(0);
 }
 
@@ -85,5 +101,8 @@ const batch = db.batch();
 for (const [id, , want] of fixes) {
   batch.update(db.doc(`users/${UID}/buckets/${id}`), { balanceVnd: want, updatedAt: Date.now() });
 }
+for (const [id, , want] of peopleFixes) {
+  batch.update(db.doc(`users/${UID}/people/${id}`), { balanceVnd: want, updatedAt: Date.now() });
+}
 await batch.commit();
-console.log(`\nFixed ${fixes.length} funds.`);
+console.log(`\nFixed ${fixes.length} funds and ${peopleFixes.length} people.`);

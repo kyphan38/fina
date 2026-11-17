@@ -40,7 +40,7 @@ service cloud.firestore {
       return d.keys().hasAll(['name', 'kind', 'bank', 'standardVnd', 'order', 'active'])
         && d.name is string
         && d.kind in ['budget', 'fund']
-        && d.bank in ['VCB', 'BIDV', 'VPS']
+        && d.bank in ['VCB', 'BIDV', 'VPS', 'Cash']
         // Block floats at the DB layer: one float multiplication
         // (4.1 * 1_000_000) once broke the whole seed batch.
         && isVnd(d.standardVnd)
@@ -60,7 +60,7 @@ service cloud.firestore {
         && d.cycle is string
         && d.cycle.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
         && d.bucketId is string
-        && d.bank in ['VCB', 'BIDV', 'VPS']
+        && d.bank in ['VCB', 'BIDV', 'VPS', 'Cash']
         && isVnd(d.amountVnd) && d.amountVnd > 0
         // amountVnd is always positive; direction lives in `direction`, not the sign.
         && (!('direction' in d.keys()) || d.direction in ['out', 'in'])
@@ -71,7 +71,22 @@ service cloud.firestore {
         && (!('moveId' in d.keys()) || d.moveId is string)
         // Dedup keys from a MoMo screenshot import - plain strings, no names.
         && (!('importKeys' in d.keys()) || (d.importKeys is list && d.importKeys.size() <= 200))
-        && (!('expr' in d.keys()) || (d.expr is string && d.expr.size() <= 100));
+        && (!('expr' in d.keys()) || (d.expr is string && d.expr.size() <= 100))
+        // People entries (PLAN-people.md) live on the fake bucket 'people', and only there.
+        && (('personId' in d.keys()) == (d.bucketId == 'people'))
+        && (!('personId' in d.keys()) || (d.personId is string && d.personId.size() > 0))
+        // "Count as spending": two entries sharing one settleId.
+        && (!('settleId' in d.keys()) || d.settleId is string);
+    }
+
+    function validPerson(d) {
+      return d.keys().hasOnly(['name', 'balanceVnd', 'archived', 'createdAt', 'updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        // + they owe you, - you owe them.
+        && d.balanceVnd is int
+        && d.archived is bool
+        && d.createdAt is int
+        && d.updatedAt is int;
     }
 
     function validCover(d) {
@@ -105,6 +120,14 @@ service cloud.firestore {
         // A closed cycle can no longer be edited - otherwise past numbers
         // would change every time Settings is adjusted.
         allow update: if isOwner(uid) && resource.data.status != 'closed';
+        allow delete: if false;
+      }
+
+      // people/{personId} - money that passes through, never spending.
+      match /people/{personId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validPerson(request.resource.data);
+        // Archive instead: entries still point at the person.
         allow delete: if false;
       }
 

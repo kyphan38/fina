@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from 'react';
 import HistoryTabs from '@/components/HistoryTabs';
 import Settle from '@/components/Settle';
 import TxEditSheet from '@/components/TxEditSheet';
+import PersonTxSheet from '@/components/people/PersonTxSheet';
+import { balanceWord, PERSON_FILTER } from '@/lib/people';
 import { MoveDetailSheet } from '@/components/MoveSheet';
 import { useFlip } from '@/hooks/useFlip';
 import { useHistory } from '@/hooks/useHistory';
@@ -49,6 +51,13 @@ export default function HistoryView() {
     () => searchTxs(all ?? [], query, (id) => h.byId.get(id)?.name ?? id),
     [all, query, h.byId],
   );
+  const personName = (id?: string) => h.people.find((p) => p.id === id)?.name ?? 'Person';
+  /** A row's name: the bucket, or "to Mẹ" / "from Mẹ" for a People entry. */
+  const rowName = (t: Transaction) =>
+    t.personId ? `${t.direction === 'out' ? 'to' : 'from'} ${personName(t.personId)}` : (h.byId.get(t.bucketId)?.name ?? t.bucketId);
+  const filteredPerson = h.bucketFilter?.startsWith(PERSON_FILTER)
+    ? h.people.find((p) => p.id === h.bucketFilter!.slice(PERSON_FILTER.length)) ?? null
+    : null;
   const closeEditor = () => {
     setEditing(null);
     // An edit made from the results must show in them.
@@ -99,6 +108,15 @@ export default function HistoryView() {
               {b.name}
             </option>
           ))}
+          {h.people.length > 0 && (
+            <optgroup label="People">
+              {h.people.map((p) => (
+                <option key={p.id} value={`${PERSON_FILTER}${p.id}`}>
+                  {p.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </WordSelect>
 
         {h.allocationCount > 0 && (
@@ -108,6 +126,11 @@ export default function HistoryView() {
             className={WORD}
           >
             {h.showAllocations ? 'hide allocations' : `+${h.allocationCount} allocations`}
+          </button>
+        )}
+        {h.peopleCount > 0 && !filteredPerson && (
+          <button type="button" onClick={() => h.setShowPeople(!h.showPeople)} className={WORD}>
+            {h.showPeople ? 'hide people' : `+${h.peopleCount} people`}
           </button>
         )}
         <button
@@ -140,7 +163,7 @@ export default function HistoryView() {
           loading={all === null}
           query={query}
           found={found}
-          bucketName={(id) => h.byId.get(id)?.name ?? id}
+          rowName={rowName}
           onOpen={setEditing}
         />
       ) : shown.length === 0 ? (
@@ -158,7 +181,7 @@ export default function HistoryView() {
                 const b = h.byId.get(t.bucketId);
                 const pair = t.source === 'move' && t.moveId ? h.moves.get(t.moveId) : undefined;
                 // A move is neither money in nor out, so no + sign.
-                const isIn = t.direction === 'in' && !pair;
+                const isIn = t.direction === 'in' && !pair && !t.personId;
                 const nameOf = (x?: Transaction | null) =>
                   x ? (h.byId.get(x.bucketId)?.name ?? x.bucketId) : '?';
                 const note = pair
@@ -186,8 +209,8 @@ export default function HistoryView() {
                         })}
                       </span>
                       <span className="flex min-w-0 items-center gap-2 text-[15px]">
-                        <BucketDot id={pair ? '' : t.bucketId} keepSpace />
-                        <span className="truncate">{pair ? 'Move' : (b?.name ?? t.bucketId)}</span>
+                        <BucketDot id={pair || t.personId ? '' : t.bucketId} keepSpace />
+                        <span className="truncate">{pair ? 'Move' : t.personId ? rowName(t) : (b?.name ?? t.bucketId)}</span>
                       </span>
                       {/* Right-aligned so the amounts line up in one column. */}
                       <span className={`text-right text-[15px] font-medium ${isIn ? 'text-muted' : ''}`}>
@@ -218,11 +241,19 @@ export default function HistoryView() {
           <span className="text-muted">
             {h.rows.length} {h.rows.length === 1 ? 'entry' : 'entries'}
           </span>
-          <span className="font-semibold">
-            <Settle value={h.total} settled={h.settled}>
-              {formatVnd(h.total)}
-            </Settle>
-          </span>
+          {filteredPerson ? (
+            <span className="font-semibold">
+              {filteredPerson.balanceVnd === 0
+                ? 'settled'
+                : `${balanceWord(filteredPerson.balanceVnd)} ${formatVnd(Math.abs(filteredPerson.balanceVnd))}`}
+            </span>
+          ) : (
+            <span className="font-semibold">
+              <Settle value={h.total} settled={h.settled}>
+                {formatVnd(h.total)}
+              </Settle>
+            </span>
+          )}
         </div>
       )}
 
@@ -237,7 +268,11 @@ export default function HistoryView() {
         />
       )}
 
-      {editing && h.uid && editing.source !== 'move' && (
+      {editing && h.uid && (editing.personId || editing.settleId) && (
+        <PersonTxSheet uid={h.uid} tx={editing} title={rowName(editing)} onClose={closeEditor} />
+      )}
+
+      {editing && h.uid && editing.source !== 'move' && !editing.personId && !editing.settleId && (
         <TxEditSheet
           uid={h.uid}
           tx={editing}
@@ -268,13 +303,13 @@ function SearchResults({
   loading,
   query,
   found,
-  bucketName,
+  rowName,
   onOpen,
 }: {
   loading: boolean;
   query: string;
   found: ReturnType<typeof searchTxs>;
-  bucketName: (id: string) => string;
+  rowName: (t: Transaction) => string;
   onOpen: (t: Transaction) => void;
 }) {
   if (loading) return <p className="pt-6 text-[15px] text-muted">Reading…</p>;
@@ -294,8 +329,8 @@ function SearchResults({
                 {new Date(t.occurredAt).toLocaleDateString('en-GB', SEARCH_DATE)}
               </span>
               <span className="flex min-w-0 items-center gap-2 text-[15px]">
-                <BucketDot id={t.bucketId} keepSpace />
-                <span className="truncate">{bucketName(t.bucketId)}</span>
+                <BucketDot id={t.personId ? '' : t.bucketId} keepSpace />
+                <span className="truncate">{rowName(t)}</span>
               </span>
               <span className={`text-right text-[15px] font-medium ${t.direction === 'in' ? 'text-muted' : ''}`}>
                 {t.direction === 'in' ? '+' : ''}

@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
-import BucketTile from '@/components/BucketTile';
+import BucketSections from '@/components/log/BucketSections';
+import PeopleSection from '@/components/log/PeopleSection';
+import PersonBank from '@/components/log/PersonBank';
+import { usePeople } from '@/hooks/usePeople';
+import { addPersonTx } from '@/lib/people-store';
+import { balanceWord } from '@/lib/people';
 import Numpad from '@/components/Numpad';
 import { useLogData } from '@/hooks/useLogData';
 import { useLogKeyboard } from '@/hooks/useLogKeyboard';
@@ -22,10 +27,9 @@ import ToastBar, { type ToastData } from '@/components/ToastBar';
 import TopBar from '@/components/TopBar';
 import BucketDot from '@/components/BucketDot';
 import DirectionToggle from '@/components/DirectionToggle';
-import SectionTitle, { WORD } from '@/components/SectionTitle';
 import { markReady } from '@/lib/startup';
 import { fundsOpenStore } from '@/lib/prefs';
-import type { Bucket, Transaction } from '@/types/fina';
+import { PEOPLE_BUCKET, type Bank, type Bucket, type Transaction } from '@/types/fina';
 
 export default function LogView() {
   const {
@@ -44,7 +48,19 @@ export default function LogView() {
     settled,
   } = useLogData();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedIdRaw] = useState<string | null>(null);
+  // People (PLAN-people.md): a person OR a bucket is picked, never both.
+  const people = usePeople(uid);
+  const [personId, setPersonId] = useState<string | null>(null);
+  const [personBank, setPersonBank] = useState<Bank>('VCB');
+  const setSelectedId = useCallback((id: string | null) => {
+    setSelectedIdRaw(id);
+    setPersonId(null);
+  }, []);
+  const pickPerson = (id: string) => {
+    setSelectedIdRaw(null);
+    setPersonId(id);
+  };
   const [buf, setBuf] = useState('');
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -107,17 +123,55 @@ export default function LogView() {
     if (ready) markReady();
   }, [ready]);
   const selected = all.find((b) => b.id === selectedId) ?? null;
+  const person = people.find((p) => p.id === personId && !p.archived) ?? null;
   const amountVnd = evalAmount(buf);
   // With a plus/minus, the big number is the TOTAL and the expression is small
   // above it - combining small amounts without a total means mental math.
   const combining = /[+-]/.test(buf);
-  const canSave = Boolean(uid && selected && amountVnd !== null && !saving);
+  const canSave = Boolean(uid && (selected || person) && amountVnd !== null && !saving);
 
   const onKey = useCallback((key: string) => {
     setBuf((cur) => pressKey(cur, key));
   }, []);
 
+  const savePerson = async () => {
+    if (!uid || !person || amountVnd === null) return;
+    setSaving(true);
+    const trimmed = note.trim();
+    try {
+      const { id, occurredAt } = await addPersonTx(uid, person, amountVnd, trimmed || null, direction, personBank);
+      const after = person.balanceVnd + (direction === 'out' ? amountVnd : -amountVnd);
+      showToast(
+        `${direction === 'out' ? 'to' : 'from'} ${person.name} · ${formatVnd(amountVnd)} · ${after === 0 ? 'settled' : `${balanceWord(after)} ${formatVnd(Math.abs(after))}`}`,
+        true,
+      );
+      navigator.vibrate?.(10);
+      setUndo({
+        tx: {
+          id, occurredAt, cycle, bucketId: PEOPLE_BUCKET, personId: person.id, bank: personBank, amountVnd,
+          direction, note: trimmed || null, source: 'web', createdAt: occurredAt, updatedAt: occurredAt,
+        },
+        kind: 'budget',
+      });
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => {
+        setToast(null);
+        setUndo(null);
+      }, 6000);
+      setBuf('');
+      setNote('');
+      setDirection('out');
+    } catch {
+      showToast('Could not save. Check your connection.', false);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 4000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const save = async () => {
+    if (person) return savePerson();
     if (!uid || !selected || amountVnd === null) return;
     setSaving(true);
     const trimmed = note.trim();
@@ -319,69 +373,21 @@ export default function LogView() {
 
       {/* Only this area scrolls. More buckets never push Save away. */}
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none">
-      <Section title="Monthly">
-        <div className="grid grid-cols-3 gap-1.5">
-          {monthly.map((b) => (
-            <BucketTile
-              key={b.id}
-              bucket={b}
-              spentVnd={spent[b.id] ?? 0}
-              coveredVnd={covered[b.id] ?? 0}
-              limitVnd={limitOf(b)}
-              selected={b.id === selectedId}
-              settled={settled}
-              onSelect={() => setSelectedId(b.id)}
-            />
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Funds"
-        action={
-          <button
-            type="button"
-            onClick={toggleFunds}
-            aria-expanded={fundsOpen}
-            className={`${WORD} min-[900px]:hidden`}
-          >
-            {fundsOpen ? 'hide' : 'show'}
-          </button>
-        }
-      >
-        {/* Always shown on Mac: there is room, and collapsing saves nothing. */}
-        <div ref={fundsRef} className={fundsOpen ? 'block' : 'hidden min-[900px]:block'}>
-          <div className="grid grid-cols-3 gap-1.5">
-            {funds.map((b) => (
-              <BucketTile
-                key={b.id}
-                bucket={b}
-                spentVnd={spent[b.id] ?? 0}
-                selected={b.id === selectedId}
-                settled={settled}
-                onSelect={() => setSelectedId(b.id)}
-              />
-            ))}
-          </div>
-          {goals.length > 0 && (
-            <>
-              <SectionTitle className="pt-2">Goals</SectionTitle>
-              <div className="grid grid-cols-3 gap-1.5">
-                {goals.map((b) => (
-                  <BucketTile
-                    key={b.id}
-                    bucket={b}
-                    spentVnd={spent[b.id] ?? 0}
-                    selected={b.id === selectedId}
-                    settled={settled}
-                    onSelect={() => setSelectedId(b.id)}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </Section>
+      <BucketSections
+        monthly={monthly}
+        funds={funds}
+        goals={goals}
+        spent={spent}
+        covered={covered}
+        limitOf={limitOf}
+        selectedId={selectedId}
+        settled={settled}
+        fundsOpen={fundsOpen}
+        fundsRef={fundsRef}
+        onToggleFunds={toggleFunds}
+        onSelect={setSelectedId}
+      />
+      <PeopleSection uid={uid} people={people} selectedId={personId} onSelect={pickPerson} />
       </div>
       </div>
 
@@ -393,7 +399,9 @@ export default function LogView() {
             className={`flex min-w-0 flex-1 items-center gap-2 text-[15px] ${selected ? 'font-medium' : 'text-faint'}`}
           >
             {selected && <BucketDot id={selected.id} />}
-            <span className="truncate">{selected ? selected.name : 'Pick a bucket'}</span>
+            <span className="truncate">
+              {person ? `${direction === 'out' ? 'to' : 'from'} ${person.name}` : selected ? selected.name : 'Pick a bucket'}
+            </span>
           </span>
           <span className="flex shrink-0 items-baseline gap-3.5">
             {/* out / in words, not −/+: the numpad has + and − keys for
@@ -414,6 +422,8 @@ export default function LogView() {
             </span>
           </span>
         </div>
+
+        {person && <PersonBank bank={personBank} onChange={setPersonBank} />}
 
         <SuggestRow
           showNotes={noteFocused}
@@ -468,23 +478,6 @@ export default function LogView() {
       </div>
       </div>
     </div>
-  );
-}
-
-function Section({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="pt-2">
-      <SectionTitle action={action}>{title}</SectionTitle>
-      {children}
-    </section>
   );
 }
 

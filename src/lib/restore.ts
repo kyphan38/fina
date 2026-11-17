@@ -2,7 +2,7 @@
 
 import type { Backup } from '@/lib/backup';
 
-export const BACKUP_COLLECTIONS = ['buckets', 'transactions', 'cycles', 'covers'] as const;
+export const BACKUP_COLLECTIONS = ['buckets', 'transactions', 'cycles', 'covers', 'people'] as const;
 export type BackupCollection = (typeof BACKUP_COLLECTIONS)[number];
 
 /** Firestore allows 500 writes per batch; stay well below. */

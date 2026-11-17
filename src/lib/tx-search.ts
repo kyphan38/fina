@@ -34,6 +34,7 @@ export function searchTxs(
   });
   hits.sort((a, b) => b.occurredAt - a.occurredAt);
   // Total of what was spent: money back ('in') counts against it.
-  const total = hits.reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0);
+  // People entries are not spending (PLAN-people.md).
+  const total = hits.filter((t) => !t.personId).reduce((sum, t) => sum + (t.direction === 'in' ? -t.amountVnd : t.amountVnd), 0);
   return { rows: hits.slice(0, SEARCH_MAX), total, more: hits.length > SEARCH_MAX };
 }

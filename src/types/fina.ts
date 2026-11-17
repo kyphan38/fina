@@ -29,7 +29,27 @@ export interface Goal {
   targetMonth: string | null;
   status: GoalStatus;
 }
-export type Bank = 'VCB' | 'BIDV' | 'VPS';
+/** Cash is money in hand (PLAN-people.md): a loan from Mẹ was cash, not VCB. */
+export type Bank = 'VCB' | 'BIDV' | 'VPS' | 'Cash';
+
+/**
+ * A person or a group money passes through (PLAN-people.md): Mẹ, Team,
+ * Insurance, a shared trip. Never spending, never in a limit.
+ *
+ * Firestore: users/{uid}/people/{personId}
+ */
+export interface Person {
+  id: string;
+  name: string;
+  /** + they owe you, - you owe them (or hold their money). Denormalized like a fund. */
+  balanceVnd: number;
+  archived: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** The fake bucket id of every People entry. No document has this id. */
+export const PEOPLE_BUCKET = 'people';
 
 /** Firestore: users/{uid}/buckets/{bucketId} */
 export interface Bucket {
@@ -126,6 +146,13 @@ export interface Transaction {
    * fund, `in` on the target) sharing one `moveId`. See lib/moves.ts.
    */
   moveId?: string;
+  /** Set on People entries; then `bucketId` is PEOPLE_BUCKET. */
+  personId?: string;
+  /**
+   * "Count as spending" writes two entries (a bucket `out` and a person `in`)
+   * that share this id. Deleting one deletes both. See lib/people.ts.
+   */
+  settleId?: string;
   createdAt: number;
   updatedAt: number;
 }

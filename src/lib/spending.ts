@@ -11,6 +11,11 @@ import type { Transaction } from '@/types/fina';
 
 export const ETF_BUCKET = 'etf';
 
+/** A People entry (PLAN-people.md). */
+export function isPersonTx(tx: Pick<Transaction, 'personId'>): boolean {
+  return typeof tx.personId === 'string' && tx.personId.length > 0;
+}
+
 /** A pre-existing balance: the starting state, not an expense. */
 export function isOpening(tx: Transaction): boolean {
   return tx.source === 'opening';
@@ -25,6 +30,8 @@ export function isSpending(tx: Transaction): boolean {
   if (tx.source === 'move') return false;
   // Investing is not spending.
   if (tx.bucketId === ETF_BUCKET) return false;
+  // Money that only passes through: loans, advances, money held for others.
+  if (isPersonTx(tx)) return false;
   return true;
 }
 
