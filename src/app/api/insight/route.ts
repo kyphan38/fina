@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { logAiCost } from '@/lib/ai-cost-log';
 import { overLimit } from '@/lib/rate-limit';
 import { getSessionUser } from '@/lib/server-auth';
 import { QUOTA_MESSAGE, isQuotaStatus } from '@/lib/ai-quota';
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     );
     if (!res.ok) throw new Error(String(res.status));
     const body = await res.json();
+    await logAiCost(MODEL, body?.usageMetadata);
     text = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   } catch (err) {
     // Log the error name only. The digest is never logged in production.

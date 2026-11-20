@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { logAiCost } from '@/lib/ai-cost-log';
 import { getSessionUser } from '@/lib/server-auth';
 import { QUOTA_MESSAGE, isQuotaStatus } from '@/lib/ai-quota';
 import { overLimit } from '@/lib/rate-limit';
@@ -86,6 +87,7 @@ async function readImage(key: string, image: ImageIn): Promise<RawRow[]> {
   );
   if (!res.ok) throw new Error(String(res.status));
   const body = await res.json();
+  await logAiCost(MODEL, body?.usageMetadata);
   const text: string = body?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   return sanitizeRows(JSON.parse(text));
 }

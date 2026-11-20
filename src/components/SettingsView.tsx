@@ -10,6 +10,7 @@ import { fromVnd, toVnd } from '@/lib/money';
 import { clearStartupTimes, readSkippedCount, startupStore } from '@/lib/startup';
 import { buildBackup, daysSinceExport, download, markExported, toCsv } from '@/lib/backup';
 import { themeStore, type Theme } from '@/lib/prefs';
+import AiCostRow from '@/components/AiCostRow';
 import PushCard from '@/components/PushCard';
 import SectionTitle, { WORD, WORD_GO } from '@/components/SectionTitle';
 import GoalsCard from '@/components/GoalsCard';
@@ -122,6 +123,10 @@ export default function SettingsView() {
             </button>
           ))}
         </div>
+      </Card>
+
+      <Card title="AI cost">
+        <AiCostRow />
       </Card>
 
       <Card title="Standard amounts">
